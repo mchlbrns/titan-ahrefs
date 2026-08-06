@@ -127,6 +127,20 @@ export default function DashboardPage() {
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    const savedDomain = typeof window !== 'undefined' ? localStorage.getItem('titan_ahrefs_selected_domain') : null;
+    if (savedDomain) {
+      setSelectedDomain(savedDomain);
+    }
+  }, []);
+
+  const handleSelectDomain = (newDomain: string) => {
+    setSelectedDomain(newDomain);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('titan_ahrefs_selected_domain', newDomain);
+    }
+  };
+
+  useEffect(() => {
     async function loadManagedDomains() {
       try {
         const res = await fetch('/api/domains');
@@ -329,7 +343,7 @@ export default function DashboardPage() {
               value={selectedDomain}
               onChange={(e) => {
                 const newDomain = e.target.value;
-                setSelectedDomain(newDomain);
+                handleSelectDomain(newDomain);
                 fetchData(newDomain);
               }}
               className="bg-slate-800 text-white text-lg font-bold px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] focus:outline-none focus:border-cyan-500 cursor-pointer"
@@ -619,7 +633,7 @@ export default function DashboardPage() {
         domainOptions={domainOptions}
         onDomainsChange={(updatedDomains) => setDomainOptions(updatedDomains)}
         onSelectDomain={(newDomain) => {
-          setSelectedDomain(newDomain);
+          handleSelectDomain(newDomain);
           fetchData(newDomain);
         }}
         onConfigSaved={() => fetchData(selectedDomain)}

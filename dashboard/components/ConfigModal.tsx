@@ -170,50 +170,22 @@ export default function ConfigModal({
         <div className="space-y-3 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0a0b0d] p-3.5">
           <label className="block font-medium text-slate-300">Managed Dropdown Domains</label>
           <div className="space-y-2">
-            {domainOptions.map((dom) => {
-              const isActive = dom === primaryDomain;
-              return (
-                <div
-                  key={dom}
-                  className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs transition-all ${
-                    isActive
-                      ? 'border-cyan-500/40 bg-cyan-500/10 text-cyan-200'
-                      : 'border-[rgba(255,255,255,0.08)] bg-[#111318] text-slate-300'
-                  }`}
+            {domainOptions.map((dom) => (
+              <div
+                key={dom}
+                className="flex items-center justify-between px-3 py-2 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111318] text-slate-300 text-xs"
+              >
+                <span className="font-mono">{dom}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteDomain(dom)}
+                  title="Remove domain"
+                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono">{dom}</span>
-                    {isActive && (
-                      <span className="text-[10px] bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded font-semibold">
-                        ACTIVE TARGET
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {!isActive && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPrimaryDomain(dom);
-                          onSelectDomain(dom);
-                        }}
-                        className="text-[11px] text-slate-400 hover:text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] px-2 py-1 rounded transition-colors"
-                      >
-                        Set Active
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteDomain(dom)}
-                      title="Remove domain"
-                      className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
           </div>
 
           {/* Add domain input */}
