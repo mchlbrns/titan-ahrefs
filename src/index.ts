@@ -106,7 +106,11 @@ async function main() {
       const analyzer = new CompetitorAnalyzer(client, logger);
       for (const domain of domains) {
         const competitors = competitorRegistry.competitors_by_domain[domain] || [];
-        const compTarget = competitors.length > 0 ? competitors[0] : 'competitor-sample.com';
+        if (competitors.length === 0) {
+          console.log(`\n⚠️ Competitor Analysis [${domain}]: skipped; no configured competitor.`);
+          continue;
+        }
+        const compTarget = competitors[0];
         const gap = await analyzer.analyzeCompetitorGap(domain, compTarget);
         console.log(`\n⚔️ Competitor Analysis [${domain} vs ${compTarget}]:`);
         console.log(`   - Shared Keywords: ${gap.sharedKeywords}`);

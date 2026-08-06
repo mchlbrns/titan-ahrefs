@@ -9,8 +9,7 @@ import {
   ExecutiveSummaryItem,
   ReportOptions,
   DomainSnapshot,
-  ApiUsageLimits,
-  SeoRecommendation
+  ApiUsageLimits
 } from './types';
 import { calculateSeoHealthScore } from './health';
 import { Logger } from './logger';
@@ -123,7 +122,8 @@ export class ReportGenerator {
           };
         }
 
-        const previousSnapshots = this.snapshotStore.getSnapshotsForDomain(domain);
+        const previousSnapshots = this.snapshotStore.getSnapshotsForDomain(domain)
+          .filter(item => item.dataSource === snapshot.dataSource);
         const previousSnap = previousSnapshots.length > 1 ? previousSnapshots[1] : undefined;
         const trend = this.comparisonEngine.compareSnapshots(snapshot, previousSnap);
         const recommendations = this.recommendationEngine.generateRecommendations(snapshot, trend);

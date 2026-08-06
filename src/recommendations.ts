@@ -12,7 +12,6 @@ export class RecommendationEngine {
     this.logger.info(`Generating strategic SEO recommendations for ${snapshot.domain}`);
     const recs: SeoRecommendation[] = [];
     const domain = snapshot.domain;
-    const overview = snapshot.overview;
     const backlinks = snapshot.backlinks;
     const competitors = snapshot.competitors || [];
 

@@ -39,18 +39,13 @@ describe('AhrefsClient Unit Tests', () => {
   });
 
   test('fetchDomainRating handles live API success response', async () => {
-    const mockFetch = jest.fn().mockResolvedValue({
+    const mockFetch = jest.fn().mockImplementation((url: string) => Promise.resolve({
       ok: true,
-      json: async () => ({
-        domain_rating: {
-          domain_rating: 65,
-          url_rating: 40,
-          ahrefs_rank: 50000,
-          backlinks: 5000,
-          refdomains: 800
-        }
-      })
-    });
+      headers: new Headers(),
+      json: async () => url.includes('domain-rating') ? { domain_rating: 65, ahrefs_rank: 50000 } :
+        url.includes('metrics') ? { metrics: { org_traffic: 15000, org_keywords: 480 } } :
+        { metrics: { live: 5000, live_refdomains: 800 } }
+    }));
     global.fetch = mockFetch;
 
     const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false });
@@ -58,12 +53,12 @@ describe('AhrefsClient Unit Tests', () => {
 
     expect(res.domain).toBe('red-engage.com');
     expect(res.domainRating).toBe(65);
-    expect(res.urlRating).toBe(40);
+    expect(res.urlRating).toBe(0);
     expect(res.totalBacklinks).toBe(5000);
     expect(res.referringDomains).toBe(800);
   });
 
-  test('fetchDomainRating falls back to mock data on API error', async () => {
+  test('fetchDomainRating fails closed on API error in live mode', async () => {
     const mockFetch = jest.fn().mockResolvedValue({
       ok: false,
       status: 500,
@@ -72,9 +67,6 @@ describe('AhrefsClient Unit Tests', () => {
     global.fetch = mockFetch;
 
     const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false, maxRetries: 0 });
-    const res = await client.fetchDomainRating('red-engage.com');
-
-    expect(res.domain).toBe('red-engage.com');
-    expect(res.domainRating).toBeGreaterThan(0);
+    await expect(client.fetchDomainRating('red-engage.com')).rejects.toThrow('Ahrefs API HTTP error 500');
   });
 });

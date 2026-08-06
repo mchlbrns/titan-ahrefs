@@ -152,6 +152,8 @@ export interface DomainSnapshot {
   snapshotId: string;
   domain: string;
   timestamp: string;
+  /** Provenance guard: reports must never mistake test fixtures for Ahrefs output. */
+  dataSource?: 'ahrefs-api-v3' | 'mock';
   overview: DomainOverviewMetrics;
   keywords: DomainKeywordReport;
   topPages: TopPagesReport;
@@ -231,4 +233,3 @@ export interface ReportOptions {
   enableCsv?: boolean;
   includeHistoricalTrends?: boolean;
 }
-

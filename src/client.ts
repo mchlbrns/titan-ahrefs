@@ -35,7 +35,7 @@ export class AhrefsClient {
   public usageMonitor: ApiUsageMonitor;
 
   constructor(options: AhrefsClientOptions = {}) {
-    this.apiKey = options.apiKey || process.env.AHREFS_API_KEY || '';
+    this.apiKey = options.apiKey !== undefined ? options.apiKey : (process.env.AHREFS_API_KEY || '');
     this.baseUrl = options.baseUrl || process.env.AHREFS_API_BASE_URL || 'https://api.ahrefs.com/v3';
     this.mockFallback = options.mockFallback ?? (process.env.MOCK_API_FALLBACK !== 'false');
     this.maxRetries = options.maxRetries ?? 3;
@@ -49,12 +49,38 @@ export class AhrefsClient {
   }
 
   private extractUnitsFromResponse(res: Response, defaultUnits: number = 1): number {
-    const headerVal = res.headers ? (res.headers.get('x-api-units-consumed') || res.headers.get('x-units-consumed')) : null;
+    const headerVal = res.headers ? (res.headers.get('x-api-units-cost-total-actual') || res.headers.get('x-api-units-consumed') || res.headers.get('x-units-consumed')) : null;
     if (headerVal) {
       const parsed = parseInt(headerVal, 10);
       if (!isNaN(parsed) && parsed > 0) return parsed;
     }
     return defaultUnits;
+  }
+
+  /** Executes a real Ahrefs request. Authentication is intentionally never logged. */
+  private async requestLive(endpoint: string, params: Record<string, string> = {}): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams(params);
+    const url = `${this.baseUrl}${endpoint}${query.size ? `?${query.toString()}` : ''}`;
+    return withRetry(async (attempt) => {
+      this.logger.debug(`API request attempt ${attempt} for ${endpoint}`, { url });
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${this.apiKey}`, Accept: 'application/json' }
+      });
+      if (!response.ok) {
+        throw new AhrefsApiError(`Ahrefs API HTTP error ${response.status}: ${response.statusText}`, response.status, url);
+      }
+      this.usageMonitor.recordApiCall(endpoint, this.extractUnitsFromResponse(response, 50), true);
+      return await response.json() as Record<string, unknown>;
+    }, { maxRetries: this.maxRetries, initialDelayMs: this.retryDelayMs, logger: this.logger });
+  }
+
+  private currentDate(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private numberField(record: Record<string, unknown>, field: string): number {
+    const value = record[field];
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   // Task 1: GET /subscription-info/limits-and-usage
@@ -93,19 +119,20 @@ export class AhrefsClient {
       }, { maxRetries: this.maxRetries, initialDelayMs: this.retryDelayMs, logger: this.logger });
 
       this.usageMonitor.recordApiCall(endpoint, units, true);
+      const usage = (data.limits_and_usage || data) as Record<string, unknown>;
       const limits: ApiUsageLimits = {
-        unitsLimit: (data.units_limit as number) ?? 500000,
-        unitsConsumed: (data.units_consumed as number) ?? 15000,
-        unitsRemaining: (data.units_remaining as number) ?? 485000,
-        resetDate: (data.reset_date as string) || new Date().toISOString(),
-        apiKeyStatus: (data.api_key_status as string) || 'ACTIVE'
+        unitsLimit: this.numberField(usage, 'units_limit'),
+        unitsConsumed: this.numberField(usage, 'units_consumed'),
+        unitsRemaining: this.numberField(usage, 'units_remaining'),
+        resetDate: String(usage.reset_date || ''),
+        apiKeyStatus: String(usage.api_key_status || 'ACTIVE')
       };
 
       this.usageMonitor.updateLimitsFromApi(limits);
       return limits;
     } catch (err) {
-      this.logger.warn(`Failed to fetch API limits. Using cached summary. Reason: ${(err as Error).message}`);
-      return this.usageMonitor.getUsageSummary();
+      this.logger.error(`Failed to fetch API limits. Reason: ${(err as Error).message}`);
+      throw err;
     }
   }
 
@@ -119,81 +146,29 @@ export class AhrefsClient {
     }
 
     this.logger.info(`Fetching Domain Overview for ${domain} [LIVE API]`);
-    try {
-      const overview = await withRetry(async (attempt) => {
-        const selectFields = 'domain_rating,ahrefs_rank,backlinks,refdomains,url_rating';
-        const url = `${this.baseUrl}${endpoint}?target=${encodeURIComponent(domain)}&select=${encodeURIComponent(selectFields)}`;
-        this.logger.debug(`API request attempt ${attempt} for ${domain}`, { url });
-
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          throw new AhrefsApiError(
-            `Ahrefs API HTTP error ${response.status}: ${response.statusText}`,
-            response.status,
-            url
-          );
-        }
-
-        const unitsConsumed = this.extractUnitsFromResponse(response, 10);
-        this.usageMonitor.recordApiCall(endpoint, unitsConsumed, true);
-
-        const data = await response.json() as Record<string, unknown>;
-        const drData = (data.domain_rating || data) as Record<string, number>;
-        const domainRating = drData.domain_rating ?? 45;
-        const urlRating = drData.url_rating ?? 30;
-        const ahrefsRank = drData.ahrefs_rank ?? 125000;
-        const totalBacklinks = drData.backlinks ?? 1200;
-        const referringDomains = drData.refdomains ?? 350;
-        const organicTraffic = (data.organic_traffic as number) ?? (drData.organic_traffic as number) ?? 15400;
-        const trafficValue = (data.traffic_value as number) ?? (drData.traffic_value as number) ?? 24500;
-        const rankingKeywords = (data.ranking_keywords as number) ?? (drData.ranking_keywords as number) ?? 480;
-        const dofollowBacklinks = Math.round(totalBacklinks * 0.76);
-        const dofollowRefdomains = Math.round(referringDomains * 0.82);
-        const nofollowLinks = Math.round(totalBacklinks * 0.24);
-
-        const healthScore = calculateSeoHealthScore({
-          domainRating,
-          referringDomains,
-          totalBacklinks,
-          dofollowLinks: dofollowBacklinks,
-          estimatedTraffic: organicTraffic,
-          top10Count: Math.round(rankingKeywords * 0.15)
-        });
-
-        return {
-          domain,
-          domainRating,
-          urlRating,
-          ahrefsRank,
-          organicTraffic,
-          trafficValue,
-          rankingKeywords,
-          totalBacklinks,
-          referringDomains,
-          dofollowBacklinks,
-          dofollowRefdomains,
-          nofollowLinks,
-          timestamp: new Date().toISOString(),
-          seoHealthScore: healthScore
-        };
-      }, {
-        maxRetries: this.maxRetries,
-        initialDelayMs: this.retryDelayMs,
-        logger: this.logger
-      });
-
-      return overview;
-    } catch (err) {
-      this.logger.warn(`API request failed for ${domain}. Falling back to mock data. Reason: ${(err as Error).message}`);
-      this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockDomainOverview(domain);
-    }
+    const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
+    const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
+      this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
+      this.requestLive('/site-explorer/metrics', baseParams),
+      this.requestLive('/site-explorer/backlinks-stats', { target: domain, mode: 'domain', date: this.currentDate() })
+    ]);
+    const dr = drRaw as Record<string, unknown>;
+    const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
+    const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
+    const domainRating = this.numberField(dr, 'domain_rating');
+    const totalBacklinks = this.numberField(backlinkStats, 'live');
+    const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
+    const organicTraffic = this.numberField(metrics, 'org_traffic');
+    const trafficValue = this.numberField(metrics, 'org_traffic_value');
+    const rankingKeywords = this.numberField(metrics, 'org_keywords');
+    const dofollowBacklinks = 0;
+    const dofollowRefdomains = 0;
+    return {
+      domain, domainRating, urlRating: 0, ahrefsRank: this.numberField(dr, 'ahrefs_rank'), organicTraffic,
+      trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
+      nofollowLinks: 0, timestamp: new Date().toISOString(),
+      seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
+    };
   }
 
   // Alias for backward compatibility
@@ -205,8 +180,8 @@ export class AhrefsClient {
   public async fetchOrganicKeywords(domain: string, options: { limit?: number; select?: string; orderBy?: string } = {}): Promise<DomainKeywordReport> {
     const endpoint = '/site-explorer/organic-keywords';
     const limit = options.limit ?? 100;
-    const select = options.select ?? 'keyword,position,previous_position,volume,keyword_difficulty,traffic,url,serp_features,search_intent';
-    const orderBy = options.orderBy ?? 'traffic:desc';
+    const select = options.select ?? 'keyword,best_position,volume,keyword_difficulty,sum_traffic,best_position_url,serp_features,is_informational,is_transactional,is_commercial,is_navigational';
+    const orderBy = options.orderBy ?? 'sum_traffic:desc';
 
     if (this.isMockMode()) {
       this.logger.info(`Fetching Organic Keywords for ${domain} [MOCK MODE]`);
@@ -219,6 +194,10 @@ export class AhrefsClient {
       const report = await withRetry(async (attempt) => {
         const queryParams = new URLSearchParams({
           target: domain,
+          mode: 'domain',
+          country: 'us',
+          date: this.currentDate(),
+          date_compared: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
           select,
           limit: String(limit),
           order_by: orderBy
@@ -243,17 +222,15 @@ export class AhrefsClient {
         const data = await res.json() as { keywords?: Record<string, unknown>[] };
         const rawKeywords = data.keywords || [];
 
-        const keywords: OrganicKeywordItem[] = rawKeywords.map(item => {
-          const pos = (item.position as number) ?? 10;
-          const prevPos = (item.previous_position as number) ?? pos;
-          const posChange = (item.position_change as number) ?? (prevPos - pos);
-          const vol = (item.volume as number) ?? (item.search_volume as number) ?? 1000;
-          const kd = (item.keyword_difficulty as number) ?? 20;
-          const estTr = (item.traffic as number) ?? (item.estimated_traffic as number) ?? 100;
-          const trChange = (item.traffic_change as number) ?? 0;
-          const rawIntent = String(item.search_intent || 'Commercial');
-          const validIntents = ['Informational', 'Transactional', 'Commercial', 'Navigational', 'Mixed'];
-          const searchIntent = (validIntents.includes(rawIntent) ? rawIntent : 'Commercial') as OrganicKeywordItem['searchIntent'];
+        const keywords: OrganicKeywordItem[] = rawKeywords.filter(item => typeof item.keyword === 'string' && item.keyword.length > 0).map(item => {
+          const pos = this.numberField(item, 'best_position');
+          const prevPos = this.numberField(item, 'best_position_prev') || pos;
+          const posChange = this.numberField(item, 'best_position_diff') || 0;
+          const vol = this.numberField(item, 'volume');
+          const kd = this.numberField(item, 'keyword_difficulty');
+          const estTr = this.numberField(item, 'sum_traffic');
+          const trChange = this.numberField(item, 'sum_traffic_diff');
+          const searchIntent = (item.is_transactional ? 'Transactional' : item.is_commercial ? 'Commercial' : item.is_informational ? 'Informational' : item.is_navigational ? 'Navigational' : 'Mixed') as OrganicKeywordItem['searchIntent'];
 
           return {
             keyword: String(item.keyword || ''),
@@ -264,7 +241,7 @@ export class AhrefsClient {
             keywordDifficulty: kd,
             estimatedTraffic: estTr,
             trafficChange: trChange,
-            url: String(item.url || `https://${domain}`),
+            url: String(item.best_position_url || `https://${domain}`),
             serpFeatures: Array.isArray(item.serp_features) ? item.serp_features.map(String) : [],
             searchIntent
           };
@@ -290,9 +267,9 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} organic keywords. Falling back to mock data. Reason: ${(err as Error).message}`);
+      this.logger.error(`API request failed for ${domain} organic keywords. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockOrganicKeywords(domain);
+      throw err;
     }
   }
 
@@ -300,7 +277,7 @@ export class AhrefsClient {
   public async fetchTopPages(domain: string, options: { limit?: number; select?: string } = {}): Promise<TopPagesReport> {
     const endpoint = '/site-explorer/top-pages';
     const limit = options.limit ?? 50;
-    const select = options.select ?? 'url,traffic,traffic_change,keywords,top_keyword,traffic_value';
+    const select = options.select ?? 'url,sum_traffic,keywords,top_keyword,value';
 
     if (this.isMockMode()) {
       this.logger.info(`Fetching Top Pages for ${domain} [MOCK MODE]`);
@@ -313,6 +290,10 @@ export class AhrefsClient {
       const report = await withRetry(async (attempt) => {
         const queryParams = new URLSearchParams({
           target: domain,
+          mode: 'domain',
+          country: 'us',
+          date: this.currentDate(),
+          date_compared: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
           select,
           limit: String(limit)
         });
@@ -338,11 +319,11 @@ export class AhrefsClient {
 
         const pages: TopPageItem[] = rawPages.map(item => ({
           url: String(item.url || `https://${domain}/`),
-          organicTraffic: (item.traffic as number) ?? (item.organic_traffic as number) ?? 0,
-          trafficChange: (item.traffic_change as number) ?? 0,
-          rankingKeywords: (item.keywords as number) ?? (item.ranking_keywords as number) ?? 0,
+          organicTraffic: this.numberField(item, 'sum_traffic'),
+          trafficChange: this.numberField(item, 'traffic_diff'),
+          rankingKeywords: this.numberField(item, 'keywords'),
           topKeyword: String(item.top_keyword || domain),
-          trafficValue: (item.traffic_value as number) ?? 0
+          trafficValue: this.numberField(item, 'value')
         }));
 
         const totalOrganicTraffic = pages.reduce((acc, p) => acc + p.organicTraffic, 0);
@@ -359,15 +340,15 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} top pages. Falling back to mock data. Reason: ${(err as Error).message}`);
+      this.logger.error(`API request failed for ${domain} top pages. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockTopPages(domain);
+      throw err;
     }
   }
 
   // Task 5: Competitor Collection
   public async fetchCompetitorOverview(targetDomain: string, competitorDomain: string): Promise<CompetitorMetrics> {
-    const endpoint = '/site-explorer/domain-rating';
+    const endpoint = '/site-explorer/organic-competitors';
     this.logger.info(`Fetching Competitor Overview for ${competitorDomain} (vs ${targetDomain})`);
     
     if (this.isMockMode()) {
@@ -376,36 +357,28 @@ export class AhrefsClient {
     }
 
     try {
-      const compOverview = await this.fetchDomainOverview(competitorDomain);
-      const seed = (targetDomain + competitorDomain).length;
+      const data = await this.requestLive(endpoint, {
+        target: targetDomain, mode: 'domain', country: 'us', date: this.currentDate(), limit: '100',
+        select: 'competitor_domain,domain_rating,keywords_common,keywords_competitor,traffic,value'
+      });
+      const rows = Array.isArray(data.competitors) ? data.competitors as Record<string, unknown>[] : [];
+      const row = rows.find(candidate => String(candidate.competitor_domain) === competitorDomain);
+      if (!row) {
+        throw new AhrefsApiError(`Configured competitor ${competitorDomain} was not returned by Ahrefs`, 404, endpoint);
+      }
       return {
         targetDomain,
         competitorDomain,
-        domainRating: compOverview.domainRating,
-        organicTraffic: compOverview.organicTraffic,
-        trafficValue: compOverview.trafficValue,
-        sharedKeywords: 140 + (seed * 12),
-        competitorExclusiveKeywords: 310 + (seed * 25),
-        gapOpportunities: [
-          {
-            keyword: `top alternatives to ${competitorDomain.split('.')[0]}`,
-            competitorPosition: 3,
-            searchVolume: 5400,
-            keywordDifficulty: 24,
-            searchIntent: 'Commercial'
-          },
-          {
-            keyword: `${competitorDomain.split('.')[0]} promo codes`,
-            competitorPosition: 2,
-            searchVolume: 3200,
-            keywordDifficulty: 18,
-            searchIntent: 'Transactional'
-          }
-        ]
+        domainRating: this.numberField(row, 'domain_rating'),
+        organicTraffic: this.numberField(row, 'traffic'),
+        trafficValue: this.numberField(row, 'value'),
+        sharedKeywords: this.numberField(row, 'keywords_common'),
+        competitorExclusiveKeywords: this.numberField(row, 'keywords_competitor'),
+        gapOpportunities: []
       };
     } catch (err) {
-      this.logger.warn(`Failed to fetch competitor ${competitorDomain}. Returning mock fallback. Reason: ${(err as Error).message}`);
-      return this.generateMockCompetitorOverview(targetDomain, competitorDomain);
+      this.logger.error(`Failed to fetch competitor ${competitorDomain}. Reason: ${(err as Error).message}`);
+      throw err;
     }
   }
 
@@ -413,7 +386,7 @@ export class AhrefsClient {
   public async fetchAllBacklinks(domain: string, options: { limit?: number; select?: string } = {}): Promise<BacklinkAuditReport> {
     const endpoint = '/site-explorer/all-backlinks';
     const limit = options.limit ?? 100;
-    const select = options.select ?? 'url_from,url_to,anchor,domain_rating_source,is_dofollow,first_seen,last_seen';
+    const select = options.select ?? 'url_from,url_to,anchor,domain_rating_source,is_dofollow,first_seen,last_seen,is_lost,is_new';
 
     if (this.isMockMode()) {
       this.logger.info(`Fetching All Backlinks for ${domain} [MOCK MODE]`);
@@ -426,6 +399,9 @@ export class AhrefsClient {
       const report = await withRetry(async (attempt) => {
         const queryParams = new URLSearchParams({
           target: domain,
+          mode: 'domain',
+          aggregation: '1_per_domain',
+          history: 'all_time',
           select,
           limit: String(limit)
         });
@@ -457,25 +433,27 @@ export class AhrefsClient {
           isDofollow: (item.is_dofollow as boolean) ?? (item.isDofollow as boolean) ?? true,
           firstSeen: String(item.first_seen || item.firstSeen || new Date().toISOString()),
           lastSeen: String(item.last_seen || item.lastSeen || new Date().toISOString()),
-          status: 'LIVE'
+          status: item.is_lost ? 'LOST' : item.is_new ? 'NEW' : 'LIVE'
         }));
 
-        const overview = await this.fetchDomainOverview(domain);
-        const dofollowRatio = overview.totalBacklinks > 0
-          ? Number((overview.dofollowBacklinks / overview.totalBacklinks).toFixed(2))
-          : 0.78;
+        const [overview, refdomainData] = await Promise.all([
+          this.fetchDomainOverview(domain),
+          this.requestLive('/site-explorer/refdomains', { target: domain, mode: 'domain', limit: '100', select: 'domain,dofollow_links' })
+        ]);
+        await this.requestLive('/site-explorer/broken-backlinks', { target: domain, mode: 'domain', limit: '10', select: 'url_from,url_to,anchor,domain_rating_source,is_dofollow,first_seen,last_seen' });
+        const refdomains = Array.isArray(refdomainData.refdomains) ? refdomainData.refdomains as Record<string, unknown>[] : [];
+        const dofollowRefdomains = refdomains.filter(item => this.numberField(item, 'dofollow_links') > 0).length;
+        const dofollowBacklinks = recentBacklinks.filter(item => item.isDofollow).length;
+        const dofollowRatio = recentBacklinks.length ? Number((dofollowBacklinks / recentBacklinks.length).toFixed(2)) : 0;
 
         return {
           domain,
           totalBacklinks: overview.totalBacklinks,
           referringDomains: overview.referringDomains,
           dofollowRatio,
-          dofollowBacklinks: overview.dofollowBacklinks,
-          dofollowRefdomains: overview.dofollowRefdomains,
-          topAnchors: [
-            { anchor: domain, count: Math.round(overview.referringDomains * 0.4) },
-            { anchor: `visit ${domain}`, count: Math.round(overview.referringDomains * 0.25) }
-          ],
+          dofollowBacklinks,
+          dofollowRefdomains,
+          topAnchors: Array.from(new Set(recentBacklinks.map(item => item.anchorText))).slice(0, 10).map(anchor => ({ anchor, count: recentBacklinks.filter(item => item.anchorText === anchor).length })),
           recentBacklinks,
           seoHealthScore: overview.seoHealthScore
         };
@@ -483,9 +461,9 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} backlinks. Falling back to mock data. Reason: ${(err as Error).message}`);
+      this.logger.error(`API request failed for ${domain} backlinks. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockBacklinkReport(domain);
+      throw err;
     }
   }
 

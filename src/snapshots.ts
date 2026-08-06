@@ -65,6 +65,7 @@ export class SnapshotStore {
         snapshotId,
         domain,
         timestamp,
+        dataSource: this.client.isMockMode() ? 'mock' : 'ahrefs-api-v3',
         overview,
         keywords,
         topPages,

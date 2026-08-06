@@ -6,7 +6,7 @@ import { RecommendationEngine } from '../../src/recommendations';
 import { ReportGenerator } from '../../src/reports';
 import { ConfigLoader } from '../../src/config';
 import { withRetry } from '../../src/utils/retry';
-import { DomainSnapshot, ExecutiveSummaryItem } from '../../src/types';
+import { DomainSnapshot } from '../../src/types';
 import * as fs from 'fs';
 import * as path from 'path';
 
