@@ -63,7 +63,7 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
           </thead>
           <tbody>
             {displayRows.map((b, idx) => {
-              const isLost = b.status && b.status !== 'ACTIVE';
+              const statusUpper = (b.status || '').toUpperCase();
               return (
                 <tr
                   key={idx}
@@ -79,9 +79,19 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                       {b.ref_domain}
                       <ExternalLink className="h-2.5 w-2.5 text-slate-600 shrink-0" />
                     </a>
-                    {isLost && (
-                      <span className="ml-2 text-[10px] text-rose-400 font-medium">
-                        {b.status}
+                    {statusUpper && statusUpper !== 'ACTIVE' && (
+                      <span
+                        className={`ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${
+                          statusUpper === 'NEW'
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                            : statusUpper === 'LOST'
+                            ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+                            : statusUpper === 'BROKEN'
+                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+                            : 'bg-slate-500/15 text-slate-400 border-slate-500/40'
+                        }`}
+                      >
+                        {statusUpper}
                       </span>
                     )}
                   </td>
