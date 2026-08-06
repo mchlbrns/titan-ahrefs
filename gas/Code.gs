@@ -1,7 +1,7 @@
 /**
  * Phase 2: Google Apps Script Backend — Ahrefs Ingestion Engine & REST API
  * Titan Workspace / Ahrefs API v3 Automated Reporting Engine
- * Fully Compliant with Pedro Gomes Specifications
+ * Fully Compliant with Pedro Gomes Specifications + Interactive Dashboard Config API
  */
 
 // Global Config & Property Keys
@@ -9,7 +9,6 @@ var SCRIPT_PROPERTIES = PropertiesService.getScriptProperties();
 
 /**
  * Utility to initialize or update Script Properties.
- * Run this function once in Apps Script Editor to set your API Key & configurations.
  */
 function setupScriptProperties() {
   SCRIPT_PROPERTIES.setProperties({
@@ -19,7 +18,9 @@ function setupScriptProperties() {
     "USAGE_SAFETY_CAP_PERCENT": "80",
     "COMPETITOR_1": "chumbacasino.com",
     "COMPETITOR_2": "pulsz.com",
-    "COMPETITOR_3": "luckylandslots.com"
+    "COMPETITOR_3": "luckylandslots.com",
+    "REPORT_FREQUENCY": "Weekly",
+    "COMPARISON_PERIOD": "Previous 7 days"
   });
   Logger.log("✅ Script properties configured successfully!");
 }
@@ -115,9 +116,14 @@ function runAhrefsIngestion() {
   var now = new Date();
   var todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
   
-  // Calculate date 7 days ago for weekly comparison
-  var date7DaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  var comparedDateStr = date7DaysAgo.toISOString().split("T")[0];
+  // Calculate comparison date based on config
+  var compPeriod = SCRIPT_PROPERTIES.getProperty("COMPARISON_PERIOD") || "Previous 7 days";
+  var daysToSubtract = 7;
+  if (compPeriod.indexOf("14") !== -1) daysToSubtract = 14;
+  if (compPeriod.indexOf("30") !== -1) daysToSubtract = 30;
+
+  var dateNBack = new Date(now.getTime() - daysToSubtract * 24 * 60 * 60 * 1000);
+  var comparedDateStr = dateNBack.toISOString().split("T")[0];
 
   var primaryDomain = SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com";
   var country = SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us";
@@ -126,7 +132,7 @@ function runAhrefsIngestion() {
   Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " (Date: " + todayStr + ", Compare: " + comparedDateStr + ")");
 
   try {
-    // 1. Subscription & Usage Safety Check (GET /subscription-info/limits-and-usage - 0 units cost)
+    // 1. Subscription & Usage Safety Check
     var limitsData = callAhrefsApi("/subscription-info/limits-and-usage", {});
     if (limitsData && limitsData.limits_and_usage) {
       var used = limitsData.limits_and_usage.units_usage_workspace || 0;
@@ -161,8 +167,7 @@ function runAhrefsIngestion() {
     ]);
     Logger.log("✅ Appended domain overview metrics for " + primaryDomain + " (DR: " + dr + ", Traffic: " + traffic + ")");
 
-    // 3. Top Organic Keywords & Striking Distance Opportunities (Positions 4-20)
-    // Uses date_compared=7 days ago to calculate weekly position movement
+    // 3. Top Organic Keywords & Striking Distance Opportunities
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -193,7 +198,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + kwCount + " keywords to keyword_snapshots");
 
-    // 4. Top Pages Performance (GET /site-explorer/top-pages)
+    // 4. Top Pages Performance
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -219,7 +224,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + pageCount + " pages to page_snapshots");
 
-    // 5. Dynamic & Configured Competitor Gap Matrix (GET /site-explorer/organic-competitors)
+    // 5. Dynamic & Configured Competitor Gap Matrix
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -243,7 +248,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + competitorsFound + " competitors to competitor_snapshots");
 
-    // 6. Backlinks & Referring Domains (GET /site-explorer/refdomains)
+    // 6. Backlinks & Referring Domains
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -292,9 +297,48 @@ function runAhrefsIngestion() {
 
 /**
  * REST API ENDPOINT FOR NEXT.JS FRONTEND DASHBOARD (doGet)
+ * Supports reading data & updating configuration dynamically from the dashboard.
  */
 function doGet(e) {
   try {
+    var params = e ? e.parameter : {};
+    
+    // Handle Interactive Dashboard Configuration Updates
+    if (params.action === "updateConfig") {
+      if (params.primaryDomain) SCRIPT_PROPERTIES.setProperty("PRIMARY_DOMAIN", params.primaryDomain);
+      if (params.country) SCRIPT_PROPERTIES.setProperty("TARGET_COUNTRY", params.country);
+      if (params.competitor1) SCRIPT_PROPERTIES.setProperty("COMPETITOR_1", params.competitor1);
+      if (params.competitor2) SCRIPT_PROPERTIES.setProperty("COMPETITOR_2", params.competitor2);
+      if (params.competitor3) SCRIPT_PROPERTIES.setProperty("COMPETITOR_3", params.competitor3);
+      if (params.frequency) SCRIPT_PROPERTIES.setProperty("REPORT_FREQUENCY", params.frequency);
+      if (params.comparisonPeriod) SCRIPT_PROPERTIES.setProperty("COMPARISON_PERIOD", params.comparisonPeriod);
+
+      var syncTriggered = false;
+      if (params.triggerSync === "true") {
+        runAhrefsIngestion();
+        syncTriggered = true;
+      }
+
+      return ContentService
+        .createTextOutput(JSON.stringify({
+          "status": "success",
+          "message": "Configuration updated successfully!",
+          "sync_triggered": syncTriggered,
+          "config": {
+            "primary_domain": SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN"),
+            "target_country": SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY"),
+            "competitors": [
+              SCRIPT_PROPERTIES.getProperty("COMPETITOR_1"),
+              SCRIPT_PROPERTIES.getProperty("COMPETITOR_2"),
+              SCRIPT_PROPERTIES.getProperty("COMPETITOR_3")
+            ],
+            "report_frequency": SCRIPT_PROPERTIES.getProperty("REPORT_FREQUENCY"),
+            "comparison_period": SCRIPT_PROPERTIES.getProperty("COMPARISON_PERIOD")
+          }
+        }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
     function getSheetObjects(sheetName) {
@@ -340,6 +384,17 @@ function doGet(e) {
       "status": "success",
       "timestamp": new Date().toISOString(),
       "primary_domain": SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com",
+      "config": {
+        "primary_domain": SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com",
+        "target_country": SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us",
+        "competitors": [
+          SCRIPT_PROPERTIES.getProperty("COMPETITOR_1") || "chumbacasino.com",
+          SCRIPT_PROPERTIES.getProperty("COMPETITOR_2") || "pulsz.com",
+          SCRIPT_PROPERTIES.getProperty("COMPETITOR_3") || "luckylandslots.com"
+        ],
+        "report_frequency": SCRIPT_PROPERTIES.getProperty("REPORT_FREQUENCY") || "Weekly",
+        "comparison_period": SCRIPT_PROPERTIES.getProperty("COMPARISON_PERIOD") || "Previous 7 days"
+      },
       "summary": {
         "domain_rating": latestDomain ? latestDomain.domain_rating : 0,
         "ahrefs_rank": latestDomain ? latestDomain.ahrefs_rank : 0,

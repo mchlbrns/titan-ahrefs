@@ -8,6 +8,7 @@ import PageTable from '@/components/PageTable';
 import CompetitorMatrix from '@/components/CompetitorMatrix';
 import BacklinkTable from '@/components/BacklinkTable';
 import ActionChecklist from '@/components/ActionChecklist';
+import ConfigModal from '@/components/ConfigModal';
 import {
   BarChart3,
   TrendingUp,
@@ -18,6 +19,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Link2,
+  Settings,
 } from 'lucide-react';
 
 interface KeywordItem {
@@ -61,6 +63,13 @@ interface ApiResponseData {
   status: string;
   timestamp: string;
   primary_domain: string;
+  config?: {
+    primary_domain: string;
+    target_country: string;
+    competitors: string[];
+    report_frequency: string;
+    comparison_period: string;
+  };
   summary: {
     domain_rating: number;
     ahrefs_rank: number;
@@ -98,6 +107,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'keywords' | 'pages' | 'competitors' | 'backlinks' | 'actions'>('overview');
+  const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
 
   const webAppUrl =
     process.env.NEXT_PUBLIC_GAS_WEBAPP_URL ||
@@ -124,7 +134,15 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  const domain = data?.primary_domain || process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'titantreasure.com';
+  const domain = data?.config?.primary_domain || data?.primary_domain || process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'titantreasure.com';
+  const config = data?.config || {
+    primary_domain: domain,
+    target_country: 'us',
+    competitors: ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
+    report_frequency: 'Weekly',
+    comparison_period: 'Previous 7 days',
+  };
+
   const summary = data?.summary || {
     domain_rating: 30,
     ahrefs_rank: 4028135,
@@ -195,11 +213,17 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setIsConfigOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-cyan-600/20 px-3.5 py-2 text-xs font-bold text-cyan-300 border border-cyan-500/30 hover:bg-cyan-600/30 transition-all"
+          >
+            <Settings className="h-3.5 w-3.5" /> Configure Engine & Domains
+          </button>
           <button
             onClick={fetchData}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 border border-slate-700 hover:bg-slate-700 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh Data
@@ -208,9 +232,9 @@ export default function DashboardPage() {
             href="https://docs.google.com/spreadsheets/d/1xZL--mAisI4qKM-dlsQ4ad6AxyCLh2eCwCsMCk_gizs/edit"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-semibold text-white shadow-md hover:bg-cyan-500 transition-all"
+            className="inline-flex items-center gap-2 rounded-lg bg-slate-800 px-3.5 py-2 text-xs font-semibold text-white border border-slate-700 hover:bg-slate-700 transition-all"
           >
-            Open Google Sheets <ExternalLink className="h-3.5 w-3.5" />
+            Open Sheets <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
       </header>
@@ -359,6 +383,15 @@ export default function DashboardPage() {
           />
         </div>
       )}
+
+      {/* Interactive Settings & Config Drawer Modal */}
+      <ConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+        webAppUrl={webAppUrl}
+        currentConfig={config}
+        onConfigSaved={fetchData}
+      />
     </main>
   );
 }
