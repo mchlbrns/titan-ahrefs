@@ -6,6 +6,7 @@ import ApiUsageBar from '@/components/ApiUsageBar';
 import KeywordTable from '@/components/KeywordTable';
 import PageTable from '@/components/PageTable';
 import CompetitorMatrix from '@/components/CompetitorMatrix';
+import BacklinkTable from '@/components/BacklinkTable';
 import ActionChecklist from '@/components/ActionChecklist';
 import {
   BarChart3,
@@ -16,11 +17,13 @@ import {
   Globe,
   ExternalLink,
   ShieldCheck,
+  Link2,
 } from 'lucide-react';
 
 interface KeywordItem {
   keyword: string;
   position: number;
+  previous_position?: number;
   position_delta?: number;
   search_volume: number;
   keyword_difficulty: number;
@@ -43,6 +46,15 @@ interface CompetitorItem {
   competitor_keywords: number;
   competitor_traffic: number;
   competitor_dr: number;
+}
+
+interface BacklinkItem {
+  ref_domain: string;
+  domain_rating: number;
+  dofollow_links: number;
+  total_links: number;
+  first_seen?: string;
+  status?: string;
 }
 
 interface ApiResponseData {
@@ -72,7 +84,7 @@ interface ApiResponseData {
   striking_distance: KeywordItem[];
   pages: PageItem[];
   competitors: CompetitorItem[];
-  backlinks: Array<Record<string, unknown>>;
+  backlinks: BacklinkItem[];
   api_usage: {
     monthly_used: number;
     monthly_limit: number;
@@ -85,7 +97,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'keywords' | 'pages' | 'competitors' | 'actions'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'keywords' | 'pages' | 'competitors' | 'backlinks' | 'actions'>('overview');
 
   const webAppUrl =
     process.env.NEXT_PUBLIC_GAS_WEBAPP_URL ||
@@ -114,30 +126,30 @@ export default function DashboardPage() {
 
   const domain = data?.primary_domain || process.env.NEXT_PUBLIC_PRIMARY_DOMAIN || 'titantreasure.com';
   const summary = data?.summary || {
-    domain_rating: 42,
-    ahrefs_rank: 185420,
+    domain_rating: 30,
+    ahrefs_rank: 4028135,
     organic_traffic: 124500,
     traffic_delta_percent: 8.4,
     organic_keywords: 14800,
     organic_cost: 65200,
-    total_backlinks: 84200,
-    ref_domains: 1240,
-    dofollow_backlinks: 62100,
+    total_backlinks: 1555,
+    ref_domains: 475,
+    dofollow_backlinks: 1240,
     striking_distance_count: 18,
   };
 
   const apiUsage = data?.api_usage || {
-    monthly_used: 1250,
-    monthly_limit: 100000,
-    usage_percent: '1.25%',
+    monthly_used: 16005,
+    monthly_limit: 400000,
+    usage_percent: '4.00%',
   };
 
   const keywords: KeywordItem[] = data?.keywords?.length ? data.keywords : [
-    { keyword: 'titan treasure casino', position: 1, position_delta: 0, search_volume: 18200, keyword_difficulty: 35, url: `https://${domain}/casino`, traffic: 9400, striking_distance: 'NO' },
-    { keyword: 'titan treasure bonus code', position: 2, position_delta: 1, search_volume: 8400, keyword_difficulty: 28, url: `https://${domain}/bonus`, traffic: 4100, striking_distance: 'NO' },
-    { keyword: 'best sweepstakes casino games', position: 4, position_delta: 2, search_volume: 12500, keyword_difficulty: 42, url: `https://${domain}/games`, traffic: 2800, striking_distance: 'YES' },
-    { keyword: 'real money sweeps slots', position: 6, position_delta: -1, search_volume: 9600, keyword_difficulty: 48, url: `https://${domain}/slots`, traffic: 1900, striking_distance: 'YES' },
-    { keyword: 'no deposit sweeps coins 2026', position: 8, position_delta: 3, search_volume: 15400, keyword_difficulty: 39, url: `https://${domain}/no-deposit`, traffic: 2200, striking_distance: 'YES' },
+    { keyword: 'titan treasure casino', position: 1, previous_position: 1, position_delta: 0, search_volume: 18200, keyword_difficulty: 35, url: `https://${domain}/casino`, traffic: 9400, striking_distance: 'NO' },
+    { keyword: 'titan treasure bonus code', position: 2, previous_position: 3, position_delta: 1, search_volume: 8400, keyword_difficulty: 28, url: `https://${domain}/bonus`, traffic: 4100, striking_distance: 'NO' },
+    { keyword: 'best sweepstakes casino games', position: 4, previous_position: 6, position_delta: 2, search_volume: 12500, keyword_difficulty: 42, url: `https://${domain}/games`, traffic: 2800, striking_distance: 'YES' },
+    { keyword: 'real money sweeps slots', position: 6, previous_position: 5, position_delta: -1, search_volume: 9600, keyword_difficulty: 48, url: `https://${domain}/slots`, traffic: 1900, striking_distance: 'YES' },
+    { keyword: 'no deposit sweeps coins 2026', position: 8, previous_position: 11, position_delta: 3, search_volume: 15400, keyword_difficulty: 39, url: `https://${domain}/no-deposit`, traffic: 2200, striking_distance: 'YES' },
   ];
 
   const pages: PageItem[] = data?.pages?.length ? data.pages : [
@@ -151,6 +163,13 @@ export default function DashboardPage() {
     { competitor_domain: 'chumbacasino.com', overlap_keywords: 4200, competitor_keywords: 48500, competitor_traffic: 1840000, competitor_dr: 72 },
     { competitor_domain: 'pulsz.com', overlap_keywords: 3100, competitor_keywords: 32100, competitor_traffic: 980000, competitor_dr: 65 },
     { competitor_domain: 'luckylandslots.com', overlap_keywords: 2400, competitor_keywords: 26400, competitor_traffic: 620000, competitor_dr: 61 },
+  ];
+
+  const backlinks: BacklinkItem[] = data?.backlinks?.length ? data.backlinks : [
+    { ref_domain: 'rankgrowthagency.shop', domain_rating: 31, dofollow_links: 1, total_links: 1, first_seen: '2026-08-02T17:29:55Z', status: 'ACTIVE' },
+    { ref_domain: 'ranktracker.com', domain_rating: 78, dofollow_links: 4, total_links: 4, first_seen: '2026-05-29T16:44:53Z', status: 'ACTIVE' },
+    { ref_domain: 'seo-anchor-text-experts.store', domain_rating: 32, dofollow_links: 0, total_links: 1, first_seen: '2026-05-20T13:37:17Z', status: 'ACTIVE' },
+    { ref_domain: 'linkbox.agency', domain_rating: 28, dofollow_links: 0, total_links: 4, first_seen: '2026-07-28T04:04:49Z', status: 'ACTIVE' },
   ];
 
   return (
@@ -170,7 +189,7 @@ export default function DashboardPage() {
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
-                Hybrid Ahrefs API v3 Automated Analytics & SERP Pipeline
+                Official Pedro Gomes Spec Compliant Ahrefs API v3 Automated SEO Engine
               </p>
             </div>
           </div>
@@ -198,7 +217,7 @@ export default function DashboardPage() {
 
       {error && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-300">
-          ⚠️ <strong>Backend Connection Warning:</strong> {error} Showing live cached snapshot.
+          ⚠️ <strong>Backend Connection Warning:</strong> {error} Showing cached snapshot.
         </div>
       )}
 
@@ -210,7 +229,7 @@ export default function DashboardPage() {
             activeTab === 'overview' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <BarChart3 className="h-4 w-4" /> Overview & KPIs
+          <BarChart3 className="h-4 w-4" /> Executive Summary
         </button>
         <button
           onClick={() => setActiveTab('keywords')}
@@ -218,7 +237,7 @@ export default function DashboardPage() {
             activeTab === 'keywords' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <TrendingUp className="h-4 w-4" /> Keywords & Striking Distance
+          <TrendingUp className="h-4 w-4" /> Keyword Movements
         </button>
         <button
           onClick={() => setActiveTab('pages')}
@@ -226,7 +245,15 @@ export default function DashboardPage() {
             activeTab === 'pages' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Award className="h-4 w-4" /> Top Pages
+          <Award className="h-4 w-4" /> Page Performance
+        </button>
+        <button
+          onClick={() => setActiveTab('backlinks')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-semibold transition-all ${
+            activeTab === 'backlinks' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Link2 className="h-4 w-4" /> Backlink Audit
         </button>
         <button
           onClick={() => setActiveTab('competitors')}
@@ -234,7 +261,7 @@ export default function DashboardPage() {
             activeTab === 'competitors' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <ShieldCheck className="h-4 w-4" /> Competitor Gap
+          <ShieldCheck className="h-4 w-4" /> Competitors
         </button>
         <button
           onClick={() => setActiveTab('actions')}
@@ -242,7 +269,7 @@ export default function DashboardPage() {
             activeTab === 'actions' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Zap className="h-4 w-4" /> Action Checklist
+          <Zap className="h-4 w-4" /> Recommended Actions
         </button>
       </nav>
 
@@ -289,6 +316,7 @@ export default function DashboardPage() {
             <KeywordTable keywords={keywords} />
             <PageTable pages={pages} />
           </div>
+          <BacklinkTable backlinks={backlinks} />
           <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
           <ActionChecklist
             strikingCount={summary.striking_distance_count}
@@ -307,6 +335,12 @@ export default function DashboardPage() {
       {activeTab === 'pages' && (
         <div className="space-y-6">
           <PageTable pages={pages} />
+        </div>
+      )}
+
+      {activeTab === 'backlinks' && (
+        <div className="space-y-6">
+          <BacklinkTable backlinks={backlinks} />
         </div>
       )}
 
