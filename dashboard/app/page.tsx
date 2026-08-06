@@ -75,8 +75,8 @@ interface ApiResponseData {
     organic_keywords: number;
     organic_cost: number;
     total_backlinks: number;
-    ref_domains: number;
-    dofollow_backlinks: number;
+    ref_domains: number | string;
+    dofollow_backlinks: number | string;
     striking_distance_count: number;
   };
   keyword_tiers?: {
@@ -167,6 +167,12 @@ export default function DashboardPage() {
   const pages: PageItem[] = data?.pages || [];
   const competitors: CompetitorItem[] = data?.competitors || [];
   const backlinks: BacklinkItem[] = data?.backlinks || [];
+
+  const rawRefDomains = Number(summary?.ref_domains);
+  const refDomainsCount =
+    !isNaN(rawRefDomains) && rawRefDomains > 0
+      ? rawRefDomains
+      : backlinks.length;
 
   const lastUpdated = data?.timestamp
     ? new Date(data.timestamp).toLocaleString('en-US', {
@@ -280,9 +286,9 @@ export default function DashboardPage() {
             />
             <KpiCard
               title="Referring Domains"
-              value={summary?.ref_domains ?? 0}
+              value={refDomainsCount}
               subText="Unique domains linking to site"
-              hasData={hasSnapshot && (summary?.ref_domains ?? 0) > 0}
+              hasData={hasSnapshot || refDomainsCount > 0}
             />
             <KpiCard
               title="Striking Distance"
@@ -386,7 +392,7 @@ export default function DashboardPage() {
                 <section>
                   <ActionChecklist
                     strikingCount={summary?.striking_distance_count ?? 0}
-                    refDomainsCount={summary?.ref_domains ?? 0}
+                    refDomainsCount={refDomainsCount}
                     competitorsCount={competitors.length}
                     dataLoaded={hasSnapshot}
                   />
@@ -435,7 +441,7 @@ export default function DashboardPage() {
             {activeTab === 'insights' && (
               <ActionChecklist
                 strikingCount={summary?.striking_distance_count ?? 0}
-                refDomainsCount={summary?.ref_domains ?? 0}
+                refDomainsCount={refDomainsCount}
                 competitorsCount={competitors.length}
                 dataLoaded={hasSnapshot}
               />

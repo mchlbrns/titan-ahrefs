@@ -419,9 +419,9 @@ function doGet(e) {
           : 0,
         "organic_keywords": latestDomain ? latestDomain.organic_keywords : 0,
         "organic_cost": latestDomain ? latestDomain.organic_cost : 0,
-        "total_backlinks": latestDomain ? latestDomain.total_backlinks : 0,
-        "ref_domains": latestDomain ? latestDomain.ref_domains : 0,
-        "dofollow_backlinks": latestDomain ? latestDomain.dofollow_backlinks : 0,
+        "total_backlinks": (latestDomain && Number(latestDomain.total_backlinks) > 0) ? Number(latestDomain.total_backlinks) : backlinkSnapshots.length,
+        "ref_domains": (latestDomain && Number(latestDomain.ref_domains) > 0) ? Number(latestDomain.ref_domains) : backlinkSnapshots.length,
+        "dofollow_backlinks": (latestDomain && Number(latestDomain.dofollow_backlinks) > 0) ? Number(latestDomain.dofollow_backlinks) : backlinkSnapshots.filter(function(b) { return (b.dofollow_links || 0) > 0; }).length,
         "striking_distance_count": strikingDistanceKw.length
       },
       "keyword_tiers": {
