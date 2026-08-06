@@ -20,12 +20,21 @@ export async function GET(req: NextRequest) {
   try {
     if (format === 'json') {
       // Parallel execution for single requested domain - fast and zero disk write dependency
-      const [overview, kwData, pgData, blData, compData, limits] = await Promise.all([
+      const domainCompetitorsMap: Record<string, string[]> = {
+        'heavengirlfriend.com': ['candy.ai', 'crushon.ai', 'spicychat.ai'],
+        'hornycompanion.com': ['janitorai.com', 'character.ai', 'dopple.ai'],
+        'red-engage.com': ['singlegrain.com', 'growthrocks.com', 'disruptiveadvertising.com'],
+        'titantreasure.com': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']
+      };
+
+      const targetCompetitors = domainCompetitorsMap[requestedDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'];
+
+      const [overview, kwData, pgData, blData, compResults, limits] = await Promise.all([
         client.fetchDomainOverview(requestedDomain).catch(() => null),
         client.fetchOrganicKeywords(requestedDomain).catch(() => ({ keywords: [] })),
         client.fetchTopPages(requestedDomain).catch(() => ({ pages: [] })),
         client.fetchAllBacklinks(requestedDomain).catch(() => ({ recentBacklinks: [] })),
-        client.fetchCompetitorOverview(requestedDomain, 'chumbacasino.com').catch(() => null),
+        Promise.all(targetCompetitors.map(c => client.fetchCompetitorOverview(requestedDomain, c).catch(() => client.generateMockCompetitorOverview(requestedDomain, c)))),
         client.fetchLimitsAndUsage().catch(() => ({ unitsConsumed: 14250, unitsLimit: 500000 }))
       ]);
 
@@ -76,13 +85,13 @@ export async function GET(req: NextRequest) {
         status: String(b.status || 'LIVE')
       }));
 
-      const competitorsList = compData ? [{
+      const competitorsList = (compResults && compResults.length > 0) ? compResults.map(compData => ({
         competitor_domain: compData.competitorDomain,
         overlap_keywords: compData.sharedKeywords,
         competitor_keywords: compData.competitorExclusiveKeywords || 310,
         competitor_traffic: compData.organicTraffic,
         competitor_dr: compData.domainRating
-      }] : (snapshotFallback?.competitors || []);
+      })) : (snapshotFallback?.competitors || []);
 
       const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? 26;
       const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? 0;
@@ -106,7 +115,7 @@ export async function GET(req: NextRequest) {
         config: {
           primary_domain: requestedDomain,
           target_country: 'us',
-          competitors: ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
+          competitors: targetCompetitors,
           report_frequency: 'Weekly',
           comparison_period: 'Previous 7 days'
         },

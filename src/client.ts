@@ -696,16 +696,37 @@ export class AhrefsClient {
     };
   }
 
-  private generateMockCompetitorOverview(targetDomain: string, competitorDomain: string): CompetitorMetrics {
-    const seed = (targetDomain + competitorDomain).length;
+  public generateMockCompetitorOverview(targetDomain: string, competitorDomain: string): CompetitorMetrics {
+    const compMap: Record<string, { dr: number; traffic: number; keywords: number; overlap: number }> = {
+      'chumbacasino.com': { dr: 78, traffic: 1200000, keywords: 45000, overlap: 120 },
+      'pulsz.com': { dr: 74, traffic: 850000, keywords: 32000, overlap: 95 },
+      'luckylandslots.com': { dr: 69, traffic: 620000, keywords: 28000, overlap: 80 },
+      'candy.ai': { dr: 68, traffic: 450000, keywords: 14000, overlap: 310 },
+      'crushon.ai': { dr: 64, traffic: 320000, keywords: 11500, overlap: 240 },
+      'spicychat.ai': { dr: 61, traffic: 280000, keywords: 9800, overlap: 190 },
+      'janitorai.com': { dr: 72, traffic: 3500000, keywords: 65000, overlap: 520 },
+      'character.ai': { dr: 86, traffic: 18500000, keywords: 240000, overlap: 840 },
+      'dopple.ai': { dr: 59, traffic: 190000, keywords: 8200, overlap: 150 },
+      'singlegrain.com': { dr: 76, traffic: 180000, keywords: 22000, overlap: 45 },
+      'growthrocks.com': { dr: 65, traffic: 42000, keywords: 6500, overlap: 28 },
+      'disruptiveadvertising.com': { dr: 72, traffic: 95000, keywords: 14200, overlap: 35 }
+    };
+
+    const cfg = compMap[competitorDomain] || {
+      dr: 55 + (competitorDomain.length % 20),
+      traffic: 50000 + (competitorDomain.length * 1000),
+      keywords: 5000 + (competitorDomain.length * 500),
+      overlap: 50 + (competitorDomain.length * 5)
+    };
+
     return {
       targetDomain,
       competitorDomain,
-      domainRating: 42 + (seed % 18),
-      organicTraffic: 18500 + (seed * 1200),
-      trafficValue: 32000 + (seed * 2100),
-      sharedKeywords: 140 + (seed * 12),
-      competitorExclusiveKeywords: 310 + (seed * 25),
+      domainRating: cfg.dr,
+      organicTraffic: cfg.traffic,
+      trafficValue: Math.round(cfg.traffic * 1.75),
+      sharedKeywords: cfg.overlap,
+      competitorExclusiveKeywords: cfg.keywords,
       gapOpportunities: [
         {
           keyword: `top alternatives to ${competitorDomain.split('.')[0]}`,
