@@ -44,51 +44,85 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
     setIsPdfGenerating(true);
 
     try {
-      // 1. Fetch executive HTML report content
+      // 1. Fetch executive report HTML content
       const res = await fetch(`/api/report?format=html&domain=${encodeURIComponent(domain)}`);
       const htmlText = await res.text();
 
-      // 2. Parse HTML and isolate clean report content
+      // 2. Parse HTML and clean up unnecessary elements
       const parser = new DOMParser();
       const doc = parser.parseFromString(htmlText, 'text/html');
       const toolbar = doc.querySelector('.no-print');
       if (toolbar) toolbar.remove();
 
-      // 3. Create offscreen container for high-fidelity PDF capture
+      // 3. Create a printable light-mode container at top-left behind z-index overlay
       const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '-9999px';
-      container.style.width = '1000px';
-      container.style.background = '#0b0f19';
-      container.style.color = '#f3f4f6';
+      container.id = 'pdf-render-container';
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '0';
+      container.style.width = '800px';
+      container.style.zIndex = '-9999';
+      container.style.background = '#ffffff';
+      container.style.color = '#0f172a';
       container.style.padding = '24px';
-      container.innerHTML = doc.body.innerHTML;
+      container.style.boxSizing = 'border-box';
+      container.style.fontFamily = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+      const pdfStyle = `
+        <style>
+          .container { width: 100% !important; max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+          body { background: #ffffff !important; color: #0f172a !important; font-family: -apple-system, BlinkMacSystemFont, sans-serif !important; }
+          h1 { color: #0f172a !important; font-size: 1.5rem !important; font-weight: 800 !important; margin: 0 0 4px 0 !important; }
+          .subtitle { color: #475569 !important; font-size: 0.85rem !important; }
+          .meta-badge { background: #f1f5f9 !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; padding: 4px 12px !important; border-radius: 9999px !important; font-size: 0.75rem !important; }
+          .kpi-grid { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 12px !important; margin: 20px 0 !important; }
+          .kpi-card { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-radius: 8px !important; padding: 14px !important; }
+          .kpi-label { color: #64748b !important; font-size: 0.7rem !important; font-weight: 700 !important; text-transform: uppercase !important; }
+          .kpi-value { color: #0f172a !important; font-size: 1.75rem !important; font-weight: 800 !important; margin-top: 4px !important; }
+          .kpi-sub { color: #059669 !important; font-size: 0.75rem !important; font-weight: 600 !important; }
+          .section-title { font-size: 1rem !important; font-weight: 700 !important; color: #0f172a !important; margin: 24px 0 10px 0 !important; border-bottom: 2px solid #e2e8f0 !important; padding-bottom: 6px !important; }
+          table { width: 100% !important; border-collapse: collapse !important; margin-bottom: 20px !important; font-size: 0.8rem !important; background: #ffffff !important; }
+          th { background: #f1f5f9 !important; color: #334155 !important; text-align: left !important; padding: 8px 12px !important; border-bottom: 2px solid #cbd5e1 !important; font-weight: 700 !important; text-transform: uppercase !important; font-size: 0.68rem !important; }
+          td { padding: 8px 12px !important; border-bottom: 1px solid #e2e8f0 !important; color: #1e293b !important; }
+          .win { color: #059669 !important; font-weight: 700 !important; }
+          .loss { color: #e11d48 !important; font-weight: 700 !important; }
+          .neutral { color: #64748b !important; }
+          .pill-badge { background: #f1f5f9 !important; color: #475569 !important; padding: 2px 6px !important; border-radius: 4px !important; font-size: 0.7rem !important; }
+          .badge { padding: 2px 6px !important; border-radius: 4px !important; font-size: 0.65rem !important; font-weight: 700 !important; text-transform: uppercase !important; }
+          .badge-new { background: #d1fae5 !important; color: #047857 !important; border: 1px solid #a7f3d0 !important; }
+          .badge-lost { background: #ffe4e6 !important; color: #be123c !important; border: 1px solid #fecdd3 !important; }
+          .badge-active { background: #f1f5f9 !important; color: #475569 !important; border: 1px solid #cbd5e1 !important; }
+          .rec-card { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; border-left: 4px solid #0284c7 !important; border-radius: 6px !important; padding: 12px !important; margin-bottom: 10px !important; }
+          .rec-high { border-left-color: #e11d48 !important; }
+          .rec-medium { border-left-color: #d97706 !important; }
+          .priority-pill { font-size: 0.65rem !important; font-weight: 800 !important; padding: 2px 6px !important; border-radius: 4px !important; text-transform: uppercase !important; }
+          .priority-high { background: #ffe4e6 !important; color: #be123c !important; }
+          .priority-medium { background: #fef3c7 !important; color: #b45309 !important; }
+          .rec-title { font-weight: 700 !important; color: #0f172a !important; font-size: 0.85rem !important; }
+          .rec-body { color: #334155 !important; font-size: 0.8rem !important; margin: 4px 0 !important; }
+          .action-list { margin: 4px 0 0 0 !important; padding-left: 16px !important; color: #475569 !important; font-size: 0.775rem !important; }
+        </style>
+      `;
+
+      container.innerHTML = pdfStyle + doc.body.innerHTML;
       document.body.appendChild(container);
 
-      // 4. Dynamically load html2pdf.js engine
+      // 4. Load html2pdf.js dynamically
       const html2pdf = await loadHtml2PdfLibrary();
 
       const opt = {
-        margin: [10, 10, 10, 10],
+        margin: [8, 8, 8, 8],
         filename: `Titan_Ahrefs_Executive_Report_${domain.replace(/\./g, '_')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#0b0f19' },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // 5. Directly trigger PDF download file
+      // 5. Generate and trigger direct PDF download
       await html2pdf().set(opt).from(container).save();
       document.body.removeChild(container);
     } catch (err) {
       console.error('PDF export error:', err);
-      // Fallback: direct download link trigger
-      const link = document.createElement('a');
-      link.href = `/api/report?format=html&domain=${encodeURIComponent(domain)}`;
-      link.download = `Titan_Ahrefs_Executive_Report_${domain.replace(/\./g, '_')}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     } finally {
       setIsPdfGenerating(false);
     }
