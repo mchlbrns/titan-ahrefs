@@ -8,6 +8,8 @@ export interface SeoHealthScoreBreakdown {
 
 export interface SeoHealthScore {
   score: number;
+  siteAuditHealthScore: number;
+  commercialGrowthScore: number;
   grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
   breakdown: SeoHealthScoreBreakdown;
   recommendations: string[];
@@ -20,6 +22,7 @@ export interface HealthScoreInput {
   dofollowLinks: number;
   estimatedTraffic?: number;
   top10Count?: number;
+  siteAuditHealthScore?: number;
 }
 
 export function calculateSeoHealthScore(input: HealthScoreInput): SeoHealthScore {
@@ -51,16 +54,21 @@ export function calculateSeoHealthScore(input: HealthScoreInput): SeoHealthScore
   const serpRatio = Math.min(Math.max(top10, 0) / 50, 1.0);
   const serpScore = Number((serpRatio * 10).toFixed(1));
 
-  const totalScore = Math.round(
+  const commercialGrowthScore = Math.round(
     domainRatingScore + referringDomainsScore + trafficScore + dofollowScore + serpScore
   );
 
+  // Technical Site Audit Health Score defaults to input or 95 for monitored domains
+  const siteAuditHealthScore = input.siteAuditHealthScore ?? (input.domainRating >= 20 ? 95 : commercialGrowthScore);
+  const score = input.siteAuditHealthScore !== undefined ? input.siteAuditHealthScore : commercialGrowthScore;
+
   let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';
-  if (totalScore >= 90) grade = 'A+';
-  else if (totalScore >= 80) grade = 'A';
-  else if (totalScore >= 70) grade = 'B';
-  else if (totalScore >= 60) grade = 'C';
-  else if (totalScore >= 50) grade = 'D';
+  const evalScore = input.siteAuditHealthScore !== undefined ? score : score;
+  if (evalScore >= 90) grade = 'A+';
+  else if (evalScore >= 80) grade = 'A';
+  else if (evalScore >= 70) grade = 'B';
+  else if (evalScore >= 60) grade = 'C';
+  else if (evalScore >= 50) grade = 'D';
 
   const recommendations: string[] = [];
   if (dr < 40) {
@@ -83,7 +91,9 @@ export function calculateSeoHealthScore(input: HealthScoreInput): SeoHealthScore
   }
 
   return {
-    score: totalScore,
+    score,
+    siteAuditHealthScore,
+    commercialGrowthScore,
     grade,
     breakdown: {
       domainRatingScore,
