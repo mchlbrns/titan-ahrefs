@@ -11,10 +11,8 @@ import ActionChecklist from '@/components/ActionChecklist';
 import ConfigModal from '@/components/ConfigModal';
 import {
   RefreshCw,
-  ExternalLink,
   Settings,
   Loader2,
-  FileText,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -354,10 +352,6 @@ export default function DashboardPage() {
                 </option>
               ))}
             </select>
-            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Synchronized</span>
-            </div>
           </div>
           <div className="flex items-center gap-3 mt-2">
             {lastUpdated && (
@@ -388,21 +382,6 @@ export default function DashboardPage() {
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
-          <button
-            onClick={() => window.open(`/api/report?format=html&domain=${encodeURIComponent(selectedDomain)}`, '_blank')}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all"
-          >
-            <FileText className="h-3.5 w-3.5" />
-            Live Executive HTML Report
-          </button>
-          <a
-            href="https://docs.google.com/spreadsheets/d/1xZL--mAisI4qKM-dlsQ4ad6AxyCLh2eCwCsMCk_gizs/edit"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all"
-          >
-            Sheets <ExternalLink className="h-3 w-3" />
-          </a>
         </div>
       </header>
 
