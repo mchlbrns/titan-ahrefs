@@ -1,11 +1,11 @@
 {
   "/_not-found": "app/_not-found.js",
   "/api/competitors/route": "app/api/competitors/route.js",
-  "/api/domains/route": "app/api/domains/route.js",
-  "/api/discover/route": "app/api/discover/route.js",
   "/api/health/route": "app/api/health/route.js",
+  "/api/discover/route": "app/api/discover/route.js",
+  "/api/domains/route": "app/api/domains/route.js",
   "/api/report/route": "app/api/report/route.js",
-  "/api/snapshot/route": "app/api/snapshot/route.js",
   "/api/usage/route": "app/api/usage/route.js",
+  "/api/snapshot/route": "app/api/snapshot/route.js",
   "/page": "app/page.js"
 }

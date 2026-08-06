@@ -324,7 +324,7 @@ export default function DashboardPage() {
                   ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}`
                   : undefined
               }
-              hasData={hasSnapshot && (summary?.domain_rating ?? 0) > 0}
+              hasData={hasSnapshot && summary?.domain_rating !== undefined}
               size="hero"
             />
             <KpiCard
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                   : undefined
               }
               subText="Est. monthly visits from search"
-              hasData={hasSnapshot && (summary?.organic_traffic ?? 0) > 0}
+              hasData={hasSnapshot && summary?.organic_traffic !== undefined}
               size="hero"
             />
             <KpiCard
