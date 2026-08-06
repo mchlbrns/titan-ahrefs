@@ -61,3 +61,11 @@ titan-ahrefs/
 - **Parent Workspace Architecture Bridge**: [`../bridge.md`](../bridge.md)
 - **Repository Metadata**: [`PROJECT_METADATA.md`](./PROJECT_METADATA.md)
 - **Technical Implementation Plan**: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
+
+---
+
+## 5. Deployment Invariants
+
+- **Vercel Next.js Subfolder Invariant**: When deploying the dashboard from `dashboard/`, never place a standalone `api/` directory in the repository root. All serverless API routes must live inside `dashboard/app/api/` to prevent Vercel from overriding App Router handlers with root functions.
+- **Resilient API Sub-Query Fallbacks**: All client fetch methods (`fetchOrganicKeywords`, `fetchTopPages`, `fetchAllBacklinks`) must return populated baseline mock reports on live API failure instead of throwing exceptions or returning empty `[]` arrays.
+
