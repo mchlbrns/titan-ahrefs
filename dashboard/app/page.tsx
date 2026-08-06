@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Link2,
   Settings,
+  Loader2,
 } from 'lucide-react';
 
 interface KeywordItem {
@@ -83,14 +84,14 @@ interface ApiResponseData {
     dofollow_backlinks: number;
     striking_distance_count: number;
   };
-  keyword_tiers: {
+  keyword_tiers?: {
     top1_3: number;
     top4_10: number;
     top11_20: number;
     top21_50: number;
   };
   keywords: KeywordItem[];
-  striking_distance: KeywordItem[];
+  striking_distance?: KeywordItem[];
   pages: PageItem[];
   competitors: CompetitorItem[];
   backlinks: BacklinkItem[];
@@ -144,51 +145,29 @@ export default function DashboardPage() {
   };
 
   const summary = data?.summary || {
-    domain_rating: 30,
-    ahrefs_rank: 4028135,
-    organic_traffic: 124500,
-    traffic_delta_percent: 8.4,
-    organic_keywords: 14800,
-    organic_cost: 65200,
-    total_backlinks: 1555,
-    ref_domains: 475,
-    dofollow_backlinks: 1240,
-    striking_distance_count: 18,
+    domain_rating: 0,
+    ahrefs_rank: 0,
+    organic_traffic: 0,
+    traffic_delta_percent: 0,
+    organic_keywords: 0,
+    organic_cost: 0,
+    total_backlinks: 0,
+    ref_domains: 0,
+    dofollow_backlinks: 0,
+    striking_distance_count: 0,
   };
 
   const apiUsage = data?.api_usage || {
-    monthly_used: 16005,
+    monthly_used: 0,
     monthly_limit: 400000,
-    usage_percent: '4.00%',
+    usage_percent: '0.00%',
   };
 
-  const keywords: KeywordItem[] = data?.keywords?.length ? data.keywords : [
-    { keyword: 'titan treasure casino', position: 1, previous_position: 1, position_delta: 0, search_volume: 18200, keyword_difficulty: 35, url: `https://${domain}/casino`, traffic: 9400, striking_distance: 'NO' },
-    { keyword: 'titan treasure bonus code', position: 2, previous_position: 3, position_delta: 1, search_volume: 8400, keyword_difficulty: 28, url: `https://${domain}/bonus`, traffic: 4100, striking_distance: 'NO' },
-    { keyword: 'best sweepstakes casino games', position: 4, previous_position: 6, position_delta: 2, search_volume: 12500, keyword_difficulty: 42, url: `https://${domain}/games`, traffic: 2800, striking_distance: 'YES' },
-    { keyword: 'real money sweeps slots', position: 6, previous_position: 5, position_delta: -1, search_volume: 9600, keyword_difficulty: 48, url: `https://${domain}/slots`, traffic: 1900, striking_distance: 'YES' },
-    { keyword: 'no deposit sweeps coins 2026', position: 8, previous_position: 11, position_delta: 3, search_volume: 15400, keyword_difficulty: 39, url: `https://${domain}/no-deposit`, traffic: 2200, striking_distance: 'YES' },
-  ];
-
-  const pages: PageItem[] = data?.pages?.length ? data.pages : [
-    { url: `https://${domain}/casino`, top_keyword: 'titan treasure casino', organic_traffic: 45200, organic_keywords: 1840, traffic_share: 0.36 },
-    { url: `https://${domain}/bonus`, top_keyword: 'titan treasure bonus code', organic_traffic: 28400, organic_keywords: 920, traffic_share: 0.22 },
-    { url: `https://${domain}/games`, top_keyword: 'best sweepstakes casino games', organic_traffic: 18900, organic_keywords: 740, traffic_share: 0.15 },
-    { url: `https://${domain}/slots`, top_keyword: 'real money sweeps slots', organic_traffic: 12600, organic_keywords: 610, traffic_share: 0.10 },
-  ];
-
-  const competitors: CompetitorItem[] = data?.competitors?.length ? data.competitors : [
-    { competitor_domain: 'chumbacasino.com', overlap_keywords: 4200, competitor_keywords: 48500, competitor_traffic: 1840000, competitor_dr: 72 },
-    { competitor_domain: 'pulsz.com', overlap_keywords: 3100, competitor_keywords: 32100, competitor_traffic: 980000, competitor_dr: 65 },
-    { competitor_domain: 'luckylandslots.com', overlap_keywords: 2400, competitor_keywords: 26400, competitor_traffic: 620000, competitor_dr: 61 },
-  ];
-
-  const backlinks: BacklinkItem[] = data?.backlinks?.length ? data.backlinks : [
-    { ref_domain: 'rankgrowthagency.shop', domain_rating: 31, dofollow_links: 1, total_links: 1, first_seen: '2026-08-02T17:29:55Z', status: 'ACTIVE' },
-    { ref_domain: 'ranktracker.com', domain_rating: 78, dofollow_links: 4, total_links: 4, first_seen: '2026-05-29T16:44:53Z', status: 'ACTIVE' },
-    { ref_domain: 'seo-anchor-text-experts.store', domain_rating: 32, dofollow_links: 0, total_links: 1, first_seen: '2026-05-20T13:37:17Z', status: 'ACTIVE' },
-    { ref_domain: 'linkbox.agency', domain_rating: 28, dofollow_links: 0, total_links: 4, first_seen: '2026-07-28T04:04:49Z', status: 'ACTIVE' },
-  ];
+  // 100% LIVE REAL DATA ONLY — NO FAKE MOCK DATA FALLBACKS
+  const keywords: KeywordItem[] = data?.keywords || [];
+  const pages: PageItem[] = data?.pages || [];
+  const competitors: CompetitorItem[] = data?.competitors || [];
+  const backlinks: BacklinkItem[] = data?.backlinks || [];
 
   return (
     <main className="min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
@@ -203,7 +182,7 @@ export default function DashboardPage() {
               <h1 className="text-2xl font-extrabold tracking-tight text-white flex items-center gap-2">
                 {domain}
                 <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-semibold text-cyan-400 border border-cyan-500/20">
-                  Live Production
+                  Live Production Data
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
@@ -241,7 +220,7 @@ export default function DashboardPage() {
 
       {error && (
         <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-xs text-rose-300">
-          ⚠️ <strong>Backend Connection Warning:</strong> {error} Showing cached snapshot.
+          ⚠️ <strong>Backend Error:</strong> {error}
         </div>
       )}
 
@@ -261,7 +240,7 @@ export default function DashboardPage() {
             activeTab === 'keywords' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <TrendingUp className="h-4 w-4" /> Keyword Movements
+          <TrendingUp className="h-4 w-4" /> Keyword Movements ({keywords.length})
         </button>
         <button
           onClick={() => setActiveTab('pages')}
@@ -269,7 +248,7 @@ export default function DashboardPage() {
             activeTab === 'pages' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Award className="h-4 w-4" /> Page Performance
+          <Award className="h-4 w-4" /> Page Performance ({pages.length})
         </button>
         <button
           onClick={() => setActiveTab('backlinks')}
@@ -277,7 +256,7 @@ export default function DashboardPage() {
             activeTab === 'backlinks' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <Link2 className="h-4 w-4" /> Backlink Audit
+          <Link2 className="h-4 w-4" /> Backlink Audit ({backlinks.length})
         </button>
         <button
           onClick={() => setActiveTab('competitors')}
@@ -285,7 +264,7 @@ export default function DashboardPage() {
             activeTab === 'competitors' ? 'bg-cyan-500 text-white shadow-md shadow-cyan-500/20' : 'text-slate-400 hover:text-white'
           }`}
         >
-          <ShieldCheck className="h-4 w-4" /> Competitors
+          <ShieldCheck className="h-4 w-4" /> Competitors ({competitors.length})
         </button>
         <button
           onClick={() => setActiveTab('actions')}
@@ -297,91 +276,101 @@ export default function DashboardPage() {
         </button>
       </nav>
 
-      {/* KPI Cards Grid */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          title="Organic Traffic"
-          value={summary.organic_traffic}
-          changePercent={summary.traffic_delta_percent}
-          subText="Est. monthly search visits"
-          icon={<TrendingUp className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Traffic Value"
-          value={`$${summary.organic_cost.toLocaleString()}`}
-          subText="Equivalent Ad Spend value"
-          icon={<Award className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Domain Rating (DR)"
-          value={summary.domain_rating}
-          subText={`Ahrefs Rank: #${summary.ahrefs_rank ? summary.ahrefs_rank.toLocaleString() : 'N/A'}`}
-          icon={<ShieldCheck className="h-5 w-5" />}
-        />
-        <KpiCard
-          title="Striking Distance Opportunities"
-          value={summary.striking_distance_count || 18}
-          subText="Keywords in positions 4–20"
-          icon={<Zap className="h-5 w-5" />}
-        />
-      </section>
+      {/* Loading Skeleton */}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center p-16 rounded-2xl border border-slate-800 bg-slate-900/50 space-y-4">
+          <Loader2 className="h-8 w-8 text-cyan-400 animate-spin" />
+          <p className="text-sm font-semibold text-slate-300">Fetching live Ahrefs API data from Google Sheets backend...</p>
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards Grid */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard
+              title="Organic Traffic"
+              value={summary.organic_traffic}
+              changePercent={summary.traffic_delta_percent}
+              subText="Est. monthly search visits"
+              icon={<TrendingUp className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Traffic Value"
+              value={`$${summary.organic_cost.toLocaleString()}`}
+              subText="Equivalent Ad Spend value"
+              icon={<Award className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Domain Rating (DR)"
+              value={summary.domain_rating}
+              subText={`Ahrefs Rank: #${summary.ahrefs_rank ? summary.ahrefs_rank.toLocaleString() : 'N/A'}`}
+              icon={<ShieldCheck className="h-5 w-5" />}
+            />
+            <KpiCard
+              title="Striking Distance Opportunities"
+              value={summary.striking_distance_count || 0}
+              subText="Keywords in positions 4–20"
+              icon={<Zap className="h-5 w-5" />}
+            />
+          </section>
 
-      {/* API Unit Usage Monitor Bar */}
-      <ApiUsageBar
-        monthlyUsed={apiUsage.monthly_used}
-        monthlyLimit={apiUsage.monthly_limit}
-        usagePercent={apiUsage.usage_percent}
-      />
-
-      {/* Main Tab Content */}
-      {activeTab === 'overview' && (
-        <div className="space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <KeywordTable keywords={keywords} />
-            <PageTable pages={pages} />
-          </div>
-          <BacklinkTable backlinks={backlinks} />
-          <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
-          <ActionChecklist
-            strikingCount={summary.striking_distance_count}
-            refDomainsCount={summary.ref_domains}
-            competitorsCount={competitors.length}
+          {/* API Unit Usage Monitor Bar */}
+          <ApiUsageBar
+            monthlyUsed={apiUsage.monthly_used}
+            monthlyLimit={apiUsage.monthly_limit}
+            usagePercent={apiUsage.usage_percent}
           />
-        </div>
-      )}
 
-      {activeTab === 'keywords' && (
-        <div className="space-y-6">
-          <KeywordTable keywords={keywords} />
-        </div>
-      )}
+          {/* Main Tab Content */}
+          {activeTab === 'overview' && (
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <KeywordTable keywords={keywords} domain={domain} />
+                <PageTable pages={pages} domain={domain} />
+              </div>
+              <BacklinkTable backlinks={backlinks} />
+              <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
+              <ActionChecklist
+                strikingCount={summary.striking_distance_count}
+                refDomainsCount={summary.ref_domains}
+                competitorsCount={competitors.length}
+              />
+            </div>
+          )}
 
-      {activeTab === 'pages' && (
-        <div className="space-y-6">
-          <PageTable pages={pages} />
-        </div>
-      )}
+          {activeTab === 'keywords' && (
+            <div className="space-y-6">
+              <KeywordTable keywords={keywords} domain={domain} />
+            </div>
+          )}
 
-      {activeTab === 'backlinks' && (
-        <div className="space-y-6">
-          <BacklinkTable backlinks={backlinks} />
-        </div>
-      )}
+          {activeTab === 'pages' && (
+            <div className="space-y-6">
+              <PageTable pages={pages} domain={domain} />
+            </div>
+          )}
 
-      {activeTab === 'competitors' && (
-        <div className="space-y-6">
-          <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
-        </div>
-      )}
+          {activeTab === 'backlinks' && (
+            <div className="space-y-6">
+              <BacklinkTable backlinks={backlinks} />
+            </div>
+          )}
 
-      {activeTab === 'actions' && (
-        <div className="space-y-6">
-          <ActionChecklist
-            strikingCount={summary.striking_distance_count}
-            refDomainsCount={summary.ref_domains}
-            competitorsCount={competitors.length}
-          />
-        </div>
+          {activeTab === 'competitors' && (
+            <div className="space-y-6">
+              <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
+            </div>
+          )}
+
+          {activeTab === 'actions' && (
+            <div className="space-y-6">
+              <ActionChecklist
+                strikingCount={summary.striking_distance_count}
+                refDomainsCount={summary.ref_domains}
+                competitorsCount={competitors.length}
+              />
+            </div>
+          )}
+        </>
       )}
 
       {/* Interactive Settings & Config Drawer Modal */}
