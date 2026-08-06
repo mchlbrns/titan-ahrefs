@@ -58,54 +58,78 @@ export class ConfigLoader {
   }
 
   public loadDomainRegistry(): DomainRegistry {
-    const domainConfigPath = path.join(this.configDir, 'domains.json');
-    if (!fs.existsSync(domainConfigPath)) {
-      if (this.logger) {
-        this.logger.warn(`domains.json not found at ${domainConfigPath}. Using default fallback domains.`);
+    const possiblePaths = [
+      this.configDir,
+      path.join(process.cwd(), 'config'),
+      path.join(process.cwd(), '../config'),
+      path.join(__dirname, '../config'),
+      path.join(__dirname, '../../config'),
+      path.join(__dirname, '../../../config')
+    ];
+
+    const fallbackRegistry: DomainRegistry = {
+      managed_domains: [
+        { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Main Destination Platform' },
+        { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement & Content Platform' },
+        { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion & Entertainment' },
+        { domain: 'hornycompanion.com', target_country: 'us', priority: 'high', description: 'Companion & Discovery Platform' }
+      ]
+    };
+
+    for (const p of possiblePaths) {
+      const domainConfigPath = path.join(p, 'domains.json');
+      if (fs.existsSync(domainConfigPath)) {
+        try {
+          const content = fs.readFileSync(domainConfigPath, 'utf-8');
+          const registry = JSON.parse(content) as DomainRegistry;
+          this.validateDomainRegistry(registry, domainConfigPath);
+          return registry;
+        } catch {
+          // continue checking other paths or fallback
+        }
       }
-      return {
-        managed_domains: [
-          { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Main Destination Platform' },
-          { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement & Content Platform' },
-          { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion & Entertainment' },
-          { domain: 'hornycompanion.com', target_country: 'us', priority: 'high', description: 'Companion & Discovery Platform' }
-        ]
-      };
     }
 
-    try {
-      const content = fs.readFileSync(domainConfigPath, 'utf-8');
-      const registry = JSON.parse(content) as DomainRegistry;
-      this.validateDomainRegistry(registry, domainConfigPath);
-      return registry;
-    } catch (err) {
-      if (err instanceof ConfigurationError) throw err;
-      throw new ConfigurationError(`Failed to load domain registry from ${domainConfigPath}`, domainConfigPath, {
-        cause: (err as Error).message
-      });
+    if (this.logger) {
+      this.logger.warn(`domains.json not found or unreadable. Using default fallback domains.`);
     }
+    return fallbackRegistry;
   }
 
   public loadCompetitorRegistry(): CompetitorRegistry {
-    const compConfigPath = path.join(this.configDir, 'competitors.json');
-    if (!fs.existsSync(compConfigPath)) {
-      if (this.logger) {
-        this.logger.debug(`competitors.json not found at ${compConfigPath}. Returning empty competitor registry.`);
+    const possiblePaths = [
+      this.configDir,
+      path.join(process.cwd(), 'config'),
+      path.join(process.cwd(), '../config'),
+      path.join(__dirname, '../config'),
+      path.join(__dirname, '../../config'),
+      path.join(__dirname, '../../../config')
+    ];
+
+    const fallbackRegistry: CompetitorRegistry = {
+      competitors_by_domain: {
+        'titantreasure.com': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
+        'red-engage.com': [],
+        'heavengirlfriend.com': [],
+        'hornycompanion.com': []
       }
-      return { competitors_by_domain: {} };
+    };
+
+    for (const p of possiblePaths) {
+      const compConfigPath = path.join(p, 'competitors.json');
+      if (fs.existsSync(compConfigPath)) {
+        try {
+          const content = fs.readFileSync(compConfigPath, 'utf-8');
+          const registry = JSON.parse(content) as CompetitorRegistry;
+          this.validateCompetitorRegistry(registry, compConfigPath);
+          return registry;
+        } catch {
+          // continue
+        }
+      }
     }
 
-    try {
-      const content = fs.readFileSync(compConfigPath, 'utf-8');
-      const registry = JSON.parse(content) as CompetitorRegistry;
-      this.validateCompetitorRegistry(registry, compConfigPath);
-      return registry;
-    } catch (err) {
-      if (err instanceof ConfigurationError) throw err;
-      throw new ConfigurationError(`Failed to load competitor registry from ${compConfigPath}`, compConfigPath, {
-        cause: (err as Error).message
-      });
-    }
+    return fallbackRegistry;
   }
 
   private validateDomainRegistry(registry: DomainRegistry, filePath: string): void {
