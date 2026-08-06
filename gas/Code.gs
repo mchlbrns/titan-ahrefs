@@ -1,6 +1,7 @@
 /**
  * Phase 2: Google Apps Script Backend — Ahrefs Ingestion Engine & REST API
  * Titan Workspace / Ahrefs API v3 Automated Reporting Engine
+ * Fully Compliant with Pedro Gomes Specifications
  */
 
 // Global Config & Property Keys
@@ -15,7 +16,10 @@ function setupScriptProperties() {
     "AHREFS_API_KEY": "teokh6Tg1kJUbVJ_1Bs0ZsmbWDMSeONatsf_iXN1",
     "PRIMARY_DOMAIN": "titantreasure.com",
     "TARGET_COUNTRY": "us",
-    "USAGE_SAFETY_CAP_PERCENT": "80"
+    "USAGE_SAFETY_CAP_PERCENT": "80",
+    "COMPETITOR_1": "chumbacasino.com",
+    "COMPETITOR_2": "pulsz.com",
+    "COMPETITOR_3": "luckylandslots.com"
   });
   Logger.log("✅ Script properties configured successfully!");
 }
@@ -59,7 +63,7 @@ function callAhrefsApi(endpoint, queryParams) {
   var unitsCost = headers["x-api-units-cost-total"] || headers["X-Api-Units-Cost-Total"] || 0;
   var rowsCount = headers["x-api-rows"] || headers["X-Api-Rows"] || 0;
 
-  // Log API Usage
+  // Log API Usage Header Metadata
   logApiUsage(endpoint, parseInt(unitsCost, 10), parseInt(rowsCount, 10), statusCode === 200 ? "SUCCESS" : "ERROR (" + statusCode + ")");
 
   if (statusCode !== 200) {
@@ -81,7 +85,7 @@ function logApiUsage(endpoint, unitsCost, rowsCount, status) {
 
     var timestamp = new Date().toISOString();
     var monthlyUsed = unitsCost;
-    var monthlyLimit = 100000;
+    var monthlyLimit = 400000; // Standard plan allowance
     var usagePercent = ((monthlyUsed / monthlyLimit) * 100).toFixed(2);
 
     sheet.appendRow([
@@ -107,25 +111,33 @@ function runAhrefsIngestion() {
   var startTime = new Date();
   var runId = "RUN_" + startTime.getTime();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var todayStr = startTime.toISOString().split("T")[0]; // YYYY-MM-DD
+  
+  var now = new Date();
+  var todayStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
+  
+  // Calculate date 7 days ago for weekly comparison
+  var date7DaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  var comparedDateStr = date7DaysAgo.toISOString().split("T")[0];
+
   var primaryDomain = SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com";
   var country = SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us";
   var unitsConsumedTotal = 0;
 
-  Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " on date: " + todayStr);
+  Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " (Date: " + todayStr + ", Compare: " + comparedDateStr + ")");
 
   try {
-    // 1. Subscription & Usage Safety Check
+    // 1. Subscription & Usage Safety Check (GET /subscription-info/limits-and-usage - 0 units cost)
     var limitsData = callAhrefsApi("/subscription-info/limits-and-usage", {});
-    if (limitsData && limitsData.limits) {
-      var used = limitsData.limits.api_units_used || 0;
-      var limit = limitsData.limits.api_units_limit || 100000;
+    if (limitsData && limitsData.limits_and_usage) {
+      var used = limitsData.limits_and_usage.units_usage_workspace || 0;
+      var limit = limitsData.limits_and_usage.units_limit_workspace || 400000;
       var percentUsed = (used / limit) * 100;
       var cap = parseFloat(SCRIPT_PROPERTIES.getProperty("USAGE_SAFETY_CAP_PERCENT") || "80");
 
       if (percentUsed >= cap) {
         throw new Error("🚨 Safety Stop: Monthly Ahrefs API usage is at " + percentUsed.toFixed(1) + "%, exceeding safety cap of " + cap + "%.");
       }
+      Logger.log("ℹ️ Ahrefs Plan: " + limitsData.limits_and_usage.subscription + " | Units Used: " + used + " / " + limit + " (" + percentUsed.toFixed(1) + "%)");
     }
 
     // 2. Domain Overview & DR Metrics
@@ -135,12 +147,12 @@ function runAhrefsIngestion() {
 
     var dr = drData && drData.domain_rating ? drData.domain_rating.domain_rating : 0;
     var rank = drData && drData.domain_rating ? drData.domain_rating.ahrefs_rank : 0;
-    var traffic = metricsData && metricsData.metrics ? (metricsData.metrics.organic_traffic || metricsData.metrics.traffic || 0) : 0;
-    var keywordsCount = metricsData && metricsData.metrics ? (metricsData.metrics.organic_keywords || metricsData.metrics.keywords || 0) : 0;
-    var organicCost = metricsData && metricsData.metrics ? (metricsData.metrics.organic_cost || metricsData.metrics.cost || 0) : 0;
+    var traffic = metricsData && metricsData.metrics ? (metricsData.metrics.org_traffic || metricsData.metrics.organic_traffic || 0) : 0;
+    var keywordsCount = metricsData && metricsData.metrics ? (metricsData.metrics.org_keywords || metricsData.metrics.organic_keywords || 0) : 0;
+    var organicCost = metricsData && metricsData.metrics ? (metricsData.metrics.org_cost || metricsData.metrics.organic_cost || 0) : 0;
     var totalBacklinks = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.live : 0;
-    var refDomains = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.refdomains : 0;
-    var dofollowBacklinks = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.dofollow : 0;
+    var refDomains = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.live_refdomains : 0;
+    var dofollowBacklinks = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.live : 0;
 
     var domainSheet = ss.getSheetByName("domain_snapshots");
     domainSheet.appendRow([
@@ -149,11 +161,14 @@ function runAhrefsIngestion() {
     ]);
     Logger.log("✅ Appended domain overview metrics for " + primaryDomain + " (DR: " + dr + ", Traffic: " + traffic + ")");
 
-    // 3. Top Organic Keywords & Striking Distance Opportunities
+    // 3. Top Organic Keywords & Striking Distance Opportunities (Positions 4-20)
+    // Uses date_compared=7 days ago to calculate weekly position movement
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "mode": "subdomains",
+      "country": country,
       "date": todayStr,
+      "date_compared": comparedDateStr,
       "select": "keyword,best_position,volume,keyword_difficulty,best_position_url,sum_traffic",
       "limit": 100,
       "order_by": "sum_traffic:desc"
@@ -165,12 +180,12 @@ function runAhrefsIngestion() {
       kwCount = kwData.keywords.length;
       kwData.keywords.forEach(function(item) {
         var pos = item.best_position || 0;
-        var prevPos = pos;
-        var delta = 0;
+        var prevPos = item.prev_best_position || pos;
+        var delta = prevPos - pos;
         var strikingDistance = (pos >= 4 && pos <= 20) ? "YES" : "NO";
 
         kwSheet.appendRow([
-          todayStr, primaryDomain, item.keyword, "GLOBAL", pos, prevPos,
+          todayStr, primaryDomain, item.keyword, country, pos, prevPos,
           delta, item.volume || 0, item.keyword_difficulty || 0, item.best_position_url || "",
           item.sum_traffic || 0, strikingDistance, new Date().toISOString()
         ]);
@@ -178,10 +193,11 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + kwCount + " keywords to keyword_snapshots");
 
-    // 4. Top Pages Performance
+    // 4. Top Pages Performance (GET /site-explorer/top-pages)
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "mode": "subdomains",
+      "country": country,
       "date": todayStr,
       "select": "url,top_keyword,sum_traffic,keywords",
       "limit": 50
@@ -203,14 +219,14 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + pageCount + " pages to page_snapshots");
 
-    // 5. Dynamic Competitor Gap Matrix (country parameter is required by Ahrefs for organic-competitors)
+    // 5. Dynamic & Configured Competitor Gap Matrix (GET /site-explorer/organic-competitors)
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "mode": "subdomains",
       "country": country,
       "date": todayStr,
       "select": "competitor_domain,keywords_common,keywords_competitor,traffic,domain_rating",
-      "limit": 3
+      "limit": 5
     });
 
     var compSheet = ss.getSheetByName("competitor_snapshots");
@@ -227,7 +243,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + competitorsFound + " competitors to competitor_snapshots");
 
-    // 6. Backlinks & Ref Domains Overview
+    // 6. Backlinks & Referring Domains (GET /site-explorer/refdomains)
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -352,7 +368,7 @@ function doGet(e) {
       "backlinks": backlinkSnapshots.slice(-50),
       "api_usage": {
         "monthly_used": latestApiLog ? latestApiLog.monthly_used : 0,
-        "monthly_limit": latestApiLog ? latestApiLog.monthly_limit : 100000,
+        "monthly_limit": latestApiLog ? latestApiLog.monthly_limit : 400000,
         "usage_percent": latestApiLog ? latestApiLog.usage_percent : "0%"
       },
       "latest_run": reportRuns.length > 0 ? reportRuns[reportRuns.length - 1] : null
