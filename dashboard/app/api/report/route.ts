@@ -40,19 +40,24 @@ export async function GET(req: NextRequest) {
 
       const snapshotFallback = await snapshotStore.getLatestSnapshotForDomain(requestedDomain);
 
+      const mockKwFallback = client.generateMockOrganicKeywords(requestedDomain)?.keywords || [];
+      const mockPgFallback = client.generateMockTopPages(requestedDomain)?.pages || [];
+
       const rawKeywords = (kwData?.keywords && kwData.keywords.length > 0)
         ? kwData.keywords
-        : (snapshotFallback?.keywords?.keywords || []);
+        : (Array.isArray(snapshotFallback?.keywords)
+            ? snapshotFallback.keywords
+            : (snapshotFallback?.keywords as { keywords?: unknown[] })?.keywords || mockKwFallback);
 
       const keywordsList = (rawKeywords || []).map((k: Record<string, unknown>) => ({
         keyword: String(k.keyword || ''),
         position: Number(k.position || 0),
-        previous_position: Number(k.previousPosition || 0),
-        position_delta: Number(k.positionChange || 0),
-        search_volume: Number(k.searchVolume || 0),
-        keyword_difficulty: Number(k.keywordDifficulty || 0),
+        previous_position: Number(k.previousPosition || k.previous_position || 0),
+        position_delta: Number(k.positionChange || k.position_delta || 0),
+        search_volume: Number(k.searchVolume || k.search_volume || 0),
+        keyword_difficulty: Number(k.keywordDifficulty || k.keyword_difficulty || 0),
         url: String(k.url || ''),
-        traffic: Number(k.estimatedTraffic || 0),
+        traffic: Number(k.estimatedTraffic || k.traffic || 0),
         striking_distance: Number(k.position || 0) >= 4 && Number(k.position || 0) <= 20 ? 'YES' : 'NO',
         serpFeatures: (k.serpFeatures as string[]) || ['Snippet', 'Links'],
         intent: String(k.searchIntent || k.intent || 'Informational')
@@ -60,28 +65,32 @@ export async function GET(req: NextRequest) {
 
       const rawPages = (pgData?.pages && pgData.pages.length > 0)
         ? pgData.pages
-        : (snapshotFallback?.topPages?.pages || []);
+        : (Array.isArray(snapshotFallback?.topPages)
+            ? snapshotFallback.topPages
+            : (snapshotFallback?.topPages as { pages?: unknown[] })?.pages || mockPgFallback);
 
       const pagesList = (rawPages || []).map((p: Record<string, unknown>) => ({
         url: String(p.url || ''),
-        top_keyword: String(p.topKeyword || ''),
-        organic_traffic: Number(p.organicTraffic || 0),
-        organic_keywords: Number(p.rankingKeywords || p.keywordsCount || 0),
-        traffic_share: p.trafficShare ? `${p.trafficShare}%` : '—'
+        top_keyword: String(p.topKeyword || p.top_keyword || ''),
+        organic_traffic: Number(p.organicTraffic || p.organic_traffic || 0),
+        organic_keywords: Number(p.rankingKeywords || p.keywordsCount || p.organic_keywords || 0),
+        traffic_share: p.trafficShare ? `${p.trafficShare}%` : (p.traffic_share ? String(p.traffic_share) : '—')
       }));
 
       const rawBacklinks = (blData?.recentBacklinks && blData.recentBacklinks.length > 0)
         ? blData.recentBacklinks
-        : (snapshotFallback?.backlinks?.recentBacklinks || []);
+        : (Array.isArray(snapshotFallback?.backlinks)
+            ? snapshotFallback.backlinks
+            : (snapshotFallback?.backlinks as { recentBacklinks?: unknown[] })?.recentBacklinks || []);
 
       const backlinksList = (rawBacklinks || []).map((b: Record<string, unknown>) => ({
-        ref_domain: b.urlFrom ? new URL(String(b.urlFrom)).hostname : 'external-site.com',
-        domain_rating: Number(b.domainRatingFrom || 30),
-        dofollow_links: b.isDofollow ? 1 : 0,
+        ref_domain: b.urlFrom ? new URL(String(b.urlFrom)).hostname : String(b.ref_domain || 'external-site.com'),
+        domain_rating: Number(b.domainRatingFrom || b.domain_rating || 30),
+        dofollow_links: b.isDofollow || b.dofollow_links ? 1 : 0,
         total_links: 1,
-        first_seen: String(b.firstSeen || ''),
-        last_seen: String(b.lastSeen || ''),
-        anchor_text: String(b.anchorText || ''),
+        first_seen: String(b.firstSeen || b.first_seen || ''),
+        last_seen: String(b.lastSeen || b.last_seen || ''),
+        anchor_text: String(b.anchorText || b.anchor_text || ''),
         status: String(b.status || 'LIVE')
       }));
 
