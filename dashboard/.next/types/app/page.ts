@@ -1,4 +1,4 @@
-// File: C:\Users\Geloo\Downloads\Titan Workspace\titan-ahrefs\dashboard\app\page.tsx
+// File: C:\Users\HomePC\titan-workspace\titan-ahrefs\dashboard\app\page.tsx
 import * as entry from '../../../app/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

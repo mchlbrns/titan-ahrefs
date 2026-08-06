@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { AhrefsClient } from './client';
 import { SnapshotStore } from './snapshots';
 import { ComparisonEngine } from './comparison';
@@ -29,7 +30,7 @@ export class ReportGenerator {
     this.snapshotStore = new SnapshotStore(undefined, this.client, this.logger);
     this.comparisonEngine = new ComparisonEngine(this.logger);
     this.recommendationEngine = new RecommendationEngine(this.logger);
-    this.reportsDir = reportsDir || path.join(__dirname, '../reports/generated');
+    this.reportsDir = reportsDir || (process.env.VERCEL ? path.join(os.tmpdir(), 'reports') : path.join(__dirname, '../reports/generated'));
     this.ensureReportsDir();
   }
 
@@ -37,10 +38,15 @@ export class ReportGenerator {
     if (!fs.existsSync(this.reportsDir)) {
       try {
         fs.mkdirSync(this.reportsDir, { recursive: true });
-      } catch (err) {
-        throw new ReportGenerationError(`Failed to create reports directory: ${this.reportsDir}`, undefined, {
-          cause: (err as Error).message
-        });
+      } catch {
+        this.reportsDir = path.join(os.tmpdir(), 'reports');
+        try {
+          if (!fs.existsSync(this.reportsDir)) {
+            fs.mkdirSync(this.reportsDir, { recursive: true });
+          }
+        } catch (tmpErr) {
+          this.logger.warn(`Could not create reports directory: ${this.reportsDir}`, { error: (tmpErr as Error).message });
+        }
       }
     }
   }

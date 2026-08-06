@@ -128,14 +128,18 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
     try {
-      const url = `${webAppUrl}?domain=${encodeURIComponent(domainToFetch)}`;
-      const res = await fetch(url, { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load backend data`);
+      const apiUrl = `/api/report?format=json&domain=${encodeURIComponent(domainToFetch)}`;
+      let res = await fetch(apiUrl, { cache: 'no-store' });
+      if (!res.ok) {
+        const gasUrl = `${webAppUrl}?domain=${encodeURIComponent(domainToFetch)}`;
+        res = await fetch(gasUrl, { cache: 'no-store' });
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load live domain data`);
       const json: ApiResponseData = await res.json();
       setData(json);
     } catch (err: unknown) {
       const msg =
-        err instanceof Error ? err.message : 'Could not reach the Google Apps Script backend.';
+        err instanceof Error ? err.message : 'Could not reach the Ahrefs report engine backend.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -149,9 +153,9 @@ export default function DashboardPage() {
   // ─── Derived values ─────────────────────────────────────────────────────
 
   const domain =
+    selectedDomain ||
     data?.config?.primary_domain ||
     data?.primary_domain ||
-    process.env.NEXT_PUBLIC_PRIMARY_DOMAIN ||
     'titantreasure.com';
 
   const config = data?.config || {

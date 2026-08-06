@@ -13,6 +13,8 @@ import { calculateSeoHealthScore } from './health';
 import { Logger } from './logger';
 import { SnapshotError } from './errors';
 
+import * as os from 'os';
+
 export class SnapshotStore {
   private client: AhrefsClient;
   private storageDir: string;
@@ -20,7 +22,7 @@ export class SnapshotStore {
 
   constructor(storageDir?: string, client?: AhrefsClient, logger?: Logger) {
     this.client = client || new AhrefsClient();
-    this.storageDir = storageDir || path.join(__dirname, '../snapshots/local');
+    this.storageDir = storageDir || (process.env.VERCEL ? path.join(os.tmpdir(), 'snapshots') : path.join(__dirname, '../snapshots/local'));
     this.logger = logger || new Logger({ context: 'SnapshotStore' });
     this.ensureStorageDir();
   }
@@ -29,10 +31,15 @@ export class SnapshotStore {
     if (!fs.existsSync(this.storageDir)) {
       try {
         fs.mkdirSync(this.storageDir, { recursive: true });
-      } catch (err) {
-        throw new SnapshotError(`Failed to create snapshot storage directory: ${this.storageDir}`, undefined, {
-          cause: (err as Error).message
-        });
+      } catch {
+        this.storageDir = path.join(os.tmpdir(), 'snapshots');
+        try {
+          if (!fs.existsSync(this.storageDir)) {
+            fs.mkdirSync(this.storageDir, { recursive: true });
+          }
+        } catch (tmpErr) {
+          this.logger.warn(`Could not create snapshot storage directory: ${this.storageDir}`, { error: (tmpErr as Error).message });
+        }
       }
     }
   }

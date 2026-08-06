@@ -65,6 +65,7 @@ export class ConfigLoader {
       }
       return {
         managed_domains: [
+          { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Main Destination Platform' },
           { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement & Content Platform' },
           { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion & Entertainment' },
           { domain: 'hornycompanion.com', target_country: 'us', priority: 'high', description: 'Companion & Discovery Platform' }
