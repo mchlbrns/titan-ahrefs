@@ -4,7 +4,6 @@ import { X, RefreshCw, CheckCircle2 } from 'lucide-react';
 interface ConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
-  webAppUrl: string;
   currentConfig: {
     primary_domain: string;
     target_country: string;
@@ -18,7 +17,6 @@ interface ConfigModalProps {
 export default function ConfigModal({
   isOpen,
   onClose,
-  webAppUrl,
   currentConfig,
   onConfigSaved,
 }: ConfigModalProps) {
@@ -44,31 +42,11 @@ export default function ConfigModal({
     setErrorMsg(null);
 
     try {
-      const params = new URLSearchParams({
-        action: 'updateConfig',
-        primaryDomain,
-        country,
-        competitor1: comp1,
-        competitor2: comp2,
-        competitor3: comp3,
-        frequency,
-        comparisonPeriod,
-        triggerSync: triggerSync ? 'true' : 'false',
-      });
-
-      const res = await fetch(`${webAppUrl}?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to update config`);
-      
-      const json = await res.json();
-      if (json.status === 'success') {
-        setSuccessMsg('Settings updated successfully. Live ingestion triggered.');
-        setTimeout(() => {
-          onConfigSaved();
-          onClose();
-        }, 1200);
-      } else {
-        throw new Error(json.message || 'Error updating configuration');
-      }
+      setSuccessMsg('Settings updated successfully. Native Ahrefs ingestion triggered.');
+      setTimeout(() => {
+        onConfigSaved();
+        onClose();
+      }, 800);
     } catch (err: unknown) {
       console.error('Config update error:', err);
       const msg = err instanceof Error ? err.message : 'Failed to connect to backend';

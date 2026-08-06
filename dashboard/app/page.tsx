@@ -126,20 +126,12 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
 
-  const webAppUrl =
-    process.env.NEXT_PUBLIC_GAS_WEBAPP_URL ||
-    'https://script.google.com/macros/s/AKfycbxDSOFO5sCDVuDgciSt-eXbpu-5T_g7gZgly-FcPR_4HBaTpLpdG7m6FWZSwwGSh1H-/exec';
-
   const fetchData = async (domainToFetch: string = selectedDomain) => {
     setLoading(true);
     setError(null);
     try {
       const apiUrl = `/api/report?format=json&domain=${encodeURIComponent(domainToFetch)}`;
-      let res = await fetch(apiUrl, { cache: 'no-store' });
-      if (!res.ok) {
-        const gasUrl = `${webAppUrl}?domain=${encodeURIComponent(domainToFetch)}`;
-        res = await fetch(gasUrl, { cache: 'no-store' });
-      }
+      const res = await fetch(apiUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load live domain data`);
       const json: ApiResponseData = await res.json();
       setData(json);
@@ -601,7 +593,6 @@ export default function DashboardPage() {
       <ConfigModal
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
-        webAppUrl={webAppUrl}
         currentConfig={config}
         onConfigSaved={fetchData}
       />
