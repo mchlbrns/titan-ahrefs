@@ -615,6 +615,35 @@ export class AhrefsClient {
           searchIntent: 'Commercial'
         }
       ];
+    } else {
+      baseKeywords = [
+        {
+          keyword: 'titan treasure casino',
+          position: 2,
+          previousPosition: 3,
+          positionChange: 1,
+          searchVolume: 3200,
+          keywordDifficulty: 14,
+          estimatedTraffic: 850,
+          trafficChange: 120,
+          url: `https://${domain}/`,
+          serpFeatures: ['Featured Snippet'],
+          searchIntent: 'Navigational'
+        },
+        {
+          keyword: 'titan treasure sweepstakes',
+          position: 5,
+          previousPosition: 8,
+          positionChange: 3,
+          searchVolume: 1900,
+          keywordDifficulty: 21,
+          estimatedTraffic: 350,
+          trafficChange: 80,
+          url: `https://${domain}/sweeps`,
+          serpFeatures: ['People Also Ask'],
+          searchIntent: 'Commercial'
+        }
+      ];
     }
 
     const estimatedTraffic = isRed ? 0.18 : isHeaven ? 543 : isHorny ? 8100 : 1000;

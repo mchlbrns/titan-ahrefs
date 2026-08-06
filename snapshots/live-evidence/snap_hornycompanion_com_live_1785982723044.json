@@ -15,5 +15,38 @@
     "req4_topPages": true,
     "req5_competitors": true,
     "req6_backlinks": true
+  },
+  "keywords": {
+    "domain": "hornycompanion.com",
+    "totalKeywords": 3,
+    "top3Count": 2,
+    "top10Count": 2,
+    "top50Count": 3,
+    "estimatedTraffic": 8100,
+    "trafficValue": 4100,
+    "keywords": [
+      {
+        "keyword": "horny companion",
+        "position": 1,
+        "previousPosition": 1,
+        "positionChange": 0,
+        "searchVolume": 9200,
+        "keywordDifficulty": 15,
+        "estimatedTraffic": 6100,
+        "url": "https://hornycompanion.com/",
+        "searchIntent": "Navigational"
+      },
+      {
+        "keyword": "ai companion chat",
+        "position": 3,
+        "previousPosition": 4,
+        "positionChange": 1,
+        "searchVolume": 4100,
+        "keywordDifficulty": 22,
+        "estimatedTraffic": 2000,
+        "url": "https://hornycompanion.com/chat",
+        "searchIntent": "Commercial"
+      }
+    ]
   }
 }

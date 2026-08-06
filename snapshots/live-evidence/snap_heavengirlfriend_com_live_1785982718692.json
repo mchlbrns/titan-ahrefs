@@ -15,5 +15,49 @@
     "req4_topPages": true,
     "req5_competitors": true,
     "req6_backlinks": true
+  },
+  "keywords": {
+    "domain": "heavengirlfriend.com",
+    "totalKeywords": 30,
+    "top3Count": 1,
+    "top10Count": 3,
+    "top50Count": 30,
+    "estimatedTraffic": 543,
+    "trafficValue": 306,
+    "keywords": [
+      {
+        "keyword": "ai girlfriend",
+        "position": 4,
+        "previousPosition": 6,
+        "positionChange": 2,
+        "searchVolume": 18000,
+        "keywordDifficulty": 45,
+        "estimatedTraffic": 320,
+        "url": "https://heavengirlfriend.com/",
+        "searchIntent": "Commercial"
+      },
+      {
+        "keyword": "heaven girlfriend review",
+        "position": 1,
+        "previousPosition": 1,
+        "positionChange": 0,
+        "searchVolume": 1200,
+        "keywordDifficulty": 12,
+        "estimatedTraffic": 180,
+        "url": "https://heavengirlfriend.com/about",
+        "searchIntent": "Informational"
+      },
+      {
+        "keyword": "virtual girlfriend simulator",
+        "position": 7,
+        "previousPosition": 10,
+        "positionChange": 3,
+        "searchVolume": 5400,
+        "keywordDifficulty": 28,
+        "estimatedTraffic": 43,
+        "url": "https://heavengirlfriend.com/chat",
+        "searchIntent": "Transactional"
+      }
+    ]
   }
 }

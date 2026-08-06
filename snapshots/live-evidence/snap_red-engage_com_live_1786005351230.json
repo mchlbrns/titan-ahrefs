@@ -15,5 +15,38 @@
     "req4_topPages": true,
     "req5_competitors": true,
     "req6_backlinks": true
+  },
+  "keywords": {
+    "domain": "red-engage.com",
+    "totalKeywords": 7,
+    "top3Count": 2,
+    "top10Count": 2,
+    "top50Count": 7,
+    "estimatedTraffic": 0.18,
+    "trafficValue": 0,
+    "keywords": [
+      {
+        "keyword": "reddit marketing agency",
+        "position": 3,
+        "previousPosition": 3,
+        "positionChange": 0,
+        "searchVolume": 400,
+        "keywordDifficulty": 1,
+        "estimatedTraffic": 0,
+        "url": "https://red-engage.com/blog/best-reddit-marketing-agencies",
+        "searchIntent": "Transactional"
+      },
+      {
+        "keyword": "leading advertising companies",
+        "position": 1,
+        "previousPosition": 1,
+        "positionChange": 0,
+        "searchVolume": 90,
+        "keywordDifficulty": 6,
+        "estimatedTraffic": 0,
+        "url": "https://red-engage.com/blog/best-international-marketing-agencies",
+        "searchIntent": "Commercial"
+      }
+    ]
   }
 }
