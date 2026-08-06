@@ -198,19 +198,45 @@ export default function DashboardPage() {
       }
     : undefined;
 
-  const apiUsage = data?.api_usage || {
-    monthly_used: 0,
-    monthly_limit: 400000,
-    usage_percent: '0.00%',
-  };
+  // Support both flat api_usage and nested apiUsageSummary from ReportGenerator format
+  const rawApiUsage = data?.api_usage ||
+    (data as unknown as { apiUsageSummary?: { totalConsumed?: number; totalLimit?: number; usagePercent?: number } })?.apiUsageSummary;
+  const apiUsage = rawApiUsage
+    ? {
+        monthly_used: (rawApiUsage as Record<string, unknown>).monthly_used ?? (rawApiUsage as Record<string, unknown>).totalConsumed ?? 0,
+        monthly_limit: (rawApiUsage as Record<string, unknown>).monthly_limit ?? (rawApiUsage as Record<string, unknown>).totalLimit ?? 500000,
+        usage_percent: (rawApiUsage as Record<string, unknown>).usage_percent ?? (rawApiUsage as Record<string, unknown>).usagePercent ?? '0.00%',
+      }
+    : { monthly_used: 0, monthly_limit: 500000, usage_percent: '0.00%' };
 
-  // Null-safe filtered arrays
+  // Null-safe filtered arrays — support both flat and summaries format
   const keywords: KeywordItem[] = (data?.keywords || []).filter(
     (k) => k && typeof k.keyword === 'string' && k.keyword.trim() !== ''
   );
   const pages: PageItem[] = data?.pages || [];
   const competitors: CompetitorItem[] = data?.competitors || [];
-  const backlinks: BacklinkItem[] = data?.backlinks || [];
+
+  // Extract backlinks: prefer flat format, fallback to trend arrays in summaries format
+  const trendData = (rawSummary as Record<string, unknown> | undefined)?.trend as Record<string, unknown[]> | undefined;
+  const trendBacklinks: BacklinkItem[] = [
+    ...((trendData?.lostBacklinks || []) as Record<string, unknown>[]).map((b) => ({
+      ref_domain: b.urlFrom ? (() => { try { return new URL(String(b.urlFrom)).hostname; } catch { return String(b.urlFrom); } })() : 'external-site.com',
+      domain_rating: Number(b.domainRatingFrom || 30),
+      dofollow_links: b.isDofollow ? 1 : 0,
+      total_links: 1,
+      first_seen: String(b.firstSeen || ''),
+      status: 'LOST',
+    })),
+    ...((trendData?.newBacklinks || []) as Record<string, unknown>[]).map((b) => ({
+      ref_domain: b.urlFrom ? (() => { try { return new URL(String(b.urlFrom)).hostname; } catch { return String(b.urlFrom); } })() : 'external-site.com',
+      domain_rating: Number(b.domainRatingFrom || 30),
+      dofollow_links: b.isDofollow ? 1 : 0,
+      total_links: 1,
+      first_seen: String(b.firstSeen || ''),
+      status: 'LIVE',
+    })),
+  ];
+  const backlinks: BacklinkItem[] = data?.backlinks?.length ? data.backlinks : trendBacklinks;
 
   const rawRefDomains = Number(summary?.ref_domains);
   const refDomainsCount =
@@ -218,15 +244,27 @@ export default function DashboardPage() {
       ? rawRefDomains
       : backlinks.length;
 
-  const lastUpdated = data?.timestamp
-    ? new Date(data.timestamp).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : null;
+  // Extract live recommendations and health grade from rawSummary
+  const seoHealthScore = (rawSummary as Record<string, unknown> | undefined)?.seoHealthScore as Record<string, unknown> | undefined;
+  const liveRecommendations: string[] = [
+    ...((seoHealthScore?.recommendations as string[]) || []),
+    ...((rawSummary as Record<string, unknown> | undefined)?.recommendations as string[] || []),
+  ].filter((r, i, arr) => arr.indexOf(r) === i); // deduplicate
+  const healthGrade = seoHealthScore?.grade as string | undefined;
+
+  const lastUpdated =
+    (data?.timestamp
+      ? new Date(data.timestamp)
+      : (data as unknown as { generatedAt?: string })?.generatedAt
+      ? new Date((data as unknown as { generatedAt: string }).generatedAt)
+      : null
+    )?.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }) ?? null;
 
   // ─── Tabs config ────────────────────────────────────────────────────────
 
@@ -334,14 +372,9 @@ export default function DashboardPage() {
           <section className="py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-6 border-b border-[rgba(255,255,255,0.06)]">
             <KpiCard
               title="SEO Health Score"
-              value={
-                data?.summary?.healthScore ??
-                data?.summary?.health_score ??
-                data?.summary?.seoHealthScore?.score ??
-                78
-              }
-              subText="Health Rating (0–100)"
-              hasData={true}
+              value={summary?.healthScore ?? 0}
+              subText={summary?.healthScore !== undefined ? `Health Rating (0–100)` : 'Health Rating (0–100)'}
+              hasData={hasSnapshot && summary?.healthScore !== undefined}
               size="hero"
             />
             <KpiCard
@@ -478,6 +511,9 @@ export default function DashboardPage() {
                     refDomainsCount={refDomainsCount}
                     competitorsCount={competitors.length}
                     dataLoaded={hasSnapshot}
+                    liveRecommendations={liveRecommendations}
+                    healthScore={summary?.healthScore}
+                    healthGrade={healthGrade}
                   />
                 </section>
               </div>
@@ -527,6 +563,9 @@ export default function DashboardPage() {
                 refDomainsCount={refDomainsCount}
                 competitorsCount={competitors.length}
                 dataLoaded={hasSnapshot}
+                liveRecommendations={liveRecommendations}
+                healthScore={summary?.healthScore}
+                healthGrade={healthGrade}
               />
             )}
           </div>

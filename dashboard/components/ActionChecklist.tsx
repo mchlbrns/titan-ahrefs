@@ -12,6 +12,12 @@ interface ActionChecklistProps {
   competitorsCount: number;
   /** When true, data has loaded but returned empty results */
   dataLoaded?: boolean;
+  /** Live recommendations from Ahrefs seoHealthScore.recommendations */
+  liveRecommendations?: string[];
+  /** SEO health score from Ahrefs (0-100) */
+  healthScore?: number;
+  /** Health grade (A-F) */
+  healthGrade?: string;
 }
 
 export default function ActionChecklist({
@@ -19,6 +25,9 @@ export default function ActionChecklist({
   refDomainsCount,
   competitorsCount,
   dataLoaded = false,
+  liveRecommendations = [],
+  healthScore,
+  healthGrade,
 }: ActionChecklistProps) {
   if (!dataLoaded) {
     return (
@@ -33,9 +42,21 @@ export default function ActionChecklist({
     );
   }
 
-  // Build actions only from real live data — no hardcoded items
+  // Build actions from live Ahrefs recommendations first
   const actions: ActionItem[] = [];
 
+  // Add live Ahrefs recommendations
+  if (liveRecommendations.length > 0) {
+    liveRecommendations.forEach((rec, idx) => {
+      actions.push({
+        title: rec,
+        category: 'Ahrefs AI Insight',
+        priority: idx === 0 ? 'high' : idx === 1 ? 'high' : 'medium',
+      });
+    });
+  }
+
+  // Add computed action items from real data
   if (strikingCount > 0) {
     actions.push({
       title: `${strikingCount} keyword${strikingCount === 1 ? '' : 's'} in positions 4–20 — internal linking and refreshed page titles could move these into the top 3.`,
@@ -91,11 +112,25 @@ export default function ActionChecklist({
     low: 'text-slate-500',
   };
 
+  const gradeColor =
+    healthGrade === 'A' ? 'text-emerald-400' :
+    healthGrade === 'B' ? 'text-green-400' :
+    healthGrade === 'C' ? 'text-yellow-400' :
+    healthGrade === 'D' ? 'text-orange-400' :
+    'text-rose-400';
+
   return (
     <div className="space-y-4">
-      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-        Insights
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          Insights &amp; Recommendations
+        </h2>
+        {healthScore !== undefined && (
+          <span className={`text-xs font-semibold ${gradeColor}`}>
+            SEO Grade: {healthGrade ?? '—'} ({healthScore}/100)
+          </span>
+        )}
+      </div>
       <ul className="space-y-px">
         {actions.map((act, i) => (
           <li
