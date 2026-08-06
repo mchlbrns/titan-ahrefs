@@ -9,6 +9,7 @@ import CompetitorMatrix from '@/components/CompetitorMatrix';
 import BacklinkTable from '@/components/BacklinkTable';
 import ActionChecklist from '@/components/ActionChecklist';
 import ConfigModal from '@/components/ConfigModal';
+import ExportMenu from '@/components/ExportMenu';
 import {
   RefreshCw,
   Settings,
@@ -385,6 +386,7 @@ export default function DashboardPage() {
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </button>
+          <ExportMenu domain={selectedDomain} />
         </div>
       </header>
 
