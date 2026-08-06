@@ -18,12 +18,13 @@ Welcome to `titan-ahrefs`, the standalone Ahrefs SEO Analytics Engine repository
 When entering this repository, complete the following onboarding sequence:
 
 1. Read [`README.md`](./README.md) for a general repository overview.
-2. Read [`PROJECT_METADATA.md`](./PROJECT_METADATA.md) for executive status, client details, and current phase.
-3. Inspect [`workspace.json`](./workspace.json) for machine-readable entry points, managed domains, and environment requirements.
-4. Read [`AI_CONTEXT.md`](./AI_CONTEXT.md) for deep business scope, API specifications, and domain targets.
-5. Review [`docs/`](./docs/) (`docs/ARCHITECTURE.md`, `docs/DOMAINS.md`, `docs/INTEGRATION.md`).
-6. Inspect [`memory/`](./memory/) for past repository decisions and execution lessons.
-7. Read [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) before initiating any Phase 2 application implementation.
+2. Read [`HOW-TO-USE-THIS.md`](./HOW-TO-USE-THIS.md) for step-by-step CLI workflows and self-learning protocols.
+3. Read [`PROJECT_METADATA.md`](./PROJECT_METADATA.md) for executive status, client details, and current phase.
+4. Inspect [`workspace.json`](./workspace.json) for machine-readable entry points, managed domains, and environment requirements.
+5. Read [`AI_CONTEXT.md`](./AI_CONTEXT.md) for deep business scope, API specifications, and domain targets.
+6. Review [`docs/`](./docs/) (`docs/ARCHITECTURE.md`, `docs/DOMAINS.md`, `docs/INTEGRATION.md`).
+7. Inspect [`memory/`](./memory/) for past repository decisions and execution lessons.
+8. Read [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) before initiating any Phase 2 application implementation.
 
 ---
 

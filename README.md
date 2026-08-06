@@ -10,6 +10,8 @@
 > 
 > It operates independently of Titan Treasure (`titantreasure-marketing` & `titan-parasites`).
 
+> 📖 **Complete Step-by-Step Guide**: See [`HOW-TO-USE-THIS.md`](./HOW-TO-USE-THIS.md) for full operational workflows, live Ahrefs API v3 evidence commands, and self-learning workspace documentation.
+
 ---
 
 ## 🎯 Key Features (v1.0.0 Production Release)
