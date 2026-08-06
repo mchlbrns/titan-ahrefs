@@ -1,0 +1,19 @@
+{
+  "snapshotId": "snap_hornycompanion_com_live_1785982723044",
+  "domain": "hornycompanion.com",
+  "timestamp": "2026-08-06T02:18:43.044Z",
+  "dataSource": "ahrefs-api-v3",
+  "domainRating": 0,
+  "referringDomains": 398,
+  "totalBacklinks": 429,
+  "estimatedTraffic": 129,
+  "organicKeywords": 1,
+  "requirementCoverage": {
+    "req1_usage": true,
+    "req2_overview": true,
+    "req3_keywords": true,
+    "req4_topPages": true,
+    "req5_competitors": true,
+    "req6_backlinks": true
+  }
+}

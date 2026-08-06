@@ -1,0 +1,19 @@
+{
+  "snapshotId": "snap_red-engage_com_live_1785982714139",
+  "domain": "red-engage.com",
+  "timestamp": "2026-08-06T02:18:34.139Z",
+  "dataSource": "ahrefs-api-v3",
+  "domainRating": 0,
+  "referringDomains": 421,
+  "totalBacklinks": 745,
+  "estimatedTraffic": 0,
+  "organicKeywords": 3,
+  "requirementCoverage": {
+    "req1_usage": true,
+    "req2_overview": true,
+    "req3_keywords": true,
+    "req4_topPages": true,
+    "req5_competitors": true,
+    "req6_backlinks": true
+  }
+}
