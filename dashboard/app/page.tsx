@@ -104,6 +104,12 @@ interface ApiResponseData {
 
 type Tab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function hostnameFrom(url: unknown): string {
+  try { return new URL(String(url)).hostname; } catch (e) { return String(url || ''); }
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -217,26 +223,37 @@ export default function DashboardPage() {
   const competitors: CompetitorItem[] = data?.competitors || [];
 
   // Extract backlinks: prefer flat format, fallback to trend arrays in summaries format
-  const trendData = (rawSummary as Record<string, unknown> | undefined)?.trend as Record<string, unknown[]> | undefined;
+  const trendData = rawSummary
+    ? (rawSummary as Record<string, unknown>).trend as Record<string, unknown> | undefined
+    : undefined;
+  const rawLostBacklinks = trendData && Array.isArray(trendData.lostBacklinks)
+    ? (trendData.lostBacklinks as Record<string, unknown>[])
+    : [];
+  const rawNewBacklinks = trendData && Array.isArray(trendData.newBacklinks)
+    ? (trendData.newBacklinks as Record<string, unknown>[])
+    : [];
+
   const trendBacklinks: BacklinkItem[] = [
-    ...((trendData?.lostBacklinks || []) as Record<string, unknown>[]).map((b) => ({
-      ref_domain: b.urlFrom ? (() => { try { return new URL(String(b.urlFrom)).hostname; } catch { return String(b.urlFrom); } })() : 'external-site.com',
+    ...rawLostBacklinks.map((b) => ({
+      ref_domain: b.urlFrom ? hostnameFrom(b.urlFrom) : 'external-site.com',
       domain_rating: Number(b.domainRatingFrom || 30),
       dofollow_links: b.isDofollow ? 1 : 0,
       total_links: 1,
       first_seen: String(b.firstSeen || ''),
-      status: 'LOST',
+      status: 'LOST' as const,
     })),
-    ...((trendData?.newBacklinks || []) as Record<string, unknown>[]).map((b) => ({
-      ref_domain: b.urlFrom ? (() => { try { return new URL(String(b.urlFrom)).hostname; } catch { return String(b.urlFrom); } })() : 'external-site.com',
+    ...rawNewBacklinks.map((b) => ({
+      ref_domain: b.urlFrom ? hostnameFrom(b.urlFrom) : 'external-site.com',
       domain_rating: Number(b.domainRatingFrom || 30),
       dofollow_links: b.isDofollow ? 1 : 0,
       total_links: 1,
       first_seen: String(b.firstSeen || ''),
-      status: 'LIVE',
+      status: 'LIVE' as const,
     })),
   ];
-  const backlinks: BacklinkItem[] = data?.backlinks?.length ? data.backlinks : trendBacklinks;
+  const backlinks: BacklinkItem[] = Array.isArray(data?.backlinks) && (data?.backlinks?.length ?? 0) > 0
+    ? (data?.backlinks as BacklinkItem[])
+    : trendBacklinks;
 
   const rawRefDomains = Number(summary?.ref_domains);
   const refDomainsCount =
@@ -245,26 +262,34 @@ export default function DashboardPage() {
       : backlinks.length;
 
   // Extract live recommendations and health grade from rawSummary
-  const seoHealthScore = (rawSummary as Record<string, unknown> | undefined)?.seoHealthScore as Record<string, unknown> | undefined;
+  const rawSummaryMap = rawSummary ? (rawSummary as Record<string, unknown>) : undefined;
+  const seoHealthScoreObj = rawSummaryMap?.seoHealthScore;
+  const seoHealthScore = seoHealthScoreObj && typeof seoHealthScoreObj === 'object'
+    ? (seoHealthScoreObj as Record<string, unknown>)
+    : undefined;
+  const rawSeoRecs = seoHealthScore?.recommendations;
+  const rawDomainRecs = rawSummaryMap?.recommendations;
   const liveRecommendations: string[] = [
-    ...((seoHealthScore?.recommendations as string[]) || []),
-    ...((rawSummary as Record<string, unknown> | undefined)?.recommendations as string[] || []),
-  ].filter((r, i, arr) => arr.indexOf(r) === i); // deduplicate
-  const healthGrade = seoHealthScore?.grade as string | undefined;
+    ...(Array.isArray(rawSeoRecs) ? (rawSeoRecs as string[]) : []),
+    ...(Array.isArray(rawDomainRecs) ? (rawDomainRecs as string[]) : []),
+  ].filter((r, i, arr) => typeof r === 'string' && arr.indexOf(r) === i);
+  const healthGrade = typeof seoHealthScore?.grade === 'string' ? seoHealthScore.grade : undefined;
 
-  const lastUpdated =
-    (data?.timestamp
-      ? new Date(data.timestamp)
-      : (data as unknown as { generatedAt?: string })?.generatedAt
-      ? new Date((data as unknown as { generatedAt: string }).generatedAt)
-      : null
-    )?.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }) ?? null;
+  let lastUpdated: string | null = null;
+  try {
+    const ts = data?.timestamp || (data as unknown as Record<string, unknown>)?.generatedAt;
+    if (ts && typeof ts === 'string') {
+      const d = new Date(ts);
+      if (!isNaN(d.getTime())) {
+        lastUpdated = d.toLocaleString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+      }
+    }
+  } catch (e) {
+    lastUpdated = null;
+  }
 
   // ─── Tabs config ────────────────────────────────────────────────────────
 
