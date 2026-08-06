@@ -156,7 +156,9 @@ export class ReportGenerator {
           keywordWins: wins,
           keywordLosses: losses,
           seoHealthScore: calculatedHealth,
-          healthScore: typeof calculatedHealth === 'number' ? calculatedHealth : calculatedHealth.score,
+          healthScore: typeof calculatedHealth === 'number' 
+            ? calculatedHealth 
+            : (calculatedHealth.siteAuditHealthScore ?? calculatedHealth.score),
           trend,
           recommendations
         };
