@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink, Link2, Shield, Calendar } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface BacklinkItem {
   ref_domain: string;
@@ -12,84 +12,108 @@ interface BacklinkItem {
 
 interface BacklinkTableProps {
   backlinks: BacklinkItem[];
+  /** When provided, shows only this many rows with expand option */
+  previewRows?: number;
 }
 
-export default function BacklinkTable({ backlinks }: BacklinkTableProps) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg backdrop-blur-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-cyan-400" />
-            Backlinks & Referring Domains Audit
-          </h3>
-          <p className="text-xs text-slate-400">
-            Top referring domains, authority scores (DR), dofollow counts, and first-seen dates.
-          </p>
-        </div>
-        <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-400 border border-cyan-500/20">
-          {backlinks.length} Active Domains
-        </span>
-      </div>
+export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableProps) {
+  const [expanded, setExpanded] = useState(!previewRows);
 
+  const displayRows =
+    previewRows && !expanded ? backlinks.slice(0, previewRows) : backlinks;
+
+  if (backlinks.length === 0) {
+    return (
+      <p className="text-sm text-slate-600 italic">
+        No referring domain data yet. Populates after first ingestion run.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 rounded-l-lg">Referring Domain</th>
-              <th className="px-4 py-3">Domain Rating (DR)</th>
-              <th className="px-4 py-3">Dofollow Links</th>
-              <th className="px-4 py-3">Total Links</th>
-              <th className="px-4 py-3">First Seen</th>
-              <th className="px-4 py-3 rounded-r-lg">Status</th>
+          <thead>
+            <tr className="border-b border-[rgba(255,255,255,0.06)]">
+              <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Referring domain
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                DR
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Dofollow
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Total links
+              </th>
+              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                First seen
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {backlinks.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  No backlink records available. Run ingestion to populate.
-                </td>
-              </tr>
-            ) : (
-              backlinks.map((b, idx) => (
-                <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-white">
+          <tbody>
+            {displayRows.map((b, idx) => {
+              const isLost = b.status && b.status !== 'ACTIVE';
+              return (
+                <tr
+                  key={idx}
+                  className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                >
+                  <td className="py-2.5 pr-4">
                     <a
                       href={`https://${b.ref_domain}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-cyan-400 hover:underline inline-flex items-center gap-1"
+                      className="inline-flex items-center gap-1 text-slate-200 hover:text-white transition-colors"
                     >
-                      {b.ref_domain} <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                      {b.ref_domain}
+                      <ExternalLink className="h-2.5 w-2.5 text-slate-600 shrink-0" />
                     </a>
+                    {isLost && (
+                      <span className="ml-2 text-[10px] text-rose-400 font-medium">
+                        {b.status}
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-2 py-0.5 font-bold text-cyan-400 border border-slate-700">
-                      <Shield className="h-3 w-3" /> {b.domain_rating || 0}
-                    </span>
+                  <td className="py-2.5 px-4 font-semibold text-white">
+                    {b.domain_rating || '—'}
                   </td>
-                  <td className="px-4 py-3 font-bold text-emerald-400">
-                    {b.dofollow_links ? b.dofollow_links.toLocaleString() : 0}
+                  <td className="py-2.5 px-4 text-slate-300">
+                    {b.dofollow_links ? b.dofollow_links.toLocaleString() : '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-300">
-                    {b.total_links ? b.total_links.toLocaleString() : 1}
+                  <td className="py-2.5 px-4 text-slate-500">
+                    {b.total_links ? b.total_links.toLocaleString() : '—'}
                   </td>
-                  <td className="px-4 py-3 text-slate-400 flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-slate-500" />
-                    {b.first_seen ? b.first_seen.split('T')[0] : 'Recent'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
-                      {b.status || 'ACTIVE'}
-                    </span>
+                  <td className="py-2.5 pl-4 text-slate-500">
+                    {b.first_seen ? b.first_seen.split('T')[0] : '—'}
                   </td>
                 </tr>
-              ))
-            )}
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {previewRows && backlinks.length > previewRows && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" />
+              Show fewer
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" />
+              View all {backlinks.length} referring domains
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

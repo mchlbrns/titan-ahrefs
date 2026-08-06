@@ -1,5 +1,4 @@
 import React from 'react';
-import { Users, Shield, Target } from 'lucide-react';
 
 interface CompetitorItem {
   competitor_domain: string;
@@ -18,61 +17,62 @@ export default function CompetitorMatrix({
   primaryDomain,
   competitors,
 }: CompetitorMatrixProps) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg backdrop-blur-sm">
-      <div className="mb-4">
-        <h3 className="text-base font-semibold text-white flex items-center gap-2">
-          <Users className="h-5 w-5 text-cyan-400" />
-          Competitor Benchmarking Gap Matrix
-        </h3>
-        <p className="text-xs text-slate-400">
-          Auto-discovered top organic SERP competitors for <strong className="text-white">{primaryDomain}</strong>.
-        </p>
-      </div>
+  if (competitors.length === 0) {
+    return (
+      <p className="text-sm text-slate-600 italic">
+        Competitor data will populate after the next weekly sync for{' '}
+        <span className="text-slate-500 not-italic">{primaryDomain}</span>.
+      </p>
+    );
+  }
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 rounded-l-lg">Competitor Domain</th>
-              <th className="px-4 py-3">Domain Rating (DR)</th>
-              <th className="px-4 py-3">Keyword Overlap</th>
-              <th className="px-4 py-3">Total Keywords</th>
-              <th className="px-4 py-3 rounded-r-lg">Est. Organic Traffic</th>
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-xs">
+        <thead>
+          <tr className="border-b border-[rgba(255,255,255,0.06)]">
+            <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              Competitor
+            </th>
+            <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              DR
+            </th>
+            <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              Keyword overlap
+            </th>
+            <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              Their keywords
+            </th>
+            <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">
+              Est. traffic
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {competitors.map((c, idx) => (
+            <tr
+              key={idx}
+              className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+            >
+              <td className="py-2.5 pr-4 font-medium text-slate-200">
+                {c.competitor_domain}
+              </td>
+              <td className="py-2.5 px-4 font-semibold text-white">
+                {c.competitor_dr || '—'}
+              </td>
+              <td className="py-2.5 px-4 text-amber-400 font-medium">
+                {c.overlap_keywords ? c.overlap_keywords.toLocaleString() : '—'}
+              </td>
+              <td className="py-2.5 px-4 text-slate-400">
+                {c.competitor_keywords ? c.competitor_keywords.toLocaleString() : '—'}
+              </td>
+              <td className="py-2.5 pl-4 text-slate-300 text-right">
+                {c.competitor_traffic ? c.competitor_traffic.toLocaleString() : '—'}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {competitors.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No competitors discovered yet. Automatic competitor discovery runs during weekly ingestion.
-                </td>
-              </tr>
-            ) : (
-              competitors.map((c, idx) => (
-                <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-white flex items-center gap-2">
-                    <Target className="h-3.5 w-3.5 text-cyan-400" />
-                    {c.competitor_domain}
-                  </td>
-                  <td className="px-4 py-3 font-bold text-cyan-400">
-                    <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-2 py-0.5 border border-slate-700">
-                      <Shield className="h-3 w-3 text-cyan-400" /> {c.competitor_dr}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-amber-400">
-                    {c.overlap_keywords.toLocaleString()} kw
-                  </td>
-                  <td className="px-4 py-3">{c.competitor_keywords.toLocaleString()}</td>
-                  <td className="px-4 py-3 font-bold text-white">
-                    {c.competitor_traffic.toLocaleString()}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

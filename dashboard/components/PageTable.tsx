@@ -1,5 +1,5 @@
-import React from 'react';
-import { Award, ExternalLink, HelpCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface PageItem {
   url: string;
@@ -12,83 +12,107 @@ interface PageItem {
 interface PageTableProps {
   pages: PageItem[];
   domain?: string;
+  /** When provided, shows only this many rows with expand option */
+  previewRows?: number;
 }
 
-export default function PageTable({ pages, domain = 'titantreasure.com' }: PageTableProps) {
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg backdrop-blur-sm">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <Award className="h-5 w-5 text-cyan-400" />
-            Top Performing Pages
-          </h3>
-          <p className="text-xs text-slate-400">Pages driving the highest share of organic search traffic.</p>
-        </div>
-        <span className="rounded-full bg-cyan-500/10 px-3 py-1 text-xs font-semibold text-cyan-400 border border-cyan-500/20">
-          {pages.length} Pages Tracked
-        </span>
-      </div>
+export default function PageTable({
+  pages,
+  domain = 'titantreasure.com',
+  previewRows,
+}: PageTableProps) {
+  const [expanded, setExpanded] = useState(!previewRows);
 
+  const displayRows =
+    previewRows && !expanded ? pages.slice(0, previewRows) : pages;
+
+  if (pages.length === 0) {
+    return (
+      <p className="text-sm text-slate-600 italic">
+        No page performance data yet for {domain}. Populates after first ingestion.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 rounded-l-lg">Page URL</th>
-              <th className="px-4 py-3">Top Keyword</th>
-              <th className="px-4 py-3">Est. Traffic</th>
-              <th className="px-4 py-3">Ranking Keywords</th>
-              <th className="px-4 py-3 rounded-r-lg">Traffic Share</th>
+          <thead>
+            <tr className="border-b border-[rgba(255,255,255,0.06)]">
+              <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Page
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Top keyword
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">
+                Traffic
+              </th>
+              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">
+                Traffic share
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
-            {pages.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-4 py-12 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <HelpCircle className="h-8 w-8 text-slate-500" />
-                    <p className="font-semibold text-slate-300">No page performance records yet for {domain}</p>
-                    <p className="text-xs text-slate-500 max-w-md">
-                      Top page metrics will automatically populate as search engines index your pages and record organic search visits.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              pages.map((p, idx) => {
-                const shareNum = typeof p.traffic_share === 'number'
+          <tbody>
+            {displayRows.map((p, idx) => {
+              const shareNum =
+                typeof p.traffic_share === 'number'
                   ? p.traffic_share * 100
                   : parseFloat(String(p.traffic_share || '0')) * 100;
 
-                return (
-                  <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="px-4 py-3 font-semibold text-white">
-                      <a
-                        href={p.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-cyan-400 hover:underline flex items-center gap-1"
-                      >
-                        {p.url.replace(/^https?:\/\//, '')} <ExternalLink className="h-3 w-3 flex-shrink-0" />
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-slate-300">{p.top_keyword || '-'}</td>
-                    <td className="px-4 py-3 font-bold text-white">
-                      {p.organic_traffic ? p.organic_traffic.toLocaleString() : 0}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300">
-                      {p.organic_keywords ? p.organic_keywords.toLocaleString() : 0}
-                    </td>
-                    <td className="px-4 py-3 font-semibold text-emerald-400">
-                      {isNaN(shareNum) ? '0.0%' : `${shareNum.toFixed(1)}%`}
-                    </td>
-                  </tr>
-                );
-              })
-            )}
+              const cleanUrl = p.url.replace(/^https?:\/\//, '');
+
+              return (
+                <tr
+                  key={idx}
+                  className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                >
+                  <td className="py-2.5 pr-4 max-w-xs">
+                    <a
+                      href={p.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-slate-200 hover:text-white transition-colors truncate"
+                    >
+                      <span className="truncate">{cleanUrl}</span>
+                      <ExternalLink className="h-2.5 w-2.5 text-slate-600 shrink-0" />
+                    </a>
+                  </td>
+                  <td className="py-2.5 px-4 text-slate-400">
+                    {p.top_keyword || '—'}
+                  </td>
+                  <td className="py-2.5 px-4 font-semibold text-white text-right">
+                    {p.organic_traffic ? p.organic_traffic.toLocaleString() : '—'}
+                  </td>
+                  <td className="py-2.5 pl-4 text-slate-400 text-right">
+                    {isNaN(shareNum) || shareNum === 0 ? '—' : `${shareNum.toFixed(1)}%`}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
+
+      {previewRows && pages.length > previewRows && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" />
+              Show fewer
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" />
+              View all {pages.length} pages
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

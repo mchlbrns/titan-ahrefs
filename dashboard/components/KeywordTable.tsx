@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrendingUp, ArrowUp, ArrowDown, ExternalLink, HelpCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface KeywordItem {
   keyword: string;
@@ -16,146 +16,148 @@ interface KeywordItem {
 interface KeywordTableProps {
   keywords: KeywordItem[];
   domain?: string;
+  /** When provided, shows only this many rows with expand option */
+  previewRows?: number;
 }
 
-export default function KeywordTable({ keywords, domain = 'titantreasure.com' }: KeywordTableProps) {
+export default function KeywordTable({
+  keywords,
+  domain = 'titantreasure.com',
+  previewRows,
+}: KeywordTableProps) {
   const [filter, setFilter] = useState<'all' | 'striking' | 'gains' | 'drops'>('all');
+  const [expanded, setExpanded] = useState(!previewRows);
 
-  const filteredKeywords = keywords.filter((k) => {
-    if (filter === 'striking') return k.position >= 4 && k.position <= 20;
+  // Null guard — filter out malformed rows
+  const safe = keywords.filter(
+    (k) => k && typeof k.keyword === 'string' && k.keyword.trim() !== ''
+  );
+
+  const filteredKeywords = safe.filter((k) => {
+    if (filter === 'striking') {
+      return k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20);
+    }
     if (filter === 'gains') return (k.position_delta || 0) > 0;
     if (filter === 'drops') return (k.position_delta || 0) < 0;
     return true;
   });
 
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg backdrop-blur-sm">
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold text-white flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-cyan-400" />
-            Keyword Movements & SERP Positions
-          </h3>
-          <p className="text-xs text-slate-400">
-            Track ranking deltas, volume, traffic share, and striking distance opportunities.
-          </p>
-        </div>
+  const displayRows =
+    previewRows && !expanded
+      ? filteredKeywords.slice(0, previewRows)
+      : filteredKeywords;
 
-        {/* Filter Pill Buttons */}
-        <div className="flex rounded-lg bg-slate-800 p-1 text-xs border border-slate-700">
+  const filterOptions: { key: typeof filter; label: string }[] = [
+    { key: 'all', label: `All (${safe.length})` },
+    {
+      key: 'striking',
+      label: `Striking distance (${safe.filter((k) => k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20)).length})`,
+    },
+    {
+      key: 'gains',
+      label: `Gains (${safe.filter((k) => (k.position_delta || 0) > 0).length})`,
+    },
+    {
+      key: 'drops',
+      label: `Drops (${safe.filter((k) => (k.position_delta || 0) < 0).length})`,
+    },
+  ];
+
+  if (safe.length === 0) {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-slate-600 italic">
+          No keyword ranking data yet for {domain}. Data populates after the first ingestion run.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filter row */}
+      <div className="flex flex-wrap gap-2">
+        {filterOptions.map((opt) => (
           <button
-            onClick={() => setFilter('all')}
-            className={`px-3 py-1 rounded-md font-semibold transition-all ${
-              filter === 'all' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
+            key={opt.key}
+            onClick={() => setFilter(opt.key)}
+            className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
+              filter === opt.key
+                ? 'bg-surface-raised text-white border border-border-strong'
+                : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            All ({keywords.length})
+            {opt.label}
           </button>
-          <button
-            onClick={() => setFilter('striking')}
-            className={`px-3 py-1 rounded-md font-semibold transition-all ${
-              filter === 'striking' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            ⭐ Striking (4–20)
-          </button>
-          <button
-            onClick={() => setFilter('gains')}
-            className={`px-3 py-1 rounded-md font-semibold transition-all ${
-              filter === 'gains' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Gains
-          </button>
-          <button
-            onClick={() => setFilter('drops')}
-            className={`px-3 py-1 rounded-md font-semibold transition-all ${
-              filter === 'drops' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Drops
-          </button>
-        </div>
+        ))}
       </div>
 
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
-          <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider">
-            <tr>
-              <th className="px-4 py-3 rounded-l-lg">Keyword</th>
-              <th className="px-4 py-3">Position</th>
-              <th className="px-4 py-3">Delta</th>
-              <th className="px-4 py-3">Volume</th>
-              <th className="px-4 py-3">KD</th>
-              <th className="px-4 py-3 rounded-r-lg">Est. Traffic</th>
+          <thead>
+            <tr className="border-b border-[rgba(255,255,255,0.06)]">
+              <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Keyword</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Position</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Change</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Volume</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">KD</th>
+              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">Traffic</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800 text-slate-300">
+          <tbody>
             {filteredKeywords.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <HelpCircle className="h-8 w-8 text-slate-500" />
-                    <p className="font-semibold text-slate-300">No organic keyword data recorded yet for {domain}</p>
-                    <p className="text-xs text-slate-500 max-w-md">
-                      Ahrefs v3 API currently reports 0 organic keywords indexed for this domain. Use the <strong>Configure Engine & Domains</strong> button above to test another domain (e.g. <code>chumbacasino.com</code>) or submit sitemaps to Google Search Console to gain search rankings.
-                    </p>
-                  </div>
+                <td colSpan={6} className="py-6 text-center text-sm text-slate-600 italic">
+                  No keywords match this filter.
                 </td>
               </tr>
             ) : (
-              filteredKeywords.map((item, idx) => (
-                <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="px-4 py-3 font-semibold text-white">
-                    <div className="flex items-center gap-2">
-                      <span>{item.keyword}</span>
-                      {item.striking_distance === 'YES' || (item.position >= 4 && item.position <= 20) ? (
-                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold text-amber-400 border border-amber-500/20">
-                          Striking
-                        </span>
-                      ) : null}
-                    </div>
-                    {item.url && (
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] text-cyan-400/80 hover:underline flex items-center gap-1 mt-0.5"
-                      >
-                        {item.url.replace(/^https?:\/\//, '')} <ExternalLink className="h-2.5 w-2.5" />
-                      </a>
+              displayRows.map((item, idx) => (
+                <tr
+                  key={idx}
+                  className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
+                >
+                  <td className="py-2.5 pr-4">
+                    <div className="font-medium text-slate-200">{item.keyword}</div>
+                    {(item.striking_distance === 'YES' || (item.position >= 4 && item.position <= 20)) && (
+                      <span className="text-[10px] text-amber-500 font-medium">Striking distance</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-bold text-white">#{item.position}</td>
-                  <td className="px-4 py-3">
-                    {item.position_delta && item.position_delta > 0 ? (
+                  <td className="py-2.5 px-4 font-semibold text-white">
+                    #{item.position}
+                  </td>
+                  <td className="py-2.5 px-4">
+                    {(item.position_delta || 0) > 0 ? (
                       <span className="inline-flex items-center gap-0.5 text-emerald-400 font-semibold">
-                        <ArrowUp className="h-3 w-3" /> +{item.position_delta}
+                        <ArrowUp className="h-3 w-3" />+{item.position_delta}
                       </span>
-                    ) : item.position_delta && item.position_delta < 0 ? (
+                    ) : (item.position_delta || 0) < 0 ? (
                       <span className="inline-flex items-center gap-0.5 text-rose-400 font-semibold">
-                        <ArrowDown className="h-3 w-3" /> {item.position_delta}
+                        <ArrowDown className="h-3 w-3" />{item.position_delta}
                       </span>
                     ) : (
-                      <span className="text-slate-500">-</span>
+                      <span className="text-slate-600">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">{item.search_volume ? item.search_volume.toLocaleString() : 0}</td>
-                  <td className="px-4 py-3">
+                  <td className="py-2.5 px-4 text-slate-400">
+                    {item.search_volume ? item.search_volume.toLocaleString() : '—'}
+                  </td>
+                  <td className="py-2.5 px-4">
                     <span
-                      className={`inline-block rounded px-2 py-0.5 text-[11px] font-bold ${
+                      className={`text-xs font-semibold ${
                         item.keyword_difficulty > 60
-                          ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          ? 'text-rose-400'
                           : item.keyword_difficulty > 30
-                          ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          ? 'text-amber-400'
+                          : 'text-emerald-400'
                       }`}
                     >
-                      {item.keyword_difficulty || 0}
+                      {item.keyword_difficulty || '—'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-semibold text-slate-200">
-                    {item.traffic ? item.traffic.toLocaleString() : 0}
+                  <td className="py-2.5 pl-4 text-slate-300 text-right">
+                    {item.traffic ? item.traffic.toLocaleString() : '—'}
                   </td>
                 </tr>
               ))
@@ -163,6 +165,26 @@ export default function KeywordTable({ keywords, domain = 'titantreasure.com' }:
           </tbody>
         </table>
       </div>
+
+      {/* Expand/collapse */}
+      {previewRows && filteredKeywords.length > previewRows && (
+        <button
+          onClick={() => setExpanded((e) => !e)}
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {expanded ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" />
+              Show fewer
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" />
+              View all {filteredKeywords.length} keywords
+            </>
+          )}
+        </button>
+      )}
     </div>
   );
 }

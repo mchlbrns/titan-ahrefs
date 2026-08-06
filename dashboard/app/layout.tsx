@@ -1,9 +1,16 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Titan Ahrefs SEO Dashboard',
-  description: 'Automated Ahrefs API v3 Reporting & Analytics Engine',
+  description: 'SEO performance reporting for titantreasure.com — organic traffic, rankings, backlinks.',
 };
 
 export default function RootLayout({
@@ -12,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-slate-950 text-slate-100 antialiased selection:bg-cyan-500 selection:text-white">
+    <html lang="en" className={`dark ${inter.variable}`}>
+      <body className="bg-[#0a0b0d] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100">
         {children}
       </body>
     </html>
