@@ -8,11 +8,25 @@
 var SCRIPT_PROPERTIES = PropertiesService.getScriptProperties();
 
 /**
+ * Sets the Ahrefs API key without embedding it in source control.
+ * Run this once in the GAS editor with your key, or set it via
+ * Extensions → Properties → Script Properties → AHREFS_API_KEY.
+ */
+function setAhrefsApiKey(apiKey) {
+  if (!apiKey) throw new Error("apiKey is required.");
+  SCRIPT_PROPERTIES.setProperty("AHREFS_API_KEY", apiKey);
+  Logger.log("✅ AHREFS_API_KEY set successfully!");
+}
+
+/**
  * Utility to initialize or update Script Properties.
  */
 function setupScriptProperties() {
+  if (!SCRIPT_PROPERTIES.getProperty("AHREFS_API_KEY")) {
+    Logger.log("⚠️ AHREFS_API_KEY is not set. Call setAhrefsApiKey('your_key') or set it in Script Properties before running ingestion.");
+  }
   SCRIPT_PROPERTIES.setProperties({
-    "AHREFS_API_KEY": "teokh6Tg1kJUbVJ_1Bs0ZsmbWDMSeONatsf_iXN1",
+    "AHREFS_API_KEY": SCRIPT_PROPERTIES.getProperty("AHREFS_API_KEY") || "",
     "PRIMARY_DOMAIN": "titantreasure.com",
     "TARGET_COUNTRY": "us",
     "USAGE_SAFETY_CAP_PERCENT": "80",
