@@ -12,6 +12,8 @@ node_modules/
 # Build Outputs
 dist/
 build/
+dashboard/.next/
+
 
 # Logs & Data Stores
 logs/

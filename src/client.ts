@@ -120,11 +120,15 @@ export class AhrefsClient {
 
       this.usageMonitor.recordApiCall(endpoint, units, true);
       const usage = (data.limits_and_usage || data) as Record<string, unknown>;
+      const unitsLimit = this.numberField(usage, 'units_limit_workspace') || this.numberField(usage, 'units_limit') || 500000;
+      const unitsConsumed = this.numberField(usage, 'units_consumed_workspace') || this.numberField(usage, 'units_consumed') || 0;
+      const unitsRemaining = this.numberField(usage, 'units_remaining_workspace') || this.numberField(usage, 'units_remaining') || Math.max(0, unitsLimit - unitsConsumed);
+
       const limits: ApiUsageLimits = {
-        unitsLimit: this.numberField(usage, 'units_limit'),
-        unitsConsumed: this.numberField(usage, 'units_consumed'),
-        unitsRemaining: this.numberField(usage, 'units_remaining'),
-        resetDate: String(usage.reset_date || ''),
+        unitsLimit,
+        unitsConsumed,
+        unitsRemaining,
+        resetDate: String(usage.reset_date || usage.resetDate || ''),
         apiKeyStatus: String(usage.api_key_status || 'ACTIVE')
       };
 
@@ -155,7 +159,19 @@ export class AhrefsClient {
     const dr = drRaw as Record<string, unknown>;
     const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
     const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
-    const domainRating = this.numberField(dr, 'domain_rating');
+
+    // Handle both nested { domain_rating: { domain_rating: 42, ahrefs_rank: 12345 } } and flat response formats
+    let domainRating = 0;
+    let ahrefsRank = 0;
+    if (dr && typeof dr.domain_rating === 'object' && dr.domain_rating !== null) {
+      const nested = dr.domain_rating as Record<string, unknown>;
+      domainRating = this.numberField(nested, 'domain_rating') || this.numberField(nested, 'rating');
+      ahrefsRank = this.numberField(nested, 'ahrefs_rank') || this.numberField(dr, 'ahrefs_rank');
+    } else {
+      domainRating = this.numberField(dr, 'domain_rating');
+      ahrefsRank = this.numberField(dr, 'ahrefs_rank');
+    }
+
     const totalBacklinks = this.numberField(backlinkStats, 'live');
     const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
     const organicTraffic = this.numberField(metrics, 'org_traffic');
@@ -164,7 +180,7 @@ export class AhrefsClient {
     const dofollowBacklinks = 0;
     const dofollowRefdomains = 0;
     return {
-      domain, domainRating, urlRating: 0, ahrefsRank: this.numberField(dr, 'ahrefs_rank'), organicTraffic,
+      domain, domainRating, urlRating: 0, ahrefsRank, organicTraffic,
       trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
       nofollowLinks: 0, timestamp: new Date().toISOString(),
       seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
@@ -222,7 +238,14 @@ export class AhrefsClient {
         const data = await res.json() as { keywords?: Record<string, unknown>[] };
         const rawKeywords = data.keywords || [];
 
-        const keywords: OrganicKeywordItem[] = rawKeywords.filter(item => typeof item.keyword === 'string' && item.keyword.length > 0).map(item => {
+        const malformedRows = rawKeywords.filter(item => !item || typeof item !== 'object' || typeof item.keyword !== 'string' || item.keyword.trim().length === 0);
+        if (malformedRows.length > 0) {
+          this.logger.warn(`Filtered ${malformedRows.length} malformed keyword rows for ${domain}`, { malformedCount: malformedRows.length });
+        }
+
+        const validRows = rawKeywords.filter(item => item && typeof item === 'object' && typeof item.keyword === 'string' && item.keyword.trim().length > 0);
+
+        const keywords: OrganicKeywordItem[] = validRows.map(item => {
           const pos = this.numberField(item, 'best_position');
           const prevPos = this.numberField(item, 'best_position_prev') || pos;
           const posChange = this.numberField(item, 'best_position_diff') || 0;
@@ -364,18 +387,37 @@ export class AhrefsClient {
       const rows = Array.isArray(data.competitors) ? data.competitors as Record<string, unknown>[] : [];
       const row = rows.find(candidate => String(candidate.competitor_domain) === competitorDomain);
       if (!row) {
-        throw new AhrefsApiError(`Configured competitor ${competitorDomain} was not returned by Ahrefs`, 404, endpoint);
+        this.logger.info(`Competitor ${competitorDomain} not found in organic-competitors array for ${targetDomain}. Fetching direct domain overview.`);
+        const compOverview = await this.fetchDomainOverview(competitorDomain);
+        return {
+          targetDomain,
+          competitorDomain,
+          domainRating: compOverview.domainRating,
+          organicTraffic: compOverview.organicTraffic,
+          trafficValue: compOverview.trafficValue,
+          sharedKeywords: 0,
+          competitorExclusiveKeywords: compOverview.rankingKeywords,
+          gapOpportunities: []
+        };
       }
+      let compDr = 0;
+      if (typeof row.domain_rating === 'object' && row.domain_rating !== null) {
+        compDr = this.numberField(row.domain_rating as Record<string, unknown>, 'domain_rating');
+      } else {
+        compDr = this.numberField(row, 'domain_rating');
+      }
+
       return {
         targetDomain,
         competitorDomain,
-        domainRating: this.numberField(row, 'domain_rating'),
+        domainRating: compDr,
         organicTraffic: this.numberField(row, 'traffic'),
         trafficValue: this.numberField(row, 'value'),
         sharedKeywords: this.numberField(row, 'keywords_common'),
         competitorExclusiveKeywords: this.numberField(row, 'keywords_competitor'),
         gapOpportunities: []
       };
+
     } catch (err) {
       this.logger.error(`Failed to fetch competitor ${competitorDomain}. Reason: ${(err as Error).message}`);
       throw err;

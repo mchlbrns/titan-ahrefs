@@ -20,24 +20,34 @@ export default function ActionChecklist({
   refDomainsCount,
   competitorsCount,
 }: ActionChecklistProps) {
+  const validStrikingCount = typeof strikingCount === 'number' ? strikingCount : 0;
+  const validRefDomains = typeof refDomainsCount === 'number' ? refDomainsCount : 0;
+  const validCompetitors = typeof competitorsCount === 'number' ? competitorsCount : 0;
+
   const actions: ActionItem[] = [
     {
       id: 'action-1',
-      title: `Optimize ${strikingCount || 12} "Striking Distance" keywords (positions 4–20) with internal links and refreshed headers.`,
+      title: validStrikingCount > 0
+        ? `Optimize ${validStrikingCount} "Striking Distance" keywords (positions 4–20) with internal links and refreshed headers.`
+        : 'Striking Distance audit complete — 0 keywords currently in positions 4–20. Publish targeted seed content to build momentum.',
       category: 'Striking Distance',
-      priority: 'HIGH',
-      impact: '+15-35% Traffic Gain',
+      priority: validStrikingCount > 0 ? 'HIGH' : 'LOW',
+      impact: validStrikingCount > 0 ? '+15-35% Traffic Gain' : 'Awaiting Opportunities',
     },
     {
       id: 'action-2',
-      title: `Run a backlink audit on ${refDomainsCount || 'top'} referring domains to identify lost or broken dofollow links.`,
+      title: validRefDomains > 0
+        ? `Run a backlink audit on ${validRefDomains} referring domains to identify lost or broken dofollow links.`
+        : 'Run a foundational link outreach campaign to acquire initial referring domain authority.',
       category: 'Backlinks',
       priority: 'HIGH',
       impact: 'Preserve Domain Authority',
     },
     {
       id: 'action-3',
-      title: `Analyze content overlap against top ${competitorsCount || 3} auto-discovered competitors to capture high-volume missing terms.`,
+      title: validCompetitors > 0
+        ? `Analyze content overlap against top ${validCompetitors} target competitors to capture high-volume missing terms.`
+        : 'Configure target competitors to enable automated SERP gap discovery.',
       category: 'Competitor Gap',
       priority: 'MEDIUM',
       impact: '+20% Keyword Coverage',
@@ -50,6 +60,7 @@ export default function ActionChecklist({
       impact: '+5-10% Click-Through Rate',
     },
   ];
+
 
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-5 shadow-lg backdrop-blur-sm">

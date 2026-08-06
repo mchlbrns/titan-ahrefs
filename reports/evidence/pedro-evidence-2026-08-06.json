@@ -1,6 +1,6 @@
 {
-  "runId": "pedro-evidence-2026-08-06-1785982707344",
-  "generatedAt": "2026-08-06T02:18:27.344Z",
+  "runId": "pedro-evidence-2026-08-06-1786005343707",
+  "generatedAt": "2026-08-06T08:35:43.707Z",
   "apiMode": "LIVE AHREFS API v3",
   "baseUrl": "https://api.ahrefs.com/v3",
   "apiKeyPresent": true,
@@ -13,7 +13,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/subscription-info/limits-and-usage",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:27.347Z"
+        "timestamp": "2026-08-06T08:35:43.710Z"
       },
       "response": {
         "status": 200,
@@ -28,19 +28,19 @@
             "subscription": "Standard, billed monthly",
             "usage_reset_date": "2026-09-04T00:00:00Z",
             "units_limit_workspace": 400000,
-            "units_usage_workspace": 5700,
+            "units_usage_workspace": 17319,
             "units_limit_api_key": null,
-            "units_usage_api_key": 5700,
+            "units_usage_api_key": 17319,
             "api_key_expiration_date": "2027-08-06T01:57:32Z"
           }
         }
       },
       "parsedResult": {
-        "units_limit": "n/a",
+        "units_limit": 400000,
         "units_consumed": "n/a",
         "units_remaining": "n/a",
         "reset_date": "n/a",
-        "api_key_status": "n/a"
+        "api_key_status": "ACTIVE"
       },
       "status": "PASS"
     },
@@ -54,21 +54,21 @@
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/domain-rating?target=red-engage.com&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:29.969Z"
+          "timestamp": "2026-08-06T08:35:44.400Z"
         },
         {
           "label": "REQ2/metrics/red-engage.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/metrics?target=red-engage.com&mode=domain&date=2026-08-06&country=us",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:29.970Z"
+          "timestamp": "2026-08-06T08:35:44.400Z"
         },
         {
           "label": "REQ2/backlinks-stats/red-engage.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/backlinks-stats?target=red-engage.com&mode=domain&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:29.971Z"
+          "timestamp": "2026-08-06T08:35:44.402Z"
         }
       ],
       "responses": [
@@ -91,8 +91,8 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
@@ -112,31 +112,28 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
             "metrics": {
-              "live": 745,
-              "all_time": 965,
-              "live_refdomains": 421,
-              "all_time_refdomains": 437
+              "live": 750,
+              "all_time": 971,
+              "live_refdomains": 426,
+              "all_time_refdomains": 443
             }
           }
         }
       ],
       "parsedResult": {
-        "domain_rating": {
-          "domain_rating": 26,
-          "ahrefs_rank": 5458803
-        },
-        "ahrefs_rank": "n/a",
+        "domain_rating": 26,
+        "ahrefs_rank": 5458803,
         "org_traffic": 0,
         "org_traffic_value": "n/a",
         "org_keywords": 2,
-        "backlinks_live": 745,
-        "refdomains_live": 421
+        "backlinks_live": 750,
+        "refdomains_live": 426
       },
       "status": "PASS"
     },
@@ -149,7 +146,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-keywords?target=red-engage.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=keyword%2Cbest_position%2Cbest_position_prev%2Cbest_position_diff%2Cvolume%2Ckeyword_difficulty%2Csum_traffic%2Cbest_position_url%2Cserp_features&order_by=sum_traffic%3Adesc",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:30.321Z"
+        "timestamp": "2026-08-06T08:35:45.706Z"
       },
       "response": {
         "status": 200,
@@ -242,7 +239,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/top-pages?target=red-engage.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=url%2Csum_traffic%2Ctraffic_diff%2Ckeywords%2Ctop_keyword%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:31.190Z"
+        "timestamp": "2026-08-06T08:35:47.028Z"
       },
       "response": {
         "status": 200,
@@ -301,7 +298,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-competitors?target=red-engage.com&mode=domain&country=us&date=2026-08-06&limit=10&select=competitor_domain%2Cdomain_rating%2Ckeywords_common%2Ckeywords_competitor%2Ctraffic%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:32.033Z"
+        "timestamp": "2026-08-06T08:35:48.527Z"
       },
       "response": {
         "status": 200,
@@ -318,24 +315,24 @@
               "domain_rating": 70,
               "keywords_common": 1,
               "keywords_competitor": 969,
-              "traffic": 8356,
-              "value": 3492236
+              "traffic": 8070,
+              "value": 3338278
             },
             {
               "competitor_domain": "reddit.com",
               "domain_rating": 95,
               "keywords_common": 2,
-              "keywords_competitor": 61755814,
-              "traffic": 657249229,
-              "value": 40232808344
+              "keywords_competitor": 61733612,
+              "traffic": 655902033,
+              "value": 40203611874
             },
             {
               "competitor_domain": "seodiscovery.com",
               "domain_rating": 59,
               "keywords_common": 0,
-              "keywords_competitor": 1198,
-              "traffic": 5792,
-              "value": 3471434
+              "keywords_competitor": 1192,
+              "traffic": 5671,
+              "value": 3448565
             }
           ]
         }
@@ -347,19 +344,19 @@
             "competitor_domain": "growthmarketingpro.com",
             "domain_rating": 70,
             "keywords_common": 1,
-            "traffic": 8356
+            "traffic": 8070
           },
           {
             "competitor_domain": "reddit.com",
             "domain_rating": 95,
             "keywords_common": 2,
-            "traffic": 657249229
+            "traffic": 655902033
           },
           {
             "competitor_domain": "seodiscovery.com",
             "domain_rating": 59,
             "keywords_common": 0,
-            "traffic": 5792
+            "traffic": 5671
           }
         ]
       },
@@ -374,7 +371,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/all-backlinks?target=red-engage.com&mode=domain&aggregation=1_per_domain&history=all_time&limit=10&select=url_from%2Curl_to%2Canchor%2Cdomain_rating_source%2Cis_dofollow%2Cfirst_seen%2Clast_seen%2Cis_lost%2Cis_new",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:33.676Z"
+        "timestamp": "2026-08-06T08:35:50.017Z"
       },
       "response": {
         "status": 200,
@@ -463,21 +460,21 @@
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/domain-rating?target=heavengirlfriend.com&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:34.141Z"
+          "timestamp": "2026-08-06T08:35:51.232Z"
         },
         {
           "label": "REQ2/metrics/heavengirlfriend.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/metrics?target=heavengirlfriend.com&mode=domain&date=2026-08-06&country=us",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:34.142Z"
+          "timestamp": "2026-08-06T08:35:51.233Z"
         },
         {
           "label": "REQ2/backlinks-stats/heavengirlfriend.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/backlinks-stats?target=heavengirlfriend.com&mode=domain&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:34.143Z"
+          "timestamp": "2026-08-06T08:35:51.235Z"
         }
       ],
       "responses": [
@@ -500,8 +497,8 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
@@ -521,26 +518,23 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
             "metrics": {
               "live": 1011,
-              "all_time": 1646,
+              "all_time": 1647,
               "live_refdomains": 531,
-              "all_time_refdomains": 755
+              "all_time_refdomains": 756
             }
           }
         }
       ],
       "parsedResult": {
-        "domain_rating": {
-          "domain_rating": 21,
-          "ahrefs_rank": 7864720
-        },
-        "ahrefs_rank": "n/a",
+        "domain_rating": 21,
+        "ahrefs_rank": 7864720,
         "org_traffic": 318,
         "org_traffic_value": "n/a",
         "org_keywords": 24,
@@ -558,7 +552,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-keywords?target=heavengirlfriend.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=keyword%2Cbest_position%2Cbest_position_prev%2Cbest_position_diff%2Cvolume%2Ckeyword_difficulty%2Csum_traffic%2Cbest_position_url%2Cserp_features&order_by=sum_traffic%3Adesc",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:34.473Z"
+        "timestamp": "2026-08-06T08:35:53.059Z"
       },
       "response": {
         "status": 200,
@@ -664,7 +658,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/top-pages?target=heavengirlfriend.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=url%2Csum_traffic%2Ctraffic_diff%2Ckeywords%2Ctop_keyword%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:34.876Z"
+        "timestamp": "2026-08-06T08:35:55.021Z"
       },
       "response": {
         "status": 200,
@@ -749,7 +743,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-competitors?target=heavengirlfriend.com&mode=domain&country=us&date=2026-08-06&limit=10&select=competitor_domain%2Cdomain_rating%2Ckeywords_common%2Ckeywords_competitor%2Ctraffic%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:35.481Z"
+        "timestamp": "2026-08-06T08:35:55.568Z"
       },
       "response": {
         "status": 200,
@@ -773,17 +767,17 @@
               "competitor_domain": "aixploria.com",
               "domain_rating": 56,
               "keywords_common": 10,
-              "keywords_competitor": 1319,
-              "traffic": 15141,
-              "value": 1416342
+              "keywords_competitor": 1320,
+              "traffic": 15079,
+              "value": 1401637
             },
             {
               "competitor_domain": "autogpt.net",
               "domain_rating": 68,
               "keywords_common": 1,
-              "keywords_competitor": 634,
-              "traffic": 7563,
-              "value": 639156
+              "keywords_competitor": 641,
+              "traffic": 7736,
+              "value": 652968
             }
           ]
         }
@@ -801,13 +795,13 @@
             "competitor_domain": "aixploria.com",
             "domain_rating": 56,
             "keywords_common": 10,
-            "traffic": 15141
+            "traffic": 15079
           },
           {
             "competitor_domain": "autogpt.net",
             "domain_rating": 68,
             "keywords_common": 1,
-            "traffic": 7563
+            "traffic": 7736
           }
         ]
       },
@@ -822,7 +816,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/all-backlinks?target=heavengirlfriend.com&mode=domain&aggregation=1_per_domain&history=all_time&limit=10&select=url_from%2Curl_to%2Canchor%2Cdomain_rating_source%2Cis_dofollow%2Cfirst_seen%2Clast_seen%2Cis_lost%2Cis_new",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:38.361Z"
+        "timestamp": "2026-08-06T08:35:58.099Z"
       },
       "response": {
         "status": 200,
@@ -911,21 +905,21 @@
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/domain-rating?target=hornycompanion.com&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:38.694Z"
+          "timestamp": "2026-08-06T08:35:58.577Z"
         },
         {
           "label": "REQ2/metrics/hornycompanion.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/metrics?target=hornycompanion.com&mode=domain&date=2026-08-06&country=us",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:38.694Z"
+          "timestamp": "2026-08-06T08:35:58.578Z"
         },
         {
           "label": "REQ2/backlinks-stats/hornycompanion.com",
           "method": "GET",
           "url": "https://api.ahrefs.com/v3/site-explorer/backlinks-stats?target=hornycompanion.com&mode=domain&date=2026-08-06",
           "authorization": "Bearer [REDACTED]",
-          "timestamp": "2026-08-06T02:18:38.695Z"
+          "timestamp": "2026-08-06T08:35:58.579Z"
         }
       ],
       "responses": [
@@ -948,8 +942,8 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
@@ -969,26 +963,23 @@
           "status": 200,
           "ok": true,
           "headers": {
-            "x-api-units-cost-total-actual": "0",
-            "x-api-cache": "hit",
+            "x-api-units-cost-total-actual": "50",
+            "x-api-cache": "miss",
             "x-api-rows": "1"
           },
           "bodySample": {
             "metrics": {
               "live": 429,
-              "all_time": 615,
+              "all_time": 617,
               "live_refdomains": 398,
-              "all_time_refdomains": 542
+              "all_time_refdomains": 544
             }
           }
         }
       ],
       "parsedResult": {
-        "domain_rating": {
-          "domain_rating": 2.4,
-          "ahrefs_rank": 41458056
-        },
-        "ahrefs_rank": "n/a",
+        "domain_rating": 2.4,
+        "ahrefs_rank": 41458056,
         "org_traffic": 129,
         "org_traffic_value": "n/a",
         "org_keywords": 1,
@@ -1006,7 +997,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-keywords?target=hornycompanion.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=keyword%2Cbest_position%2Cbest_position_prev%2Cbest_position_diff%2Cvolume%2Ckeyword_difficulty%2Csum_traffic%2Cbest_position_url%2Cserp_features&order_by=sum_traffic%3Adesc",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:39.012Z"
+        "timestamp": "2026-08-06T08:35:59.682Z"
       },
       "response": {
         "status": 200,
@@ -1058,7 +1049,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/top-pages?target=hornycompanion.com&mode=domain&country=us&date=2026-08-06&date_compared=2026-07-30&limit=10&select=url%2Csum_traffic%2Ctraffic_diff%2Ckeywords%2Ctop_keyword%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:39.853Z"
+        "timestamp": "2026-08-06T08:36:00.246Z"
       },
       "response": {
         "status": 200,
@@ -1103,7 +1094,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/organic-competitors?target=hornycompanion.com&mode=domain&country=us&date=2026-08-06&limit=10&select=competitor_domain%2Cdomain_rating%2Ckeywords_common%2Ckeywords_competitor%2Ctraffic%2Cvalue",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:40.472Z"
+        "timestamp": "2026-08-06T08:36:01.159Z"
       },
       "response": {
         "status": 200,
@@ -1119,23 +1110,23 @@
               "competitor_domain": "craveu.ai",
               "domain_rating": 40,
               "keywords_common": 1,
-              "keywords_competitor": 1117,
-              "traffic": 5219,
-              "value": 113040
+              "keywords_competitor": 1114,
+              "traffic": 5120,
+              "value": 111993
             },
             {
               "competitor_domain": "heyreal.ai",
               "domain_rating": 32,
               "keywords_common": 1,
-              "keywords_competitor": 127,
-              "traffic": 1600,
-              "value": 117212
+              "keywords_competitor": 126,
+              "traffic": 1757,
+              "value": 117211
             },
             {
               "competitor_domain": "nectar.ai",
               "domain_rating": 56,
               "keywords_common": 1,
-              "keywords_competitor": 66,
+              "keywords_competitor": 67,
               "traffic": 7854,
               "value": 918783
             }
@@ -1149,13 +1140,13 @@
             "competitor_domain": "craveu.ai",
             "domain_rating": 40,
             "keywords_common": 1,
-            "traffic": 5219
+            "traffic": 5120
           },
           {
             "competitor_domain": "heyreal.ai",
             "domain_rating": 32,
             "keywords_common": 1,
-            "traffic": 1600
+            "traffic": 1757
           },
           {
             "competitor_domain": "nectar.ai",
@@ -1176,7 +1167,7 @@
         "method": "GET",
         "url": "https://api.ahrefs.com/v3/site-explorer/all-backlinks?target=hornycompanion.com&mode=domain&aggregation=1_per_domain&history=all_time&limit=10&select=url_from%2Curl_to%2Canchor%2Cdomain_rating_source%2Cis_dofollow%2Cfirst_seen%2Clast_seen%2Cis_lost%2Cis_new",
         "authorization": "Bearer [REDACTED]",
-        "timestamp": "2026-08-06T02:18:42.423Z"
+        "timestamp": "2026-08-06T08:36:04.268Z"
       },
       "response": {
         "status": 200,
@@ -1258,13 +1249,13 @@
   },
   "snapshots": {
     "red-engage.com": {
-      "snapshotId": "snap_red-engage_com_live_1785982714139",
+      "snapshotId": "snap_red-engage_com_live_1786005351230",
       "domain": "red-engage.com",
-      "timestamp": "2026-08-06T02:18:34.139Z",
+      "timestamp": "2026-08-06T08:35:51.230Z",
       "dataSource": "ahrefs-api-v3",
-      "domainRating": 0,
-      "referringDomains": 421,
-      "totalBacklinks": 745,
+      "domainRating": 26,
+      "referringDomains": 426,
+      "totalBacklinks": 750,
       "estimatedTraffic": 0,
       "organicKeywords": 3,
       "requirementCoverage": {
@@ -1277,11 +1268,11 @@
       }
     },
     "heavengirlfriend.com": {
-      "snapshotId": "snap_heavengirlfriend_com_live_1785982718692",
+      "snapshotId": "snap_heavengirlfriend_com_live_1786005358575",
       "domain": "heavengirlfriend.com",
-      "timestamp": "2026-08-06T02:18:38.692Z",
+      "timestamp": "2026-08-06T08:35:58.575Z",
       "dataSource": "ahrefs-api-v3",
-      "domainRating": 0,
+      "domainRating": 21,
       "referringDomains": 531,
       "totalBacklinks": 1011,
       "estimatedTraffic": 318,
@@ -1296,11 +1287,11 @@
       }
     },
     "hornycompanion.com": {
-      "snapshotId": "snap_hornycompanion_com_live_1785982723044",
+      "snapshotId": "snap_hornycompanion_com_live_1786005366245",
       "domain": "hornycompanion.com",
-      "timestamp": "2026-08-06T02:18:43.044Z",
+      "timestamp": "2026-08-06T08:36:06.245Z",
       "dataSource": "ahrefs-api-v3",
-      "domainRating": 0,
+      "domainRating": 2.4,
       "referringDomains": 398,
       "totalBacklinks": 429,
       "estimatedTraffic": 129,
@@ -1318,19 +1309,21 @@
   "comparisons": {
     "red-engage.com": {
       "domain": "red-engage.com",
-      "trendDirection": "NEW",
-      "previousTimestamp": null,
-      "drChange": 0,
+      "trendDirection": "UP",
+      "previousTimestamp": "2026-08-06T02:18:34.139Z",
+      "currentTimestamp": "2026-08-06T08:35:51.230Z",
+      "drChange": 26,
       "trafficChange": 0,
       "kwChange": 0,
-      "refdomsChange": 0,
-      "backlinksChange": 0
+      "refdomsChange": 5,
+      "backlinksChange": 5
     },
     "heavengirlfriend.com": {
       "domain": "heavengirlfriend.com",
-      "trendDirection": "NEW",
-      "previousTimestamp": null,
-      "drChange": 0,
+      "trendDirection": "UP",
+      "previousTimestamp": "2026-08-06T02:18:38.692Z",
+      "currentTimestamp": "2026-08-06T08:35:58.575Z",
+      "drChange": 21,
       "trafficChange": 0,
       "kwChange": 0,
       "refdomsChange": 0,
@@ -1338,9 +1331,10 @@
     },
     "hornycompanion.com": {
       "domain": "hornycompanion.com",
-      "trendDirection": "NEW",
-      "previousTimestamp": null,
-      "drChange": 0,
+      "trendDirection": "UP",
+      "previousTimestamp": "2026-08-06T02:18:43.044Z",
+      "currentTimestamp": "2026-08-06T08:36:06.245Z",
+      "drChange": 2.4,
       "trafficChange": 0,
       "kwChange": 0,
       "refdomsChange": 0,

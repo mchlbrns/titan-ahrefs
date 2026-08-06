@@ -1,5 +1,12 @@
 {
   "buildCommand": "cd dashboard && npm install && npm run build",
   "outputDirectory": "dashboard/.next",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/report?format=json",
+      "schedule": "0 0 * * 1"
+    }
+  ]
 }
+

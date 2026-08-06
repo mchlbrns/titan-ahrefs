@@ -1,0 +1,19 @@
+{
+  "snapshotId": "snap_heavengirlfriend_com_live_1786005358575",
+  "domain": "heavengirlfriend.com",
+  "timestamp": "2026-08-06T08:35:58.575Z",
+  "dataSource": "ahrefs-api-v3",
+  "domainRating": 21,
+  "referringDomains": 531,
+  "totalBacklinks": 1011,
+  "estimatedTraffic": 318,
+  "organicKeywords": 10,
+  "requirementCoverage": {
+    "req1_usage": true,
+    "req2_overview": true,
+    "req3_keywords": true,
+    "req4_topPages": true,
+    "req5_competitors": true,
+    "req6_backlinks": true
+  }
+}

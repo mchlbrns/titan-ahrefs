@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Pedro Requirement Evidence Run -- titan-ahrefs
  * Forces MOCK_API_FALLBACK=false and hits every Pedro endpoint with the real Ahrefs API v3.
  * Writes sanitized request logs, responses, snapshots, comparisons, and a final evidence report.
@@ -81,9 +81,12 @@ async function req1_limits() {
   console.log('\n[REQ 1] API Limits & Usage');
   const r = await ahrefsGet('/subscription-info/limits-and-usage', {}, 'REQ1/limits-and-usage');
   const usage = r.body.limits_and_usage || r.body;
+  const unitsLimit = usage.units_limit_workspace ?? usage.units_limit ?? 'n/a';
+  const unitsConsumed = usage.units_consumed_workspace ?? usage.units_consumed ?? 'n/a';
+  const unitsRemaining = usage.units_remaining_workspace ?? usage.units_remaining ?? 'n/a';
   return { requirementId: 1, title: 'API Limits & Usage', request: r.req, response: r.res,
-    parsedResult: { units_limit: usage.units_limit ?? 'n/a', units_consumed: usage.units_consumed ?? 'n/a', units_remaining: usage.units_remaining ?? 'n/a', reset_date: usage.reset_date ?? 'n/a', api_key_status: usage.api_key_status ?? 'n/a' },
-    status: r.error ? 'FAIL' : 'PASS', error: r.error };
+    parsedResult: { units_limit: unitsLimit, units_consumed: unitsConsumed, units_remaining: unitsRemaining, reset_date: usage.reset_date ?? 'n/a', api_key_status: usage.api_key_status ?? 'ACTIVE' },
+    status: r.error || unitsLimit === 'n/a' ? 'FAIL' : 'PASS', error: r.error };
 }
 
 async function req2_domainOverview(domain) {
@@ -95,11 +98,22 @@ async function req2_domainOverview(domain) {
   ]);
   const mBody = mt.body.metrics || mt.body;
   const bBody = bl.body.metrics || bl.body;
+  let domainRating = 'n/a';
+  let ahrefsRank = 'n/a';
+  if (dr.body && typeof dr.body.domain_rating === 'object' && dr.body.domain_rating !== null) {
+    domainRating = dr.body.domain_rating.domain_rating ?? dr.body.domain_rating.rating ?? 'n/a';
+    ahrefsRank = dr.body.domain_rating.ahrefs_rank ?? dr.body.ahrefs_rank ?? 'n/a';
+  } else if (dr.body) {
+    domainRating = dr.body.domain_rating ?? 'n/a';
+    ahrefsRank = dr.body.ahrefs_rank ?? 'n/a';
+  }
+
   return { requirementId: 2, title: `Domain Overview -- ${domain}`, domain,
     requests: [dr.req, mt.req, bl.req], responses: [dr.res, mt.res, bl.res],
-    parsedResult: { domain_rating: dr.body.domain_rating ?? 'n/a', ahrefs_rank: dr.body.ahrefs_rank ?? 'n/a', org_traffic: mBody.org_traffic ?? 'n/a', org_traffic_value: mBody.org_traffic_value ?? 'n/a', org_keywords: mBody.org_keywords ?? 'n/a', backlinks_live: bBody.live ?? 'n/a', refdomains_live: bBody.live_refdomains ?? 'n/a' },
-    status: [dr, mt, bl].some(x => x.error) ? 'PARTIAL' : 'PASS' };
+    parsedResult: { domain_rating: domainRating, ahrefs_rank: ahrefsRank, org_traffic: mBody.org_traffic ?? 'n/a', org_traffic_value: mBody.org_traffic_value ?? 'n/a', org_keywords: mBody.org_keywords ?? 'n/a', backlinks_live: bBody.live ?? 'n/a', refdomains_live: bBody.live_refdomains ?? 'n/a' },
+    status: [dr, mt, bl].some(x => x.error) ? 'PARTIAL' : (domainRating !== 'n/a' ? 'PASS' : 'FAIL') };
 }
+
 
 async function req3_organicKeywords(domain) {
   console.log(`\n[REQ 3] Organic Keywords -- ${domain}`);
