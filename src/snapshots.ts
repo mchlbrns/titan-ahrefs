@@ -1,21 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { AhrefsClient } from './client';
-import { DomainSnapshot, DomainRatingMetrics, TrendComparison } from './types';
-import { KeywordTracker } from './keywords';
+import {
+  DomainSnapshot,
+  DomainOverviewMetrics,
+  DomainKeywordReport,
+  TopPagesReport,
+  BacklinkAuditReport,
+  CompetitorMetrics
+} from './types';
 import { calculateSeoHealthScore } from './health';
 import { Logger } from './logger';
 import { SnapshotError } from './errors';
 
 export class SnapshotStore {
   private client: AhrefsClient;
-  private keywordTracker: KeywordTracker;
   private storageDir: string;
   private logger: Logger;
 
   constructor(storageDir?: string, client?: AhrefsClient, logger?: Logger) {
     this.client = client || new AhrefsClient();
-    this.keywordTracker = new KeywordTracker(this.client);
     this.storageDir = storageDir || path.join(__dirname, '../snapshots/local');
     this.logger = logger || new Logger({ context: 'SnapshotStore' });
     this.ensureStorageDir();
@@ -33,30 +37,44 @@ export class SnapshotStore {
     }
   }
 
-  public async createSnapshot(domain: string): Promise<DomainSnapshot> {
-    this.logger.info(`Creating snapshot for domain: ${domain}`);
+  public async createSnapshot(domain: string, competitorDomains: string[] = []): Promise<DomainSnapshot> {
+    this.logger.info(`Creating normalized snapshot for domain: ${domain}`);
     try {
-      const metrics: DomainRatingMetrics = await this.client.fetchDomainRating(domain);
-      const keywordsReport = await this.keywordTracker.fetchKeywordRankings(domain);
+      const overview: DomainOverviewMetrics = await this.client.fetchDomainOverview(domain);
+      const keywords: DomainKeywordReport = await this.client.fetchOrganicKeywords(domain);
+      const topPages: TopPagesReport = await this.client.fetchTopPages(domain);
+      const backlinks: BacklinkAuditReport = await this.client.fetchAllBacklinks(domain);
 
-      const healthScore = metrics.seoHealthScore || calculateSeoHealthScore({
-        domainRating: metrics.domainRating,
-        referringDomains: metrics.referringDomains,
-        totalBacklinks: metrics.totalBacklinks,
-        dofollowLinks: metrics.dofollowLinks,
-        estimatedTraffic: keywordsReport.estimatedTraffic,
-        top10Count: keywordsReport.top10Count
+      const competitorMetricsList: CompetitorMetrics[] = await Promise.all(
+        competitorDomains.map(comp => this.client.fetchCompetitorOverview(domain, comp))
+      );
+
+      const healthScore = overview.seoHealthScore || calculateSeoHealthScore({
+        domainRating: overview.domainRating,
+        referringDomains: overview.referringDomains,
+        totalBacklinks: overview.totalBacklinks,
+        dofollowLinks: overview.dofollowBacklinks,
+        estimatedTraffic: overview.organicTraffic,
+        top10Count: keywords.top10Count
       });
 
+      const timestamp = new Date().toISOString();
+      const snapshotId = `snap_${domain.replace(/\./g, '_')}_${Date.now()}`;
+
       const snapshot: DomainSnapshot = {
-        snapshotId: `snap_${domain.replace(/\./g, '_')}_${Date.now()}`,
+        snapshotId,
         domain,
-        timestamp: new Date().toISOString(),
-        domainRating: metrics.domainRating,
-        referringDomains: metrics.referringDomains,
-        totalBacklinks: metrics.totalBacklinks,
-        estimatedTraffic: keywordsReport.estimatedTraffic,
-        organicKeywords: keywordsReport.totalKeywords,
+        timestamp,
+        overview,
+        keywords,
+        topPages,
+        backlinks,
+        competitors: competitorMetricsList,
+        domainRating: overview.domainRating,
+        referringDomains: overview.referringDomains,
+        totalBacklinks: overview.totalBacklinks,
+        estimatedTraffic: overview.organicTraffic,
+        organicKeywords: keywords.totalKeywords,
         seoHealthScore: healthScore
       };
 
@@ -91,40 +109,5 @@ export class SnapshotStore {
   public getLatestSnapshotForDomain(domain: string): DomainSnapshot | undefined {
     const snapshots = this.getSnapshotsForDomain(domain);
     return snapshots.length > 0 ? snapshots[0] : undefined;
-  }
-
-  public compareSnapshots(current: DomainSnapshot, previous?: DomainSnapshot): TrendComparison {
-    if (!previous) {
-      return {
-        drChange: 0,
-        trafficChange: 0,
-        referringDomainsChange: 0,
-        healthScoreChange: 0,
-        trendDirection: 'NEW'
-      };
-    }
-
-    const drChange = current.domainRating - previous.domainRating;
-    const trafficChange = current.estimatedTraffic - previous.estimatedTraffic;
-    const referringDomainsChange = current.referringDomains - previous.referringDomains;
-    const currentHealth = current.seoHealthScore?.score ?? 0;
-    const prevHealth = previous.seoHealthScore?.score ?? 0;
-    const healthScoreChange = currentHealth - prevHealth;
-
-    let trendDirection: 'UP' | 'DOWN' | 'STABLE' | 'NEW' = 'STABLE';
-    if (healthScoreChange > 0 || drChange > 0 || trafficChange > 0) {
-      trendDirection = 'UP';
-    } else if (healthScoreChange < 0 || drChange < 0 || trafficChange < 0) {
-      trendDirection = 'DOWN';
-    }
-
-    return {
-      previousTimestamp: previous.timestamp,
-      drChange,
-      trafficChange,
-      referringDomainsChange,
-      healthScoreChange,
-      trendDirection
-    };
   }
 }

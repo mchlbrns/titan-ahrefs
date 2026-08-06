@@ -14,7 +14,6 @@ describe('CLI Smoke Integration Tests', () => {
 
   test('CLI command audit:domains executes cleanly', () => {
     const output = runCli('audit:domains');
-    expect(output).toContain('Titan Ahrefs Engine');
     expect(output).toContain('audit:domains');
     expect(output).toContain('red-engage.com');
   });
@@ -40,6 +39,6 @@ describe('CLI Smoke Integration Tests', () => {
   test('CLI command report:weekly executes cleanly', () => {
     const output = runCli('report:weekly');
     expect(output).toContain('report:weekly');
-    expect(output).toContain('Weekly Executive Report Generated');
+    expect(output).toContain('Report Generated Successfully');
   });
 });

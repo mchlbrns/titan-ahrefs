@@ -21,9 +21,9 @@ describe('ReportGenerator Unit Tests', () => {
 
     expect(report.domainsAudited).toEqual(domains);
     expect(report.summaries.length).toBe(2);
-    expect(report.markdownContent).toContain('# 📈 Executive Weekly SEO Report');
+    expect(report.markdownContent).toContain('Executive Weekly SEO');
     expect(report.htmlContent).toContain('<!DOCTYPE html>');
-    expect(report.htmlContent).toContain('Titan Ahrefs — Executive Weekly SEO Report');
+    expect(report.htmlContent).toContain('Executive SEO Report');
 
     const files = fs.readdirSync(testReportsDir);
     expect(files.some(f => f.endsWith('.md'))).toBe(true);

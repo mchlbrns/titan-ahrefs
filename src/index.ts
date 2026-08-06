@@ -25,23 +25,36 @@ async function main() {
   });
 
   console.log(`\n==================================================`);
-  console.log(`📊 Titan Ahrefs Engine v1.0 — Executing: [${command}]`);
+  console.log(`📊 Pedro's Ahrefs API v3 Reporting Engine — Executing: [${command}]`);
   console.log(`Target Domains (${domains.length}): ${domains.join(', ')}`);
   console.log(`API Mode: ${client.isMockMode() ? 'MOCK / SIMULATED' : 'LIVE AHREFS API v3'}`);
   console.log(`==================================================\n`);
 
   switch (command) {
+    case 'usage:check': {
+      const usage = await client.fetchLimitsAndUsage();
+      console.log(`\n💳 Ahrefs API v3 Subscription Limits & Usage:`);
+      console.log(`   - Units Limit: ${usage.unitsLimit.toLocaleString()}`);
+      console.log(`   - Units Consumed: ${usage.unitsConsumed.toLocaleString()}`);
+      console.log(`   - Units Remaining: ${usage.unitsRemaining.toLocaleString()}`);
+      console.log(`   - Quota Reset Date: ${usage.resetDate}`);
+      console.log(`   - API Key Status: ${usage.apiKeyStatus}`);
+      break;
+    }
+
     case 'audit:domains': {
-      const auditor = new BacklinkAuditor(client, logger);
       for (const domain of domains) {
-        const audit = await auditor.auditBacklinkProfile(domain);
-        console.log(`\n🔹 Domain: ${audit.domain}`);
-        console.log(`   - Domain Rating (DR): ${audit.totalBacklinks > 0 ? audit.recentBacklinks[0]?.domainRatingFrom ?? 'N/A' : 'N/A'}`);
-        console.log(`   - SEO Health Score: ${audit.seoHealthScore?.score ?? 'N/A'}/100 (${audit.seoHealthScore?.grade ?? 'N/A'})`);
-        console.log(`   - Total Backlinks: ${audit.totalBacklinks.toLocaleString()}`);
-        console.log(`   - Referring Domains: ${audit.referringDomains.toLocaleString()}`);
-        console.log(`   - Dofollow Ratio: ${(audit.dofollowRatio * 100).toFixed(0)}%`);
-        console.log(`   - Top Anchors: ${audit.topAnchors.map(a => `"${a.anchor}" (${a.count})`).join(', ')}`);
+        const overview = await client.fetchDomainOverview(domain);
+        console.log(`\n🔹 Domain Overview: ${overview.domain}`);
+        console.log(`   - Domain Rating (DR): ${overview.domainRating}`);
+        console.log(`   - Ahrefs Rank: #${overview.ahrefsRank.toLocaleString()}`);
+        console.log(`   - Organic Traffic: ${overview.organicTraffic.toLocaleString()}`);
+        console.log(`   - Traffic Value: $${overview.trafficValue.toLocaleString()}`);
+        console.log(`   - Ranking Keywords: ${overview.rankingKeywords.toLocaleString()}`);
+        console.log(`   - Total Backlinks: ${overview.totalBacklinks.toLocaleString()}`);
+        console.log(`   - Referring Domains: ${overview.referringDomains.toLocaleString()}`);
+        console.log(`   - Dofollow Backlinks: ${overview.dofollowBacklinks.toLocaleString()} | Dofollow RefDomains: ${overview.dofollowRefdomains.toLocaleString()}`);
+        console.log(`   - SEO Health Score: ${overview.seoHealthScore?.score ?? 'N/A'}/100 (${overview.seoHealthScore?.grade ?? 'N/A'})`);
       }
       break;
     }
@@ -50,31 +63,47 @@ async function main() {
       const tracker = new KeywordTracker(client, logger);
       for (const domain of domains) {
         const kwReport = await tracker.fetchKeywordRankings(domain);
-        console.log(`\n🔹 Domain: ${kwReport.domain}`);
+        console.log(`\n🔹 Organic Keywords: ${kwReport.domain}`);
         console.log(`   - Total Organic Keywords: ${kwReport.totalKeywords.toLocaleString()}`);
         console.log(`   - Est. Monthly Traffic: ${kwReport.estimatedTraffic.toLocaleString()}`);
         console.log(`   - Top Keywords:`);
         for (const kw of kwReport.keywords) {
-          const deltaStr = (kw.positionDelta || 0) > 0 ? `(+${kw.positionDelta})` : (kw.positionDelta || 0) < 0 ? `(${kw.positionDelta})` : '(0)';
-          console.log(`     * "${kw.keyword}": Pos #${kw.position} ${deltaStr} | Vol: ${kw.searchVolume.toLocaleString()} | KD: ${kw.keywordDifficulty}`);
+          const deltaStr = (kw.positionChange || 0) > 0 ? `(+${kw.positionChange})` : (kw.positionChange || 0) < 0 ? `(${kw.positionChange})` : '(0)';
+          console.log(`     * "${kw.keyword}": Pos #${kw.position} ${deltaStr} | Vol: ${kw.searchVolume.toLocaleString()} | KD: ${kw.keywordDifficulty} | Intent: ${kw.searchIntent}`);
         }
       }
       break;
     }
 
-    case 'snapshot:create': {
-      const store = new SnapshotStore(undefined, client, logger);
+    case 'fetch:toppages': {
       for (const domain of domains) {
-        const snapshot = await store.createSnapshot(domain);
-        console.log(`\n📸 Snapshot Created for ${domain}:`);
-        console.log(`   - Snapshot ID: ${snapshot.snapshotId}`);
-        console.log(`   - DR: ${snapshot.domainRating} | Health Score: ${snapshot.seoHealthScore?.score ?? 'N/A'}/100 | RefDomains: ${snapshot.referringDomains} | Backlinks: ${snapshot.totalBacklinks} | Traffic: ${snapshot.estimatedTraffic}`);
+        const topPages = await client.fetchTopPages(domain);
+        console.log(`\n🔹 Top Pages: ${topPages.domain}`);
+        console.log(`   - Total Pages Analyzed: ${topPages.totalPages}`);
+        console.log(`   - Total Organic Traffic: ${topPages.totalOrganicTraffic.toLocaleString()}`);
+        console.log(`   - Total Traffic Value: $${topPages.totalTrafficValue.toLocaleString()}`);
+        for (const page of topPages.pages) {
+          console.log(`     * ${page.url} | Traffic: ${page.organicTraffic.toLocaleString()} (+${page.trafficChange}) | Value: $${page.trafficValue.toLocaleString()} | Top KW: "${page.topKeyword}"`);
+        }
+      }
+      break;
+    }
+
+    case 'fetch:backlinks': {
+      const auditor = new BacklinkAuditor(client, logger);
+      for (const domain of domains) {
+        const audit = await auditor.auditBacklinkProfile(domain);
+        console.log(`\n🔹 Backlinks Profile: ${audit.domain}`);
+        console.log(`   - Total Backlinks: ${audit.totalBacklinks.toLocaleString()}`);
+        console.log(`   - Referring Domains: ${audit.referringDomains.toLocaleString()}`);
+        console.log(`   - Dofollow Ratio: ${(audit.dofollowRatio * 100).toFixed(0)}%`);
+        console.log(`   - Top Anchors: ${audit.topAnchors.map(a => `"${a.anchor}" (${a.count})`).join(', ')}`);
       }
       break;
     }
 
     case 'analyze:competitors': {
-      const analyzer = new CompetitorAnalyzer(logger);
+      const analyzer = new CompetitorAnalyzer(client, logger);
       for (const domain of domains) {
         const competitors = competitorRegistry.competitors_by_domain[domain] || [];
         const compTarget = competitors.length > 0 ? competitors[0] : 'competitor-sample.com';
@@ -90,19 +119,31 @@ async function main() {
       break;
     }
 
+    case 'snapshot:create': {
+      const store = new SnapshotStore(undefined, client, logger);
+      for (const domain of domains) {
+        const competitors = competitorRegistry.competitors_by_domain[domain] || [];
+        const snapshot = await store.createSnapshot(domain, competitors);
+        console.log(`\n📸 Normalized Snapshot Created for ${domain}:`);
+        console.log(`   - Snapshot ID: ${snapshot.snapshotId}`);
+        console.log(`   - DR: ${snapshot.domainRating} | Health Score: ${snapshot.seoHealthScore?.score ?? 'N/A'}/100 | RefDomains: ${snapshot.referringDomains} | Backlinks: ${snapshot.totalBacklinks} | Traffic: ${snapshot.estimatedTraffic}`);
+      }
+      break;
+    }
+
     case 'report:weekly': {
       const reporter = new ReportGenerator(undefined, client, logger);
       const report = await reporter.generateWeeklyReport(domains, {
         enableHtml: appSettings.enable_html_reports
       });
-      console.log(`\n📄 Weekly Executive Report Generated (Markdown, JSON, and HTML)!`);
+      console.log(`\n📄 Pedro's Executive Weekly SEO Report Generated Successfully!`);
       console.log(report.markdownContent);
       break;
     }
 
     default: {
       console.log(`Unknown command: ${command}`);
-      console.log(`Available commands: audit:domains, fetch:keywords, snapshot:create, analyze:competitors, report:weekly`);
+      console.log(`Available commands: usage:check, audit:domains, fetch:keywords, fetch:toppages, fetch:backlinks, analyze:competitors, snapshot:create, report:weekly`);
     }
   }
 }
