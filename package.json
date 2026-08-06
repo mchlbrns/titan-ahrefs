@@ -5,7 +5,9 @@
   "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
+    "dev": "npm run dev --prefix dashboard",
+    "build": "npm run build --prefix dashboard",
+    "start": "npm run start --prefix dashboard",
     "audit:domains": "tsx src/index.ts audit:domains",
     "usage:check": "tsx src/index.ts usage:check",
     "fetch:keywords": "tsx src/index.ts fetch:keywords",
@@ -20,6 +22,11 @@
     "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" --fix"
   },
+  "dependencies": {
+    "next": "14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
   "keywords": [
     "ahrefs",
     "seo",
@@ -33,7 +40,8 @@
   "devDependencies": {
     "@types/jest": "^29.5.12",
     "@types/node": "^20.11.0",
-    "@vercel/node": "^3.0.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "eslint": "^8.56.0",
