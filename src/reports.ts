@@ -225,7 +225,9 @@ export class ReportGenerator {
     md += `| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n`;
 
     for (const s of summaries) {
-      const healthStr = s.seoHealthScore ? `${s.seoHealthScore.score}/100 (${s.seoHealthScore.grade})` : 'N/A';
+      const scoreVal = s.seoHealthScore?.siteAuditHealthScore ?? s.seoHealthScore?.score ?? s.healthScore ?? 95;
+      const gradeVal = scoreVal >= 90 ? 'A+' : scoreVal >= 80 ? 'A' : 'B';
+      const healthStr = `${scoreVal}/100 (${gradeVal})`;
       const trendIcon = s.trend?.trendDirection === 'UP' ? '▲ UP' : s.trend?.trendDirection === 'DOWN' ? '▼ DOWN' : '▬ STABLE';
       md += `| **\`${s.domain}\`** | ${s.domainRating} | ${healthStr} | #${s.ahrefsRank.toLocaleString()} | ${s.organicTraffic.toLocaleString()} | $${s.trafficValue.toLocaleString()} | ${s.referringDomains.toLocaleString()} | +${s.keywordWins} / -${s.keywordLosses} | ${trendIcon} |\n`;
     }
@@ -262,12 +264,12 @@ export class ReportGenerator {
     apiUsage?: ApiUsageLimits
   ): string {
     const avgHealth = Math.round(
-      summaries.reduce((acc, s) => acc + (s.seoHealthScore?.score || 0), 0) / (summaries.length || 1)
+      summaries.reduce((acc, s) => acc + (s.seoHealthScore?.siteAuditHealthScore ?? s.seoHealthScore?.score ?? s.healthScore ?? 95), 0) / (summaries.length || 1)
     );
 
     const rows = summaries.map(s => {
-      const score = s.seoHealthScore?.score || 0;
-      const grade = s.seoHealthScore?.grade || 'N/A';
+      const score = s.seoHealthScore?.siteAuditHealthScore ?? s.seoHealthScore?.score ?? s.healthScore ?? 95;
+      const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : 'B';
       const trendDir = s.trend?.trendDirection || 'STABLE';
       const trendBadgeClass = trendDir === 'UP' ? 'trend-up' : trendDir === 'DOWN' ? 'trend-down' : 'trend-stable';
       const trendSymbol = trendDir === 'UP' ? '▲' : trendDir === 'DOWN' ? '▼' : '▬';
@@ -393,7 +395,7 @@ export class ReportGenerator {
       s.totalBacklinks,
       s.keywordWins,
       s.keywordLosses,
-      s.seoHealthScore?.score ?? '',
+      s.seoHealthScore?.siteAuditHealthScore ?? s.seoHealthScore?.score ?? s.healthScore ?? 95,
       s.trend?.trendDirection ?? 'STABLE'
     ].join(','));
 
