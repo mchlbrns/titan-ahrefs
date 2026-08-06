@@ -117,19 +117,20 @@ export default function DashboardPage() {
     'heavengirlfriend.com',
     'hornycompanion.com',
   ]);
-  const [selectedDomain, setSelectedDomain] = useState<string>('titantreasure.com');
+  const [selectedDomain, setSelectedDomain] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('titan_ahrefs_selected_domain') || 'titantreasure.com';
+    }
+    return 'titantreasure.com';
+  });
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
 
-  useEffect(() => {
-    const savedDomain = typeof window !== 'undefined' ? localStorage.getItem('titan_ahrefs_selected_domain') : null;
-    if (savedDomain) {
-      setSelectedDomain(savedDomain);
-    }
-  }, []);
+  const currentDomainRef = React.useRef<string>(selectedDomain);
+  currentDomainRef.current = selectedDomain;
 
   const handleSelectDomain = (newDomain: string) => {
     setSelectedDomain(newDomain);
@@ -168,13 +169,19 @@ export default function DashboardPage() {
       const res = await fetch(apiUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load live domain data`);
       const json: ApiResponseData = await res.json();
-      setData(json);
+      if (currentDomainRef.current === domainToFetch) {
+        setData(json);
+      }
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : 'Could not reach the Ahrefs report engine backend.';
-      setError(msg);
+      if (currentDomainRef.current === domainToFetch) {
+        const msg =
+          err instanceof Error ? err.message : 'Could not reach the Ahrefs report engine backend.';
+        setError(msg);
+      }
     } finally {
-      setLoading(false);
+      if (currentDomainRef.current === domainToFetch) {
+        setLoading(false);
+      }
     }
   };
 
@@ -339,11 +346,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-3">
             <select
               value={selectedDomain}
-              onChange={(e) => {
-                const newDomain = e.target.value;
-                handleSelectDomain(newDomain);
-                fetchData(newDomain);
-              }}
+              onChange={(e) => handleSelectDomain(e.target.value)}
               className="bg-slate-800 text-white text-lg font-bold px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] focus:outline-none focus:border-cyan-500 cursor-pointer"
             >
               {domainOptions.map((d) => (
