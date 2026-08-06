@@ -116,44 +116,14 @@ export async function GET(req: NextRequest) {
       const healthScore = typeof overview?.seoHealthScore === 'number' 
         ? overview.seoHealthScore 
         : (overview?.seoHealthScore?.siteAuditHealthScore ?? overview?.seoHealthScore?.score ?? targetHealthScore);
-
-      const reportFrequency = 'Weekly';
-
-      const calculateScheduledTimestamp = (freq: string, snapshotTs?: string) => {
-        if (snapshotTs) return snapshotTs;
-        const now = new Date();
-        const f = (freq || 'Weekly').toLowerCase();
-
-        if (f.includes('monthly')) {
-          const firstOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 5, 0, 0));
-          if (firstOfMonth.getTime() > now.getTime()) {
-            firstOfMonth.setUTCMonth(firstOfMonth.getUTCMonth() - 1);
-          }
-          return firstOfMonth.toISOString();
+      const resolveRealisticTimestamp = (snapshotTs?: string) => {
+        if (snapshotTs && !isNaN(new Date(snapshotTs).getTime())) {
+          return snapshotTs;
         }
-
-        if (f.includes('bi-weekly')) {
-          const dayOfWeek = now.getUTCDay();
-          const daysSinceMonday = (dayOfWeek + 6) % 7;
-          const lastMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday, 5, 0, 0));
-          if (lastMonday.getUTCDate() > 14) {
-            lastMonday.setUTCDate(lastMonday.getUTCDate() - 14);
-          }
-          return lastMonday.toISOString();
-        }
-
-        // Default: Weekly (Every Monday at 05:00 AM)
-        const dayOfWeek = now.getUTCDay();
-        const daysSinceMonday = (dayOfWeek + 6) % 7;
-        const lastMonday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday, 5, 0, 0));
-        if (lastMonday.getTime() > now.getTime()) {
-          lastMonday.setUTCDate(lastMonday.getUTCDate() - 7);
-        }
-        return lastMonday.toISOString();
+        return new Date().toISOString();
       };
 
-      const snapshotTimestamp = calculateScheduledTimestamp(
-        reportFrequency,
+      const snapshotTimestamp = resolveRealisticTimestamp(
         snapshotFallback?.timestamp || (overview as unknown as Record<string, unknown>)?.fetchedAt as string | undefined
       );
 
