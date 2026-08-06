@@ -1,0 +1,26 @@
+# Node Dependencies
+node_modules/
+.pnpm-store/
+
+# Local Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build Outputs
+dist/
+build/
+
+# Logs & Data Stores
+logs/
+*.log
+snapshots/local/
+reports/generated/
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
