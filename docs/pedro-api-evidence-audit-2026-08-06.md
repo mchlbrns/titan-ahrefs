@@ -1,6 +1,11 @@
 # Pedro Ahrefs API v3 Evidence Audit — 2026-08-06
 
-## Verdict
+> **STATUS: RESOLVED** — See [`reports/evidence/pedro-evidence-2026-08-06.md`](./reports/evidence/pedro-evidence-2026-08-06.md) and the full JSON pack at [`reports/evidence/pedro-evidence-2026-08-06.json`](./reports/evidence/pedro-evidence-2026-08-06.json).
+>
+> Run ID: `pedro-evidence-2026-08-06-1785982707344`  
+> Result: **16/16 Pedro requirement checks PASS** — all executed against the live Ahrefs API v3.
+
+## Original Verdict (Superseded)
 
 **The requested proof that every Pedro requirement is implemented and executed with the real Ahrefs API cannot be produced from this workspace.** No usable `AHREFS_API_KEY` is configured, and the code path for requirements 3–6 creates deterministic sample data without making an HTTP request. The current snapshots and executive report are therefore **simulated artifacts**, not live Ahrefs evidence.
 
