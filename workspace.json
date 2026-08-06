@@ -6,6 +6,9 @@
   "parentWorkspace": "mchlbrns/titan-workspace",
   "description": "Standalone Ahrefs API v3 SEO analytics engine, backlink monitor, SERP rank tracker, and historical snapshot logger for independent target domains.",
   "scope": "independent",
+  "client": "Internal Workspace Engineering & Growth Operations",
+  "currentPhase": "Phase 1 — Repository Architecture & Onboarding Governance Complete",
+  "status": "Active (Awaiting Phase 2 Application Implementation Approval)",
   "managedDomains": [
     "red-engage.com",
     "heavengirlfriend.com",
@@ -21,11 +24,14 @@
     "Weekly automated executive markdown & JSON report generation"
   ],
   "entryPoints": {
+    "readme": "README.md",
     "agents": "AGENTS.md",
     "context": "AI_CONTEXT.md",
-    "readme": "README.md",
+    "metadata": "PROJECT_METADATA.md",
+    "workspaceConfig": "workspace.json",
+    "implementationPlan": "IMPLEMENTATION_PLAN.md",
     "docs": "docs/",
-    "implementationPlan": "IMPLEMENTATION_PLAN.md"
+    "memory": "memory/"
   },
   "environmentVariables": {
     "required": [

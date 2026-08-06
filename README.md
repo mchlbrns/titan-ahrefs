@@ -23,31 +23,29 @@
 
 ---
 
-## 📁 Repository Structure
+## 📁 Standard Repository Template Structure
+
+This repository follows the **Titan Workspace Standard Repository Template**:
 
 ```
 titan-ahrefs/
-├── workspace.json          # Standardized AI workspace metadata & configuration
+├── README.md               # Overview & documentation entry point
 ├── AGENTS.md               # Mandatory AI agent onboarding protocol & operational rules
 ├── AI_CONTEXT.md           # Deep business scope, managed domains & API specs
-├── README.md               # This file — repository overview & documentation entry point
+├── PROJECT_METADATA.md     # Executive summary, client, status & repository ownership
+├── workspace.json          # Standardized AI workspace metadata & configuration
 ├── IMPLEMENTATION_PLAN.md  # Detailed technical implementation roadmap & milestones
-├── .gitignore              # Production git ignore specification
-├── docs/                   # Architecture, domain registry & integration guides
+├── docs/                   # System architecture, domain specs & integration guides
 │   ├── ARCHITECTURE.md     # System architecture & component design
 │   ├── DOMAINS.md          # Managed domain portfolio specification
 │   └── INTEGRATION.md      # Workspace & Ahrefs API v3 integration guide
-└── .github/                # GitHub workflows & PR templates
-    ├── PULL_REQUEST_TEMPLATE.md
-    └── workflows/
-        └── ci.yml
+└── memory/                 # Persistent decisions, lessons & repo memory
+    └── README.md
 ```
 
 ---
 
-## 🔐 Environment Variables
-
-Ensure `.env.local` contains valid Ahrefs API credentials before executing operational tasks:
+## 🔐 Environment Secrets (Expected)
 
 ```env
 AHREFS_API_KEY=your_ahrefs_api_token
@@ -60,6 +58,7 @@ LOG_LEVEL=info
 ## 🚀 AI Agent Entry Points
 
 - **Agent Rules & Directives**: See [`AGENTS.md`](./AGENTS.md).
+- **Executive Metadata & Status**: See [`PROJECT_METADATA.md`](./PROJECT_METADATA.md).
 - **Business Scope & Domain Specs**: See [`AI_CONTEXT.md`](./AI_CONTEXT.md).
 - **Architecture & Data Flow**: See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 - **Future Implementation Roadmap**: See [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).

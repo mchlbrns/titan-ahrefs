@@ -13,36 +13,43 @@ Welcome to `titan-ahrefs`, the standalone Ahrefs SEO Analytics Engine repository
 
 ---
 
-## 1. Onboarding Checklist for Agents
+## 1. Onboarding Sequence for AI Agents
 
-When entering this repository:
+When entering this repository, complete the following onboarding sequence:
 
-1. **Read `AI_CONTEXT.md`**: Understand domain scope, API integrations, and reporting goals.
-2. **Review `docs/ARCHITECTURE.md`**: Inspect module design, database schemas, and data pipelines.
-3. **Inspect `workspace.json`**: Understand repository metadata, entry points, and environment requirements.
-4. **Read `IMPLEMENTATION_PLAN.md`**: Review implementation milestones before creating application code.
-5. **Verify Environment Variables**: Check `.env.local` for required `AHREFS_API_KEY`.
-
----
-
-## 2. Core Repository Responsibilities
-
-This repository is strictly responsible for:
-
-- **Ahrefs API v3 Communications**: Standardized, rate-limited interaction with Ahrefs REST endpoints.
-- **Domain Metrics Auditing**: Domain Rating (DR), URL Rating (UR), total backlinks, referring domains, organic keyword positions, and traffic estimates.
-- **SERP & Keyword Tracking**: Tracking search engine positions and deltas for primary niche keywords.
-- **Historical Snapshots**: Logging structured metric snapshots over time to track authority growth.
-- **Competitor Analysis**: Identifying keyword gaps and SERP feature overlaps against competitors.
-- **Executive Reporting**: Automated weekly Markdown and JSON report generation.
+1. Read [`README.md`](./README.md) for a general repository overview.
+2. Read [`PROJECT_METADATA.md`](./PROJECT_METADATA.md) for executive status, client details, and current phase.
+3. Inspect [`workspace.json`](./workspace.json) for machine-readable entry points, managed domains, and environment requirements.
+4. Read [`AI_CONTEXT.md`](./AI_CONTEXT.md) for deep business scope, API specifications, and domain targets.
+5. Review [`docs/`](./docs/) (`docs/ARCHITECTURE.md`, `docs/DOMAINS.md`, `docs/INTEGRATION.md`).
+6. Inspect [`memory/`](./memory/) for past repository decisions and execution lessons.
+7. Read [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) before initiating any Phase 2 application implementation.
 
 ---
 
-## 3. Mandatory Rules & Architectural Boundaries
+## 2. Standard Repository Template Structure
 
-- **No Application Code Execution Until Approval**: Follow `IMPLEMENTATION_PLAN.md` milestones.
-- **Strict Domain Scoping**: Only perform audits and metrics logging for the 3 declared managed domains.
-- **Implementation-Agnostic Governance**: Keep configuration formats standardized in `config/`.
+This repository strictly adheres to the Titan Workspace **Standard Repository Template**:
+
+```
+titan-ahrefs/
+├── README.md               # Overview & quickstart documentation entry point
+├── AGENTS.md               # AI agent onboarding contract & operational rules
+├── AI_CONTEXT.md           # Deep business context & API specifications
+├── PROJECT_METADATA.md     # Executive summary, status, client & owner metadata
+├── workspace.json          # Machine-readable workspace configuration
+├── IMPLEMENTATION_PLAN.md  # Technical roadmap & implementation milestones
+├── docs/                   # System architecture, domain specs & integration guides
+└── memory/                 # Persistent decisions, lessons & checkpoint state
+```
+
+---
+
+## 3. Mandatory Operational Rules
+
+- **Phase Isolation**: All application code implementation (`src/`, `package.json`, `.gitignore`, `.github/`) is deferred until Phase 2 is explicitly approved.
+- **Strict Domain Scoping**: Only perform audits and metrics logging for the 3 declared managed domains (`red-engage.com`, `heavengirlfriend.com`, `hornycompanion.com`).
+- **Implementation-Agnostic Governance**: Maintain configuration formats in `config/`.
 - **Environment Isolation**: Never log API keys or secrets in output files or commits.
 
 ---
@@ -51,5 +58,5 @@ This repository is strictly responsible for:
 
 - **Parent Workspace AGENTS Contract**: [`../AGENTS.md`](../AGENTS.md)
 - **Parent Workspace Architecture Bridge**: [`../bridge.md`](../bridge.md)
-- **Repository Implementation Plan**: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
-- **Domain Scope Document**: [`docs/DOMAINS.md`](./docs/DOMAINS.md)
+- **Repository Metadata**: [`PROJECT_METADATA.md`](./PROJECT_METADATA.md)
+- **Technical Implementation Plan**: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)

@@ -12,61 +12,50 @@ This document provides complete business, architectural, and operational context
 
 ## 2. Managed Domain Portfolio
 
-`titan-ahrefs` is strictly dedicated to the following **3 target domains**:
+`titan-ahrefs` is strictly dedicated to the following **3 target domains exclusively**:
 
 | Domain Name | Primary Niche / Focus | Priority | Target Region |
 | :--- | :--- | :--- | :--- |
 | **`red-engage.com`** | Affiliate & Traffic Engagement | Tier 1 | Global / US |
 | **`heavengirlfriend.com`** | AI Dating & Niche Entertainment | Tier 1 | Global / US |
-| **`hornycompanion.com`** | Niche Affiliate & Companion Engine | Tier 1 | Global / US |
-
-> [!NOTE]
-> `titan-ahrefs` is completely decoupled from `titantreasure.com` and its associated acquisition domains (`betsweepsy.com`, `luckytwogrands.com`, etc.).
+| **`hornycompanion.com`** | Niche Affiliate Companion Engine | Tier 1 | Global / US |
 
 ---
 
-## 3. High-Level System Responsibilities
+## 3. Standard Repository Structure & Specifications
 
-1. **Ahrefs API v3 Engine Integration**:
-   - Authenticates via Bearer API keys.
-   - Respects rate limits, quota caps, and exponential backoff retries.
-   - Provides structured JSON responses for downstream snapshot processing.
-
-2. **Metrics & Authority Monitoring**:
-   - **Domain Authority**: Domain Rating (DR), URL Rating (UR), Ahrefs Rank (AR).
-   - **Backlink Profile**: Total backlinks, dofollow/nofollow breakdown, referring domains, referring subnets, anchor text distribution.
-   - **Keywords & SERPs**: Organic keyword rankings, position movement (wins/losses), SERP feature presence (snippets, image packs, local packs).
-
-3. **Historical Snapshots & Analytics**:
-   - Periodic snapshot recording into time-series logs.
-   - Calculation of weekly/monthly deltas (DR growth velocity, backlink loss alerts).
-
-4. **Competitor SERP & Keyword Gap Analysis**:
-   - Overlap matrices identifying keywords competitors rank for that target domains do not.
-   - SERP difficulty scoring and backlink gap identification.
-
-5. **Automated Weekly Reporting**:
-   - Markdown executive reports generated for stakeholder review.
-   - Structured JSON summaries for automated metric dashboards.
+| Asset | File Path | Purpose |
+| :--- | :--- | :--- |
+| **Executive Metadata** | [`PROJECT_METADATA.md`](./PROJECT_METADATA.md) | Client, business purpose, status, phase, and owner metadata. |
+| **Workspace Metadata** | [`workspace.json`](./workspace.json) | Standardized metadata, managed domain scope, entry points, and environment dependencies. |
+| **Agent Operational Protocol** | [`AGENTS.md`](./AGENTS.md) | Operational rules and agent onboarding for Claude, Codex, Antigravity, and Copilot. |
+| **System Architecture** | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | Component decomposition, data pipeline design, and historical metrics snapshot design. |
+| **Domain Scope Specification** | [`docs/DOMAINS.md`](./docs/DOMAINS.md) | Target domain priorities and isolation policies. |
+| **Workspace & API Integration** | [`docs/INTEGRATION.md`](./docs/INTEGRATION.md) | Workspace portfolio bridge and external Ahrefs API v3 integration details. |
+| **Technical Implementation Plan** | [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md) | Phased roadmap, modules, milestones, risks, and estimated timelines. |
+| **Repository Memory** | [`memory/`](./memory/) | Repository-level technical decisions (`decisions.md`) and agent lessons (`lessons.md`). |
 
 ---
 
-## 4. Environment Dependencies & Secrets
+## 4. Configuration & Registry
 
-```env
-# Required Primary Ahrefs API Token
-AHREFS_API_KEY=your_ahrefs_v3_api_key_here
+Target domains and competitor lists are configured in JSON files inside `titan-ahrefs/config/`:
 
-# Optional Configurations
-AHREFS_API_BASE_URL=https://api.ahrefs.com/v3
-LOG_LEVEL=info
-```
+- **[`config/domains.json`](./config/domains.json)**: Registry of managed target domains, priorities, and descriptions.
+- **[`config/competitors.json`](./config/competitors.json)**: Competitor mappings per target domain.
 
 ---
 
-## 5. Navigation & Cross-References
+## 5. Environment Secrets (Expected)
 
-- **Parent Workspace Matrix**: [`../bridge.md`](../bridge.md)
-- **Repository Onboarding Protocol**: [`AGENTS.md`](./AGENTS.md)
-- **System Architecture Document**: [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md)
-- **Technical Implementation Roadmap**: [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md)
+| Variable | Required For | Location | Purpose |
+| :--- | :--- | :--- | :--- |
+| `AHREFS_API_KEY` | `titan-ahrefs` | `titan-ahrefs/.env.local` | Ahrefs API v3 authentication token |
+
+---
+
+## 6. Agent Instructions for `titan-ahrefs` Work
+
+- When tasked with Ahrefs SEO monitoring, backlink audits, SERP rank tracking, or competitor analysis for `red-engage.com`, `heavengirlfriend.com`, or `hornycompanion.com`, operate within `titan-ahrefs/`.
+- Review `PROJECT_METADATA.md` and `IMPLEMENTATION_PLAN.md` before initiating application code development in Phase 2.
+- Do NOT import, reference, or leak Titan Treasure business logic, acquisition domain proxies, or sweepstakes rules into `titan-ahrefs`.
