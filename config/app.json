@@ -1,0 +1,11 @@
+{
+  "max_retries": 3,
+  "retry_delay_ms": 500,
+  "max_retry_delay_ms": 5000,
+  "backoff_factor": 2.0,
+  "log_level": "info",
+  "log_format": "pretty",
+  "reports_dir": "reports/generated",
+  "snapshots_dir": "snapshots/local",
+  "enable_html_reports": true
+}

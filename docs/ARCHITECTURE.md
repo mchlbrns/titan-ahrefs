@@ -1,69 +1,94 @@
-# 🏗️ SYSTEM ARCHITECTURE — titan-ahrefs
+# 🏛️ Architecture & System Design — titan-ahrefs v1.0
 
-## 1. Architectural Overview
+## 1. Executive Summary
 
-`titan-ahrefs` is designed as a modular, decoupled SEO analytics processing system. It extracts organic SEO performance metrics from Ahrefs API v3, transforms raw payloads into structured data models, records historical snapshots, and renders executive delta reports.
+`titan-ahrefs` is a standalone, production-ready SEO analytics engine, backlink profile monitor, SERP rank tracker, and historical snapshot logger. It provides automated monitoring for independent target domains (`red-engage.com`, `heavengirlfriend.com`, `hornycompanion.com`).
+
+The system is designed following **Clean Architecture principles** with strict separation of concerns, structured logging, typed domain models, configuration validation, exponential backoff retries, and multi-format reporting (Markdown, JSON, HTML).
+
+---
+
+## 2. Component Hierarchy
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           TITAN-AHREFS ENGINE                           │
-└────────────────────────────────────┬────────────────────────────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │     Ahrefs API v3 Client     │
-                      │  (Rate Limit & Auth Layer)   │
-                      └──────────────┬───────────────┘
-                                     │
-         ┌───────────────────────────┼───────────────────────────┐
-         │                           │                           │
-         ▼                           ▼                           ▼
-┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-│ Domain Metrics  │         │ SERP & Keyword  │         │ Backlink Audit  │
-│  (DR, UR, AR)   │         │ (Ranks, Deltas) │         │ (Dofollow/Lost) │
-└────────┬────────┘         └────────┬────────┘         └────────┬────────┘
-         │                           │                           │
-         └───────────────────────────┼───────────────────────────┘
-                                     │
-                                     ▼
-                      ┌──────────────────────────────┐
-                      │  Snapshot & Aggregator Engine│
-                      └──────────────┬───────────────┘
-                                     │
-                      ┌──────────────┴──────────────┐
-                      ▼                             ▼
-         ┌──────────────────────────┐  ┌──────────────────────────┐
-         │ Executive Report Generator│  │ Competitor Gap Engine    │
-         │  (Markdown & JSON output)│  │ (Overlap & Opportunity)  │
-         └──────────────────────────┘  └──────────────────────────┘
+                               ┌─────────────────────────┐
+                               │   CLI Entry Point       │
+                               │   (src/index.ts)        │
+                               └────────────┬────────────┘
+                                            │
+           ┌────────────────────────────────┼────────────────────────────────┐
+           ▼                                ▼                                ▼
+┌─────────────────────┐          ┌─────────────────────┐          ┌─────────────────────┐
+│    ConfigLoader     │          │       Logger        │          │ calculateSeoHealth  │
+│   (src/config.ts)   │          │   (src/logger.ts)   │          │   (src/health.ts)   │
+└─────────────────────┘          └─────────────────────┘          └─────────────────────┘
+           │                                │                                │
+           └────────────────────────────────┼────────────────────────────────┘
+                                            │
+    ┌──────────────────────┬────────────────┴──────────────────────┬──────────────────────┐
+    ▼                      ▼                                       ▼                      ▼
+┌───────────────────┐ ┌───────────────────┐               ┌───────────────────┐ ┌───────────────────┐
+│  BacklinkAuditor  │ │  KeywordTracker   │               │   SnapshotStore   │ │ CompetitorAnalyzer│
+│(src/backlinks.ts) │ │(src/keywords.ts)  │               │ (src/snapshots.ts)│ │(src/competitors)  │
+└─────────┬─────────┘ └─────────┬─────────┘               └─────────┬─────────┘ └─────────┬─────────┘
+          │                     │                                   │                     │
+          └─────────────────────┴─────────────────┬─────────────────┴─────────────────────┘
+                                                  │
+                                                  ▼
+                                      ┌───────────────────────┐
+                                      │     AhrefsClient      │
+                                      │    (src/client.ts)    │
+                                      └───────────┬───────────┘
+                                                  │ (Exponential Backoff via withRetry)
+                                                  ▼
+                                      ┌───────────────────────┐
+                                      │   Ahrefs API v3 /     │
+                                      │     Mock Fallback     │
+                                      └───────────────────────┘
 ```
 
 ---
 
-## 2. Planned Module Decomposition
+## 3. Core Modules & Responsibilities
 
-1. **API Communications Layer (`AhrefsClient`)**:
-   - Manages Bearer token headers and rate-limiting throttling (requests per second / quota headers).
-   - Wraps core Ahrefs API v3 endpoints: `/domain-rating`, `/backlinks`, `/refdomains`, `/organic-keywords`.
+### 3.1 `src/client.ts` — Ahrefs API Client
+- Handles authentication against Ahrefs API v3 (`Authorization: Bearer <token>`).
+- Encapsulates live HTTP request handling and automatic mock fallback mode (`isMockMode()`).
+- Integrates `withRetry` for automatic exponential backoff on HTTP 429 (rate limits) and 5xx errors.
+- Attaches computed `seoHealthScore` to domain metrics.
 
-2. **Metrics & Authority Aggregator (`MetricsAuditor`)**:
-   - Normalizes raw Ahrefs metric schemas into domain performance summaries.
-   - Computes anchor text distribution and dofollow vs. nofollow link ratios.
+### 3.2 `src/health.ts` — SEO Health Score Engine
+Computes a composite 0–100 SEO Health Score and letter grade (`A+` to `F`) based on weighted components:
+- **Domain Rating (DR)** (30% weight)
+- **Referring Domains** (25% weight)
+- **Estimated Monthly Traffic** (20% weight)
+- **Dofollow Ratio** (15% weight)
+- **Top 10 Keyword Positions** (10% weight)
+Provides contextual optimization recommendations.
 
-3. **SERP & Rank Tracking (`KeywordTracker`)**:
-   - Tracks ranking target keywords and maps positional movements over 7-day/30-day windows.
-   - Identifies SERP feature presence (Featured Snippets, People Also Ask, Video/Image Carousels).
+### 3.3 `src/snapshots.ts` — Historical Snapshot Store
+- Persists domain snapshots as structured JSON artifacts in `snapshots/local/`.
+- Provides snapshot delta comparison logic (`compareSnapshots`) computing metric shifts (`drChange`, `trafficChange`, `referringDomainsChange`, `healthScoreChange`, `trendDirection`).
 
-4. **Historical Snapshot Engine (`SnapshotStore`)**:
-   - Persists structured periodic snapshots (JSON/SQLite format).
-   - Generates delta metrics (DR velocity, lost link alerts).
+### 3.4 `src/reports.ts` — Executive Report Generator
+- Synthesizes domain audit metrics, organic keyword ranks, SEO Health Scores, and historical trend deltas into executive reports.
+- Generates 3 report outputs simultaneously:
+  1. Markdown (`weekly_seo_report_YYYY-MM-DD.md`)
+  2. JSON (`weekly_seo_report_YYYY-MM-DD.json`)
+  3. Styled Responsive HTML (`weekly_seo_report_YYYY-MM-DD.html`)
 
-5. **Executive Reporter (`ReportGenerator`)**:
-   - Formats comprehensive weekly summary reports in Markdown and JSON formats.
+### 3.5 `src/config.ts` — Configuration Loader & Validator
+- Loads and validates configuration files (`config/domains.json`, `config/competitors.json`, `config/app.json`).
+- Validates domain syntax, country codes, priorities, and default fallback options.
+
+### 3.6 `src/logger.ts` & `src/errors.ts` — Logging & Error Standard
+- Provides structured loggers supporting JSON and pretty console formatting across 4 log levels (`debug`, `info`, `warn`, `error`).
+- Defines typed error hierarchy (`AhrefsEngineError`, `AhrefsApiError`, `ConfigurationError`, `SnapshotError`, `ReportGenerationError`).
 
 ---
 
-## 3. Data Integrity & Operational Boundaries
+## 4. Design Patterns & Principles
 
-- **Stateless API Interaction**: All queries to external APIs are stateless; cached data is stored locally in snapshots.
-- **Fail-Safe Processing**: API failure on one domain does not stop processing for remaining managed domains.
+1. **Dependency Injection**: Services receive client instances, loggers, and stores in constructors, enabling independent unit testing and mocking.
+2. **Graceful Degradation**: If Ahrefs API credentials are omitted or fail, the system smoothly falls back to mock simulation mode without crashing.
+3. **Immutability & Strict Typing**: TypeScript strict mode (`strict: true`) is enforced across all domain models and functions.

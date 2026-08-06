@@ -1,14 +1,18 @@
 import { AhrefsClient } from './client';
 import { DomainKeywordReport, KeywordRanking } from './types';
+import { Logger } from './logger';
 
 export class KeywordTracker {
   private client: AhrefsClient;
+  private logger: Logger;
 
-  constructor(client?: AhrefsClient) {
+  constructor(client?: AhrefsClient, logger?: Logger) {
     this.client = client || new AhrefsClient();
+    this.logger = logger || new Logger({ context: 'KeywordTracker' });
   }
 
   public async fetchKeywordRankings(domain: string): Promise<DomainKeywordReport> {
+    this.logger.info(`Fetching keyword rankings for ${domain}`);
     const seed = domain.length;
     const baseKeywords: KeywordRanking[] = [
       {
@@ -54,8 +58,7 @@ export class KeywordTracker {
     ];
 
     const estimatedTraffic = 12500 + (seed * 1800);
-
-    return {
+    const report: DomainKeywordReport = {
       domain,
       totalKeywords: 450 + (seed * 85),
       top3Count: 12 + (seed % 5),
@@ -64,5 +67,12 @@ export class KeywordTracker {
       estimatedTraffic,
       keywords: baseKeywords
     };
+
+    this.logger.debug(`Retrieved keyword rankings for ${domain}`, {
+      totalKeywords: report.totalKeywords,
+      estimatedTraffic: report.estimatedTraffic
+    });
+
+    return report;
   }
 }

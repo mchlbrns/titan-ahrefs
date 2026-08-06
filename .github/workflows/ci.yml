@@ -1,4 +1,4 @@
-name: titan-ahrefs CI
+name: titan-ahrefs Production CI/CD
 
 on:
   push:
@@ -18,9 +18,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm ci || npm install
 
       - name: Typecheck TypeScript
         run: npm run typecheck
+
+      - name: ESLint Code Quality Audit
+        run: npm run lint
+
+      - name: Run Unit & Integration Tests (Coverage)
+        run: npm run test:coverage
+
+      - name: Dependency Security Audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Build Production Bundle
+        run: npm run build
+
+      - name: Smoke Test CLI Entry Points
+        run: |
+          npm run audit:domains
+          npm run fetch:keywords
+          npm run snapshot:create
+          npm run analyze:competitors
+          npm run report:weekly

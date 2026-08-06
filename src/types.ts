@@ -1,3 +1,5 @@
+import { SeoHealthScore } from './health';
+
 export interface ManagedDomainConfig {
   domain: string;
   target_country: string;
@@ -23,6 +25,7 @@ export interface DomainRatingMetrics {
   dofollowLinks: number;
   nofollowLinks: number;
   timestamp: string;
+  seoHealthScore?: SeoHealthScore;
 }
 
 export interface KeywordRanking {
@@ -63,6 +66,7 @@ export interface BacklinkAuditReport {
   dofollowRatio: number;
   topAnchors: { anchor: string; count: number }[];
   recentBacklinks: BacklinkItem[];
+  seoHealthScore?: SeoHealthScore;
 }
 
 export interface DomainSnapshot {
@@ -74,6 +78,7 @@ export interface DomainSnapshot {
   totalBacklinks: number;
   estimatedTraffic: number;
   organicKeywords: number;
+  seoHealthScore?: SeoHealthScore;
 }
 
 export interface CompetitorOverlapResult {
@@ -84,16 +89,36 @@ export interface CompetitorOverlapResult {
   gapOpportunities: { keyword: string; competitorPosition: number; searchVolume: number }[];
 }
 
+export interface TrendComparison {
+  previousTimestamp?: string;
+  drChange: number;
+  trafficChange: number;
+  referringDomainsChange: number;
+  healthScoreChange: number;
+  trendDirection: 'UP' | 'DOWN' | 'STABLE' | 'NEW';
+}
+
+export interface ExecutiveSummaryItem {
+  domain: string;
+  domainRating: number;
+  referringDomains: number;
+  estimatedTraffic: number;
+  keywordWins: number;
+  keywordLosses: number;
+  seoHealthScore?: SeoHealthScore;
+  trend?: TrendComparison;
+}
+
 export interface ExecutiveWeeklyReport {
   generatedAt: string;
   domainsAudited: string[];
-  summaries: {
-    domain: string;
-    domainRating: number;
-    referringDomains: number;
-    estimatedTraffic: number;
-    keywordWins: number;
-    keywordLosses: number;
-  }[];
+  summaries: ExecutiveSummaryItem[];
   markdownContent: string;
+  htmlContent?: string;
+}
+
+export interface ReportOptions {
+  outputDir?: string;
+  enableHtml?: boolean;
+  includeHistoricalTrends?: boolean;
 }

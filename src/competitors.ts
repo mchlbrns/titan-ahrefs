@@ -1,10 +1,18 @@
 import { CompetitorOverlapResult } from './types';
+import { Logger } from './logger';
 
 export class CompetitorAnalyzer {
+  private logger: Logger;
+
+  constructor(logger?: Logger) {
+    this.logger = logger || new Logger({ context: 'CompetitorAnalyzer' });
+  }
+
   public async analyzeCompetitorGap(targetDomain: string, competitorDomain: string): Promise<CompetitorOverlapResult> {
+    this.logger.info(`Analyzing competitor gap: ${targetDomain} vs ${competitorDomain}`);
     const seed = (targetDomain + competitorDomain).length;
 
-    return {
+    const result: CompetitorOverlapResult = {
       targetDomain,
       competitorDomain,
       sharedKeywords: 140 + (seed * 12),
@@ -27,5 +35,13 @@ export class CompetitorAnalyzer {
         }
       ]
     };
+
+    this.logger.debug(`Completed competitor gap analysis`, {
+      sharedKeywords: result.sharedKeywords,
+      exclusiveKeywords: result.competitorExclusiveKeywords,
+      opportunitiesCount: result.gapOpportunities.length
+    });
+
+    return result;
   }
 }

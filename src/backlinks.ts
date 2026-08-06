@@ -1,19 +1,38 @@
 import { AhrefsClient } from './client';
 import { BacklinkAuditReport, DomainRatingMetrics } from './types';
+import { Logger } from './logger';
+import { calculateSeoHealthScore } from './health';
 
 export class BacklinkAuditor {
   private client: AhrefsClient;
+  private logger: Logger;
 
-  constructor(client?: AhrefsClient) {
+  constructor(client?: AhrefsClient, logger?: Logger) {
     this.client = client || new AhrefsClient();
+    this.logger = logger || new Logger({ context: 'BacklinkAuditor' });
   }
 
   public async auditBacklinkProfile(domain: string): Promise<BacklinkAuditReport> {
+    this.logger.info(`Starting backlink profile audit for ${domain}`);
     const metrics: DomainRatingMetrics = await this.client.fetchDomainRating(domain);
 
     const dofollowRatio = metrics.totalBacklinks > 0 
       ? Number((metrics.dofollowLinks / metrics.totalBacklinks).toFixed(2))
       : 0;
+
+    const seoHealthScore = metrics.seoHealthScore || calculateSeoHealthScore({
+      domainRating: metrics.domainRating,
+      referringDomains: metrics.referringDomains,
+      totalBacklinks: metrics.totalBacklinks,
+      dofollowLinks: metrics.dofollowLinks
+    });
+
+    this.logger.debug(`Completed backlink profile audit for ${domain}`, {
+      totalBacklinks: metrics.totalBacklinks,
+      referringDomains: metrics.referringDomains,
+      dofollowRatio,
+      healthScore: seoHealthScore.score
+    });
 
     return {
       domain,
@@ -45,7 +64,8 @@ export class BacklinkAuditor {
           firstSeen: new Date(Date.now() - 86400000 * 5).toISOString(),
           lastSeen: new Date().toISOString()
         }
-      ]
+      ],
+      seoHealthScore
     };
   }
 }

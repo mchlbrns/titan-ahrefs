@@ -18,6 +18,8 @@ logs/
 *.log
 snapshots/local/
 reports/generated/
+coverage/
+tests/scratch/
 
 # OS & Editor Files
 .DS_Store
