@@ -1,0 +1,19 @@
+{
+  "name": "titan-ahrefs",
+  "version": "1.0.0",
+  "description": "Ahrefs SEO, backlink, and keyword ranking analytics engine for Titan Workspace",
+  "main": "src/client.ts",
+  "scripts": {
+    "audit:portfolio": "node scripts/audit.js",
+    "fetch:keywords": "node scripts/keywords.js"
+  },
+  "keywords": [
+    "ahrefs",
+    "seo",
+    "titan-workspace",
+    "keywords",
+    "backlinks"
+  ],
+  "author": "Titan Workspace Team",
+  "license": "MIT"
+}
