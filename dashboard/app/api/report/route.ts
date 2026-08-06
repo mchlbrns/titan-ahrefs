@@ -5,6 +5,9 @@ import { SnapshotStore } from '../../../src/snapshots';
 import { ConfigLoader } from '../../../src/config';
 import { Logger } from '../../../src/logger';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   const logger = new Logger({ context: 'VercelReportRoute' });
   const searchParams = req.nextUrl.searchParams;
