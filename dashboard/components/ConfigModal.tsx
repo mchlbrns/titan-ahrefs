@@ -37,6 +37,7 @@ export default function ConfigModal({
 
   const [newDomainInput, setNewDomainInput] = useState('');
   const [addingDomain, setAddingDomain] = useState(false);
+  const [showAddInput, setShowAddInput] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -67,7 +68,10 @@ export default function ConfigModal({
         : [...domainOptions, cleanDomain];
 
       onDomainsChange(updatedList);
+      setPrimaryDomain(cleanDomain);
+      onSelectDomain(cleanDomain);
       setNewDomainInput('');
+      setShowAddInput(false);
       setSuccessMsg(`Added domain "${cleanDomain}" to managed domains.`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error adding domain';
@@ -166,70 +170,80 @@ export default function ConfigModal({
           </div>
         )}
 
-        {/* Section 1: Managed Dropdown Domains */}
-        <div className="space-y-3 rounded-lg border border-[rgba(255,255,255,0.06)] bg-[#0a0b0d] p-3.5">
-          <label className="block font-medium text-slate-300">Managed Dropdown Domains</label>
-          <div className="space-y-2">
-            {domainOptions.map((dom) => (
-              <div
-                key={dom}
-                className="flex items-center justify-between px-3 py-2 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#111318] text-slate-300 text-xs"
-              >
-                <span className="font-mono">{dom}</span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteDomain(dom)}
-                  title="Remove domain"
-                  className="p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-          </div>
-
-          {/* Add domain input */}
-          <div className="flex gap-2 pt-1">
-            <input
-              type="text"
-              value={newDomainInput}
-              onChange={(e) => setNewDomainInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddDomain();
-                }
-              }}
-              placeholder="Add new domain (e.g. example.com)"
-              className="flex-1 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[#111318] px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none transition-colors"
-            />
-            <button
-              type="button"
-              onClick={handleAddDomain}
-              disabled={addingDomain || !newDomainInput.trim()}
-              className="inline-flex items-center gap-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3 py-1.5 text-xs font-medium text-white transition-colors disabled:opacity-40"
-            >
-              <Plus className="h-3.5 w-3.5" /> Add
-            </button>
-          </div>
-        </div>
-
         {/* Section 2: Config Form */}
         <form onSubmit={handleSave} className="space-y-4">
           {/* Primary Target Domain Selection */}
           <div>
             <label className="block font-medium text-slate-400 mb-1.5">Primary Target Domain</label>
-            <select
-              value={primaryDomain}
-              onChange={(e) => setPrimaryDomain(e.target.value)}
-              className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
-            >
-              {domainOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+            {!showAddInput ? (
+              <div className="flex gap-2">
+                <select
+                  value={primaryDomain}
+                  onChange={(e) => setPrimaryDomain(e.target.value)}
+                  className="flex-1 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
+                >
+                  {domainOptions.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowAddInput(true)}
+                  title="Add new domain to dropdown"
+                  className="inline-flex items-center gap-1 rounded-lg border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] px-3 text-cyan-400 font-medium text-xs transition-colors shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Add</span>
+                </button>
+                {domainOptions.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteDomain(primaryDomain)}
+                    title={`Remove "${primaryDomain}" from dropdown list`}
+                    className="inline-flex items-center justify-center rounded-lg border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 px-2.5 text-rose-400 transition-colors shrink-0"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newDomainInput}
+                  onChange={(e) => setNewDomainInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddDomain();
+                    }
+                  }}
+                  placeholder="Enter new domain name (e.g. mysite.com)"
+                  className="flex-1 rounded-lg border border-cyan-500/50 bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleAddDomain}
+                  disabled={addingDomain || !newDomainInput.trim()}
+                  className="rounded-lg bg-cyan-600 hover:bg-cyan-500 px-3 py-2 text-xs font-medium text-white transition-colors disabled:opacity-40 shrink-0"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddInput(false);
+                    setNewDomainInput('');
+                  }}
+                  className="rounded-lg border border-[rgba(255,255,255,0.1)] px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors shrink-0"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Competitor Domains */}
