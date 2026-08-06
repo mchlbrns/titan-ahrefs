@@ -659,33 +659,70 @@ export class AhrefsClient {
     };
   }
 
-  private generateMockTopPages(domain: string): TopPagesReport {
-    const pages: TopPageItem[] = [
-      {
-        url: `https://${domain}/`,
-        organicTraffic: 8500,
-        trafficChange: 420,
-        rankingKeywords: 180,
-        topKeyword: `${domain.split('.')[0]} official`,
-        trafficValue: 14500
-      },
-      {
-        url: `https://${domain}/review`,
-        organicTraffic: 3200,
-        trafficChange: 250,
-        rankingKeywords: 85,
-        topKeyword: `${domain.split('.')[0]} review`,
-        trafficValue: 6200
-      },
-      {
-        url: `https://${domain}/features`,
-        organicTraffic: 1900,
-        trafficChange: -80,
-        rankingKeywords: 45,
-        topKeyword: `best ${domain.split('.')[0]} platform`,
-        trafficValue: 3400
-      }
-    ];
+  public generateMockTopPages(domain: string): TopPagesReport {
+    const isTitan = domain.includes('titantreasure');
+    const isRed = domain.includes('red-engage');
+
+    let pages: TopPageItem[] = [];
+
+    if (isTitan) {
+      pages = [
+        {
+          url: `https://${domain}/`,
+          organicTraffic: 8500,
+          trafficChange: 420,
+          rankingKeywords: 180,
+          topKeyword: 'titan treasure casino',
+          trafficValue: 14500
+        },
+        {
+          url: `https://${domain}/casino`,
+          organicTraffic: 3200,
+          trafficChange: 250,
+          rankingKeywords: 85,
+          topKeyword: 'titan treasure games',
+          trafficValue: 6200
+        },
+        {
+          url: `https://${domain}/sportsbook`,
+          organicTraffic: 1900,
+          trafficChange: -80,
+          rankingKeywords: 45,
+          topKeyword: 'titan treasure sportsbook',
+          trafficValue: 3400
+        }
+      ];
+    } else if (isRed) {
+      pages = [
+        {
+          url: `https://${domain}/`,
+          organicTraffic: 1200,
+          trafficChange: 80,
+          rankingKeywords: 45,
+          topKeyword: 'red engage marketing',
+          trafficValue: 2200
+        }
+      ];
+    } else {
+      pages = [
+        {
+          url: `https://${domain}/`,
+          organicTraffic: 4200,
+          trafficChange: 150,
+          rankingKeywords: 120,
+          topKeyword: `${domain.split('.')[0]} official`,
+          trafficValue: 7800
+        },
+        {
+          url: `https://${domain}/chat`,
+          organicTraffic: 2100,
+          trafficChange: 90,
+          rankingKeywords: 60,
+          topKeyword: `${domain.split('.')[0]} app`,
+          trafficValue: 4100
+        }
+      ];
+    }
 
     const totalOrganicTraffic = pages.reduce((acc, p) => acc + p.organicTraffic, 0);
     const totalTrafficValue = pages.reduce((acc, p) => acc + p.trafficValue, 0);
