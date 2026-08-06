@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, Save, X, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { X, RefreshCw, CheckCircle2 } from 'lucide-react';
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -61,7 +61,7 @@ export default function ConfigModal({
       
       const json = await res.json();
       if (json.status === 'success') {
-        setSuccessMsg('✅ Settings updated successfully! Live Ahrefs ingestion triggered.');
+        setSuccessMsg('Settings updated successfully. Live ingestion triggered.');
         setTimeout(() => {
           onConfigSaved();
           onClose();
@@ -79,47 +79,48 @@ export default function ConfigModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <div className="relative w-full max-w-xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+      <div className="relative w-full max-w-xl rounded-xl border border-[rgba(255,255,255,0.08)] bg-[#111318] p-6 shadow-2xl space-y-5 text-xs">
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-500 hover:text-white transition-colors"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
-        <div className="flex items-center gap-3 border-b border-slate-800 pb-4 mb-5">
-          <div className="rounded-xl bg-cyan-500/10 p-2.5 text-cyan-400 border border-cyan-500/20">
-            <Settings className="h-6 w-6" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-white">Engine & Domain Configuration</h2>
-            <p className="text-xs text-slate-400">Edit primary domain, competitor targets, and comparison rules.</p>
-          </div>
+        {/* Header */}
+        <div className="border-b border-[rgba(255,255,255,0.06)] pb-4">
+          <h2 className="text-sm font-semibold text-white">Engine & Domain Configuration</h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Edit primary domain, competitor targets, and comparison rules.
+          </p>
         </div>
 
+        {/* Banners */}
         {successMsg && (
-          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-300 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4" /> {successMsg}
+          <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-400 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" /> {successMsg}
           </div>
         )}
 
         {errorMsg && (
-          <div className="mb-4 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-300">
+          <div className="rounded-lg border border-rose-500/20 bg-rose-500/5 p-3 text-xs text-rose-400">
             ⚠️ {errorMsg}
           </div>
         )}
 
-        <form onSubmit={handleSave} className="space-y-4 text-xs">
+        {/* Form */}
+        <form onSubmit={handleSave} className="space-y-4">
           {/* Primary Domain */}
           <div>
-            <label className="block font-semibold text-slate-300 mb-1">Primary Target Domain</label>
+            <label className="block font-medium text-slate-400 mb-1.5">Primary Target Domain</label>
             <input
               type="text"
               value={primaryDomain}
               onChange={(e) => setPrimaryDomain(e.target.value)}
               placeholder="e.g. titantreasure.com"
-              className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-white focus:border-cyan-500 focus:outline-none"
+              className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               required
             />
           </div>
@@ -127,33 +128,33 @@ export default function ConfigModal({
           {/* Competitor Domains */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Competitor 1</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Competitor 1</label>
               <input
                 type="text"
                 value={comp1}
                 onChange={(e) => setComp1(e.target.value)}
                 placeholder="chumbacasino.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Competitor 2</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Competitor 2</label>
               <input
                 type="text"
                 value={comp2}
                 onChange={(e) => setComp2(e.target.value)}
                 placeholder="pulsz.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               />
             </div>
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Competitor 3</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Competitor 3</label>
               <input
                 type="text"
                 value={comp3}
                 onChange={(e) => setComp3(e.target.value)}
                 placeholder="luckylandslots.com"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               />
             </div>
           </div>
@@ -161,11 +162,11 @@ export default function ConfigModal({
           {/* Location, Frequency, Comparison Period */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Target Country</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Target Country</label>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               >
                 <option value="us">United States (US)</option>
                 <option value="uk">United Kingdom (UK)</option>
@@ -175,11 +176,11 @@ export default function ConfigModal({
               </select>
             </div>
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Report Frequency</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Report Frequency</label>
               <select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               >
                 <option value="Weekly">Weekly (Every Monday)</option>
                 <option value="Bi-Weekly">Bi-Weekly</option>
@@ -187,11 +188,11 @@ export default function ConfigModal({
               </select>
             </div>
             <div>
-              <label className="block font-semibold text-slate-300 mb-1">Comparison Period</label>
+              <label className="block font-medium text-slate-400 mb-1.5">Comparison Period</label>
               <select
                 value={comparisonPeriod}
                 onChange={(e) => setComparisonPeriod(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 p-2 text-white focus:border-cyan-500 focus:outline-none"
+                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
               >
                 <option value="Previous 7 days">Previous 7 days</option>
                 <option value="Previous 14 days">Previous 14 days</option>
@@ -201,41 +202,39 @@ export default function ConfigModal({
           </div>
 
           {/* Trigger live sync checkbox */}
-          <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center gap-2 pt-1">
             <input
               type="checkbox"
               id="triggerSync"
               checked={triggerSync}
               onChange={(e) => setTriggerSync(e.target.checked)}
-              className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
+              className="rounded border-[rgba(255,255,255,0.12)] bg-[#0a0b0d] text-slate-200 accent-slate-400 focus:ring-0 cursor-pointer"
             />
-            <label htmlFor="triggerSync" className="text-slate-300">
+            <label htmlFor="triggerSync" className="text-slate-400 hover:text-slate-300 cursor-pointer">
               Run immediate live Ahrefs ingestion run after saving
             </label>
           </div>
 
           {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[rgba(255,255,255,0.06)]">
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-slate-800 px-4 py-2 text-slate-300 hover:bg-slate-700"
+              className="rounded-lg px-3.5 py-2 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-4 py-2 font-bold text-white shadow-md hover:bg-cyan-500 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium text-slate-200 border border-[rgba(255,255,255,0.12)] hover:text-white hover:border-[rgba(255,255,255,0.24)] hover:bg-[rgba(255,255,255,0.03)] transition-all disabled:opacity-40"
             >
               {saving ? (
                 <>
-                  <RefreshCw className="h-4 w-4 animate-spin" /> Saving & Syncing...
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving & Syncing…
                 </>
               ) : (
-                <>
-                  <Save className="h-4 w-4" /> Save & Apply Configuration
-                </>
+                'Save & Apply Configuration'
               )}
             </button>
           </div>
