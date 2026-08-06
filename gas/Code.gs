@@ -147,9 +147,9 @@ function runAhrefsIngestion() {
       todayStr, primaryDomain, dr, rank, traffic, keywordsCount, organicCost,
       totalBacklinks, refDomains, dofollowBacklinks, new Date().toISOString()
     ]);
+    Logger.log("✅ Appended domain overview metrics for " + primaryDomain + " (DR: " + dr + ", Traffic: " + traffic + ")");
 
     // 3. Top Organic Keywords & Striking Distance Opportunities
-    // Ahrefs v3 column names: keyword, best_position, volume, keyword_difficulty, best_position_url, sum_traffic
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "country": country,
@@ -160,7 +160,9 @@ function runAhrefsIngestion() {
     });
 
     var kwSheet = ss.getSheetByName("keyword_snapshots");
+    var kwCount = 0;
     if (kwData && kwData.keywords) {
+      kwCount = kwData.keywords.length;
       kwData.keywords.forEach(function(item) {
         var pos = item.best_position || 0;
         var prevPos = pos;
@@ -174,9 +176,9 @@ function runAhrefsIngestion() {
         ]);
       });
     }
+    Logger.log("✅ Appended " + kwCount + " keywords to keyword_snapshots");
 
     // 4. Top Pages Performance
-    // Ahrefs v3 column names: url, top_keyword, sum_traffic, keywords
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "country": country,
@@ -186,7 +188,9 @@ function runAhrefsIngestion() {
     });
 
     var pageSheet = ss.getSheetByName("page_snapshots");
+    var pageCount = 0;
     if (pageData && pageData.pages) {
+      pageCount = pageData.pages.length;
       pageData.pages.forEach(function(p) {
         var pageTraffic = p.sum_traffic || 0;
         var trafficShare = traffic > 0 ? (pageTraffic / traffic).toFixed(4) : 0;
@@ -197,9 +201,9 @@ function runAhrefsIngestion() {
         ]);
       });
     }
+    Logger.log("✅ Appended " + pageCount + " pages to page_snapshots");
 
     // 5. Dynamic Competitor Gap Matrix
-    // Ahrefs v3 column names: competitor_domain, keywords_common, keywords_competitor, traffic, domain_rating
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "country": country,
@@ -220,9 +224,9 @@ function runAhrefsIngestion() {
         ]);
       });
     }
+    Logger.log("✅ Appended " + competitorsFound + " competitors to competitor_snapshots");
 
     // 6. Backlinks & Ref Domains Overview
-    // Ahrefs v3 column names: domain, domain_rating, dofollow_links, links_to_target, first_seen
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
       "date": todayStr,
@@ -231,7 +235,9 @@ function runAhrefsIngestion() {
     });
 
     var backlinkSheet = ss.getSheetByName("backlink_snapshots");
+    var refCount = 0;
     if (refData && refData.refdomains) {
+      refCount = refData.refdomains.length;
       refData.refdomains.forEach(function(r) {
         backlinkSheet.appendRow([
           todayStr, primaryDomain, r.domain, r.domain_rating || 0,
@@ -240,6 +246,7 @@ function runAhrefsIngestion() {
         ]);
       });
     }
+    Logger.log("✅ Appended " + refCount + " referring domains to backlink_snapshots");
 
     // Record Execution Run Summary
     var endTime = new Date();
