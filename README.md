@@ -1,80 +1,68 @@
 # 📊 titan-ahrefs — Ahrefs SEO & Keyword Analytics Engine
 
-`titan-ahrefs` is an independent, multi-domain Ahrefs analytics engine, backlink profile monitor, SERP tracking system, and automated reporting tool.
+`titan-ahrefs` is an independent, multi-domain Ahrefs analytics engine, backlink profile monitor, SERP rank tracking system, and automated report generator within the `mchlbrns/titan-workspace` portfolio.
 
 > [!IMPORTANT]
-> **Domain Scope**: This repository manages **EXCLUSIVELY** the following target domains:
+> **Managed Domain Boundary**: This repository manages **EXCLUSIVELY** the following target domains:
 > 1. `red-engage.com`
 > 2. `heavengirlfriend.com`
 > 3. `hornycompanion.com`
 > 
-> It operates independently of any other projects within the parent workspace.
+> It operates independently of Titan Treasure (`titantreasure-marketing` & `titan-parasites`).
 
 ---
 
-## 🎯 Core Features & Capabilities
+## 🎯 Repository Overview & Purpose
 
-1. **Ahrefs API v3 Integration**: Automated extraction of Domain Rating (DR), URL Rating (UR), total backlinks, referring domains, organic keyword positions, and estimated organic traffic.
-2. **Historical Metrics Snapshots**: Daily/weekly snapshots stored for trend analysis, historical DR growth tracking, and lost backlink alerts.
+`titan-ahrefs` provides an automated, implementation-agnostic framework for:
+
+1. **Ahrefs API v3 Integration**: Automated polling of Domain Rating (DR), URL Rating (UR), total backlinks, referring domains, organic keyword positions, and estimated traffic.
+2. **Historical Metrics Snapshots**: Recording periodic snapshots for long-term trend analysis, authority growth velocity, and lost backlink alerts.
 3. **Competitor SERP Analysis**: Keyword overlap analysis, competitor rank comparison, and SERP feature tracking across target niches.
 4. **Weekly SEO Reporting**: Automated summary generation delivering weekly delta reports (keyword position wins/losses, new referring domains, traffic movement).
 
 ---
 
-## 📁 Repository Topology
+## 📁 Repository Structure
 
 ```
 titan-ahrefs/
-├── AI_CONTEXT.md           # Independent AI agent context & guidance
-├── README.md               # Overview & quickstart documentation
-├── package.json            # Node.js dependencies & CLI scripts
-├── .env.local.example      # Required environment variable template
-├── config/
-│   ├── domains.json        # Target domain registry & metadata
-│   └── competitors.json    # Tracked competitor domain list
-├── src/
-│   ├── client.ts           # Ahrefs API v3 client wrapper
-│   ├── keywords.ts         # Keyword rank & SERP position tracker
-│   ├── backlinks.ts        # Backlink profile & domain authority auditor
-│   ├── snapshots.ts        # Historical metric recorder & database logger
-│   ├── competitors.ts      # Competitor overlap & keyword gap analyzer
-│   └── reports.ts          # Weekly SEO report generator
-└── reports/                # Output directory for generated weekly markdown reports
-```
-
----
-
-## 🚀 Quickstart & Commands
-
-```bash
-# Install dependencies
-npm install
-
-# Audit authority & backlink profiles for target domains
-npm run audit:domains
-
-# Fetch active keyword ranks & SERP positions
-npm run fetch:keywords
-
-# Run competitor gap analysis
-npm run analyze:competitors
-
-# Take historical metrics snapshot
-npm run snapshot:create
-
-# Generate weekly executive SEO report
-npm run report:weekly
+├── workspace.json          # Standardized AI workspace metadata & configuration
+├── AGENTS.md               # Mandatory AI agent onboarding protocol & operational rules
+├── AI_CONTEXT.md           # Deep business scope, managed domains & API specs
+├── README.md               # This file — repository overview & documentation entry point
+├── IMPLEMENTATION_PLAN.md  # Detailed technical implementation roadmap & milestones
+├── .gitignore              # Production git ignore specification
+├── docs/                   # Architecture, domain registry & integration guides
+│   ├── ARCHITECTURE.md     # System architecture & component design
+│   ├── DOMAINS.md          # Managed domain portfolio specification
+│   └── INTEGRATION.md      # Workspace & Ahrefs API v3 integration guide
+└── .github/                # GitHub workflows & PR templates
+    ├── PULL_REQUEST_TEMPLATE.md
+    └── workflows/
+        └── ci.yml
 ```
 
 ---
 
 ## 🔐 Environment Variables
 
-Ensure `.env.local` contains valid Ahrefs API credentials:
+Ensure `.env.local` contains valid Ahrefs API credentials before executing operational tasks:
 
 ```env
 AHREFS_API_KEY=your_ahrefs_api_token
+AHREFS_API_BASE_URL=https://api.ahrefs.com/v3
+LOG_LEVEL=info
 ```
+
+---
+
+## 🚀 AI Agent Entry Points
+
+- **Agent Rules & Directives**: See [`AGENTS.md`](./AGENTS.md).
+- **Business Scope & Domain Specs**: See [`AI_CONTEXT.md`](./AI_CONTEXT.md).
+- **Architecture & Data Flow**: See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+- **Future Implementation Roadmap**: See [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
 
 ---
 

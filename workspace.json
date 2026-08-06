@@ -1,0 +1,55 @@
+{
+  "name": "titan-ahrefs",
+  "displayName": "Titan Ahrefs SEO Analytics Engine",
+  "version": "0.1.0",
+  "type": "standalone-repository",
+  "parentWorkspace": "mchlbrns/titan-workspace",
+  "description": "Standalone Ahrefs API v3 SEO analytics engine, backlink monitor, SERP rank tracker, and historical snapshot logger for independent target domains.",
+  "scope": "independent",
+  "managedDomains": [
+    "red-engage.com",
+    "heavengirlfriend.com",
+    "hornycompanion.com"
+  ],
+  "responsibilities": [
+    "Ahrefs API v3 integration & rate-limited client management",
+    "Domain Rating (DR) & URL Rating (UR) metric tracking",
+    "Backlink profile monitoring (new vs. lost backlinks, anchor text distribution)",
+    "SERP keyword ranking audits & position delta tracking",
+    "Historical metrics snapshot logging & trend analysis",
+    "Competitor rank gap analysis",
+    "Weekly automated executive markdown & JSON report generation"
+  ],
+  "entryPoints": {
+    "agents": "AGENTS.md",
+    "context": "AI_CONTEXT.md",
+    "readme": "README.md",
+    "docs": "docs/",
+    "implementationPlan": "IMPLEMENTATION_PLAN.md"
+  },
+  "environmentVariables": {
+    "required": [
+      {
+        "name": "AHREFS_API_KEY",
+        "description": "Ahrefs API v3 Bearer authentication token",
+        "secret": true
+      }
+    ],
+    "optional": [
+      {
+        "name": "AHREFS_API_BASE_URL",
+        "description": "Ahrefs API endpoint base URL (default: https://api.ahrefs.com/v3)",
+        "default": "https://api.ahrefs.com/v3"
+      },
+      {
+        "name": "LOG_LEVEL",
+        "description": "Logging level verbosity (debug|info|warn|error)",
+        "default": "info"
+      }
+    ]
+  },
+  "dependencies": {
+    "externalAPIs": ["Ahrefs API v3"],
+    "parentWorkspace": "mchlbrns/titan-workspace"
+  }
+}
