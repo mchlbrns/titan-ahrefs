@@ -215,6 +215,7 @@ export interface ExecutiveSummaryItem {
   healthScore?: number;
   trend?: TrendComparison;
   recommendations: SeoRecommendation[];
+  snapshot?: DomainSnapshot;
 }
 
 export interface ExecutiveWeeklyReport {
