@@ -37,7 +37,7 @@ export class AhrefsClient {
   constructor(options: AhrefsClientOptions = {}) {
     this.apiKey = options.apiKey !== undefined ? options.apiKey : (process.env.AHREFS_API_KEY || '');
     this.baseUrl = options.baseUrl || process.env.AHREFS_API_BASE_URL || 'https://api.ahrefs.com/v3';
-    this.mockFallback = options.mockFallback ?? (process.env.MOCK_API_FALLBACK !== 'false');
+    this.mockFallback = options.mockFallback ?? (process.env.MOCK_API_FALLBACK === 'true');
     this.maxRetries = options.maxRetries ?? 3;
     this.retryDelayMs = options.retryDelayMs ?? 500;
     this.logger = options.logger || new Logger({ context: 'AhrefsClient' });
@@ -45,7 +45,10 @@ export class AhrefsClient {
   }
 
   public isMockMode(): boolean {
-    return !this.apiKey || this.apiKey.includes('your_ahrefs') || this.mockFallback;
+    if (this.apiKey && !this.apiKey.includes('your_ahrefs')) {
+      return this.mockFallback;
+    }
+    return true;
   }
 
   private extractUnitsFromResponse(res: Response, defaultUnits: number = 1): number {

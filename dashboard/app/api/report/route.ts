@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         client.fetchLimitsAndUsage().catch(() => ({ unitsConsumed: 14250, unitsLimit: 500000 }))
       ]);
 
-      const snapshotFallback = snapshotStore.getLatestSnapshotForDomain(requestedDomain);
+      const snapshotFallback = await snapshotStore.getLatestSnapshotForDomain(requestedDomain);
 
       const rawKeywords = (kwData?.keywords && kwData.keywords.length > 0)
         ? kwData.keywords
