@@ -34,7 +34,7 @@ function callAhrefsApi(endpoint, queryParams) {
   if (queryParams && Object.keys(queryParams).length > 0) {
     var parts = [];
     for (var key in queryParams) {
-      if (queryParams[key] !== undefined && queryParams[key] !== null) {
+      if (queryParams[key] !== undefined && queryParams[key] !== null && queryParams[key] !== "") {
         parts.push(encodeURIComponent(key) + "=" + encodeURIComponent(queryParams[key]));
       }
     }
@@ -63,7 +63,7 @@ function callAhrefsApi(endpoint, queryParams) {
   logApiUsage(endpoint, parseInt(unitsCost, 10), parseInt(rowsCount, 10), statusCode === 200 ? "SUCCESS" : "ERROR (" + statusCode + ")");
 
   if (statusCode !== 200) {
-    Logger.log("API Error on " + endpoint + ": " + response.getContentText());
+    Logger.log("API Response Error on " + endpoint + " (" + statusCode + "): " + response.getContentText());
     return null;
   }
 
@@ -109,7 +109,6 @@ function runAhrefsIngestion() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var todayStr = startTime.toISOString().split("T")[0]; // YYYY-MM-DD
   var primaryDomain = SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com";
-  var country = SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us";
   var unitsConsumedTotal = 0;
 
   Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " on date: " + todayStr);
@@ -128,16 +127,16 @@ function runAhrefsIngestion() {
       }
     }
 
-    // 2. Domain Overview & DR Metrics
+    // 2. Domain Overview & DR Metrics (Using mode: "subdomains")
     var drData = callAhrefsApi("/site-explorer/domain-rating", { "target": primaryDomain, "date": todayStr });
-    var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "country": country, "date": todayStr });
-    var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain, "date": todayStr });
+    var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "date": todayStr, "mode": "subdomains" });
+    var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain, "date": todayStr, "mode": "subdomains" });
 
     var dr = drData && drData.domain_rating ? drData.domain_rating.domain_rating : 0;
     var rank = drData && drData.domain_rating ? drData.domain_rating.ahrefs_rank : 0;
-    var traffic = metricsData && metricsData.metrics ? metricsData.metrics.organic_traffic : 0;
-    var keywordsCount = metricsData && metricsData.metrics ? metricsData.metrics.organic_keywords : 0;
-    var organicCost = metricsData && metricsData.metrics ? metricsData.metrics.organic_cost : 0;
+    var traffic = metricsData && metricsData.metrics ? (metricsData.metrics.organic_traffic || metricsData.metrics.traffic || 0) : 0;
+    var keywordsCount = metricsData && metricsData.metrics ? (metricsData.metrics.organic_keywords || metricsData.metrics.keywords || 0) : 0;
+    var organicCost = metricsData && metricsData.metrics ? (metricsData.metrics.organic_cost || metricsData.metrics.cost || 0) : 0;
     var totalBacklinks = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.live : 0;
     var refDomains = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.refdomains : 0;
     var dofollowBacklinks = backlinksStats && backlinksStats.metrics ? backlinksStats.metrics.dofollow : 0;
@@ -149,10 +148,10 @@ function runAhrefsIngestion() {
     ]);
     Logger.log("✅ Appended domain overview metrics for " + primaryDomain + " (DR: " + dr + ", Traffic: " + traffic + ")");
 
-    // 3. Top Organic Keywords & Striking Distance Opportunities
+    // 3. Top Organic Keywords & Striking Distance Opportunities (mode: "subdomains")
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
-      "country": country,
+      "mode": "subdomains",
       "date": todayStr,
       "select": "keyword,best_position,volume,keyword_difficulty,best_position_url,sum_traffic",
       "limit": 100,
@@ -170,7 +169,7 @@ function runAhrefsIngestion() {
         var strikingDistance = (pos >= 4 && pos <= 20) ? "YES" : "NO";
 
         kwSheet.appendRow([
-          todayStr, primaryDomain, item.keyword, country, pos, prevPos,
+          todayStr, primaryDomain, item.keyword, "GLOBAL", pos, prevPos,
           delta, item.volume || 0, item.keyword_difficulty || 0, item.best_position_url || "",
           item.sum_traffic || 0, strikingDistance, new Date().toISOString()
         ]);
@@ -178,10 +177,10 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + kwCount + " keywords to keyword_snapshots");
 
-    // 4. Top Pages Performance
+    // 4. Top Pages Performance (mode: "subdomains")
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
-      "country": country,
+      "mode": "subdomains",
       "date": todayStr,
       "select": "url,top_keyword,sum_traffic,keywords",
       "limit": 50
@@ -203,10 +202,10 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + pageCount + " pages to page_snapshots");
 
-    // 5. Dynamic Competitor Gap Matrix
+    // 5. Dynamic Competitor Gap Matrix (mode: "subdomains")
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
-      "country": country,
+      "mode": "subdomains",
       "date": todayStr,
       "select": "competitor_domain,keywords_common,keywords_competitor,traffic,domain_rating",
       "limit": 3
@@ -226,9 +225,10 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + competitorsFound + " competitors to competitor_snapshots");
 
-    // 6. Backlinks & Ref Domains Overview
+    // 6. Backlinks & Ref Domains Overview (mode: "subdomains")
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
+      "mode": "subdomains",
       "date": todayStr,
       "select": "domain,domain_rating,dofollow_links,links_to_target,first_seen",
       "limit": 50
