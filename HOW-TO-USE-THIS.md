@@ -218,6 +218,7 @@ When completing any substantive work in `titan-ahrefs`:
 
 | Date | Milestone / Technical Achievement | Status | Notes |
 |---|---|---|---|
+| **2026-08-06** | **Vercel Backend Server & Multi-Format API** | ✅ Complete | Created `api/report.ts`, `api/index.ts`, and `vercel.json`. Supports Vercel Serverless deployment, weekly crons, and live format toggles (Web Dashboard, CSV, PDF, Markdown, JSON). |
 | **2026-08-06** | **Live Ahrefs API v3 Evidence Run (Pedro Compliance)** | ✅ Complete | 16/16 requirement checks passed with live `api.ahrefs.com` HTTP 200 responses. Generated `scripts/evidence-run.mjs` and live evidence packs. |
 | **2026-08-06** | **v1.0.0 Production Release & Hardening** | ✅ Complete | Added exponential retry logic (`withRetry`), 0–100 SEO Health Score engine, HTML/MD/JSON reporting, structured logging (`Logger`), and full Jest test suite. |
 | **2026-08-06** | **Repository Template & AI Context Setup** | ✅ Complete | Applied standardized workspace repository template (`AGENTS.md`, `AI_CONTEXT.md`, `PROJECT_METADATA.md`, `workspace.json`). |
