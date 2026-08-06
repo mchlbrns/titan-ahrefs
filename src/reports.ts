@@ -67,10 +67,44 @@ export class ReportGenerator {
           snapshot = await this.snapshotStore.createSnapshot(domain);
         } catch (err) {
           this.logger.warn(`Snapshot creation failed for ${domain}. Generating fallback snapshot data.`);
-          const overview = await this.client.fetchDomainOverview(domain);
-          const keywords = await this.client.fetchOrganicKeywords(domain);
-          const topPages = await this.client.fetchTopPages(domain);
-          const backlinks = await this.client.fetchAllBacklinks(domain);
+          let overview;
+          try {
+            overview = await this.client.fetchDomainOverview(domain);
+          } catch {
+            overview = {
+              domain,
+              domainRating: 0,
+              urlRating: 0,
+              ahrefsRank: 0,
+              organicTraffic: 0,
+              trafficValue: 0,
+              rankingKeywords: 0,
+              totalBacklinks: 0,
+              referringDomains: 0,
+              dofollowBacklinks: 0,
+              dofollowRefdomains: 0,
+              nofollowLinks: 0,
+              timestamp
+            };
+          }
+          let keywords;
+          try {
+            keywords = await this.client.fetchOrganicKeywords(domain);
+          } catch {
+            keywords = { domain, totalKeywords: 0, top3Count: 0, top10Count: 0, top50Count: 0, estimatedTraffic: 0, keywords: [] };
+          }
+          let topPages;
+          try {
+            topPages = await this.client.fetchTopPages(domain);
+          } catch {
+            topPages = { domain, totalPages: 0, totalOrganicTraffic: 0, totalTrafficValue: 0, pages: [] };
+          }
+          let backlinks;
+          try {
+            backlinks = await this.client.fetchAllBacklinks(domain);
+          } catch {
+            backlinks = { domain, totalBacklinks: 0, referringDomains: 0, dofollowRatio: 0, recentBacklinks: [], topAnchors: [] };
+          }
           snapshot = {
             snapshotId: `snap_fallback_${domain.replace(/\./g, '_')}_${Date.now()}`,
             domain,
