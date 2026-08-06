@@ -1,9 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Download, FileText, FileSpreadsheet, Mail, ChevronDown, Check, Sparkles } from 'lucide-react';
+import { Download, FileText, FileSpreadsheet, Mail, ChevronDown, Check, Loader2, Sparkles } from 'lucide-react';
 
 interface ExportMenuProps {
   domain: string;
 }
+
+const loadHtml2PdfLibrary = (): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    if ((window as any).html2pdf) {
+      return resolve((window as any).html2pdf);
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+    script.onload = () => resolve((window as any).html2pdf);
+    script.onerror = (e) => reject(e);
+    document.body.appendChild(script);
+  });
+};
 
 export default function ExportMenu({ domain }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +25,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
   const [copied, setCopied] = useState(false);
   const [emailContent, setEmailContent] = useState('');
   const [loadingEmail, setLoadingEmail] = useState(false);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -25,10 +39,59 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handlePdfExport = () => {
+  const handlePdfExport = async () => {
     setIsOpen(false);
-    // Opens print-ready window that automatically pops browser's native PDF export / Print dialog
-    window.open(`/api/report?format=html&domain=${encodeURIComponent(domain)}`, 'TitanPdfReport', 'width=1100,height=850');
+    setIsPdfGenerating(true);
+
+    try {
+      // 1. Fetch executive HTML report content
+      const res = await fetch(`/api/report?format=html&domain=${encodeURIComponent(domain)}`);
+      const htmlText = await res.text();
+
+      // 2. Parse HTML and isolate clean report content
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlText, 'text/html');
+      const toolbar = doc.querySelector('.no-print');
+      if (toolbar) toolbar.remove();
+
+      // 3. Create offscreen container for high-fidelity PDF capture
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.width = '1000px';
+      container.style.background = '#0b0f19';
+      container.style.color = '#f3f4f6';
+      container.style.padding = '24px';
+      container.innerHTML = doc.body.innerHTML;
+      document.body.appendChild(container);
+
+      // 4. Dynamically load html2pdf.js engine
+      const html2pdf = await loadHtml2PdfLibrary();
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `Titan_Ahrefs_Executive_Report_${domain.replace(/\./g, '_')}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#0b0f19' },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // 5. Directly trigger PDF download file
+      await html2pdf().set(opt).from(container).save();
+      document.body.removeChild(container);
+    } catch (err) {
+      console.error('PDF export error:', err);
+      // Fallback: direct download link trigger
+      const link = document.createElement('a');
+      link.href = `/api/report?format=html&domain=${encodeURIComponent(domain)}`;
+      link.download = `Titan_Ahrefs_Executive_Report_${domain.replace(/\./g, '_')}.html`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setIsPdfGenerating(false);
+    }
   };
 
   const handleCsvExport = () => {
@@ -66,17 +129,22 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
     <div className="relative inline-block text-left" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all"
+        disabled={isPdfGenerating}
+        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all disabled:opacity-50"
       >
-        <Download className="h-3.5 w-3.5" />
-        Export Report
+        {isPdfGenerating ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Download className="h-3.5 w-3.5" />
+        )}
+        {isPdfGenerating ? 'Generating PDF...' : 'Export Report'}
         <ChevronDown className="h-3 w-3 opacity-60" />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-60 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
+        <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
           <div className="px-3 py-1.5 border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-            Export Report Options
+            Direct Export Options
           </div>
 
           <button
@@ -85,8 +153,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           >
             <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
             <div>
-              <div className="font-semibold text-white">PDF Executive Document</div>
-              <div className="text-[10px] text-slate-500">Triggers instant PDF Save / Print window</div>
+              <div className="font-semibold text-white">Download PDF Report (.pdf)</div>
+              <div className="text-[10px] text-slate-500">Directly saves PDF file to Downloads</div>
             </div>
           </button>
 
@@ -96,8 +164,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />
             <div>
-              <div className="font-semibold text-white">CSV / Excel Multi-Table</div>
-              <div className="text-[10px] text-slate-500">Full structured telemetry data export</div>
+              <div className="font-semibold text-white">Download CSV / Excel (.csv)</div>
+              <div className="text-[10px] text-slate-500">Multi-table telemetry data export</div>
             </div>
           </button>
 
@@ -108,7 +176,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
             <Mail className="h-4 w-4 text-purple-400 shrink-0" />
             <div>
               <div className="font-semibold text-white">Humanized Email Briefing</div>
-              <div className="text-[10px] text-slate-500">Executive summary for stakeholders</div>
+              <div className="text-[10px] text-slate-500">Executive summary briefing modal</div>
             </div>
           </button>
         </div>

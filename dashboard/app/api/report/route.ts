@@ -192,28 +192,8 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Default HTML format
-    const toolbarHtml = `
-    <div style="background: #1e293b; padding: 12px 24px; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; font-family: sans-serif;">
-      <div style="font-weight: bold; color: #06b6d4; font-size: 1rem;">
-        📊 Titan Ahrefs Web Dashboard
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <a href="/" style="background: #06b6d4; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">🌐 Web Dashboard</a>
-        <a href="/api/report?format=csv&domain=${encodeURIComponent(requestedDomain)}" style="background: #10b981; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">📊 Export CSV</a>
-        <a href="/api/report?format=markdown&domain=${encodeURIComponent(requestedDomain)}" style="background: #6366f1; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">📄 Export Markdown</a>
-        <a href="/api/report?format=json&domain=${encodeURIComponent(requestedDomain)}" style="background: #8b5cf6; color: #fff; text-decoration: none; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">💾 Raw JSON</a>
-        <button onclick="window.print()" style="background: #f59e0b; color: #fff; border: none; cursor: pointer; padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">🖨️ Print PDF</button>
-      </div>
-    </div>
-    `;
-
-    let fullHtml = report.htmlContent || `<html><body><h1>Report Generated</h1></body></html>`;
-    if (fullHtml.includes('<body>')) {
-      fullHtml = fullHtml.replace('<body>', `<body>${toolbarHtml}`);
-    } else {
-      fullHtml = toolbarHtml + fullHtml;
-    }
+    // Default HTML format (clean document for PDF generation)
+    const fullHtml = report.htmlContent || `<html><body><h1>Report Generated</h1></body></html>`;
 
     return new NextResponse(fullHtml, {
       status: 200,

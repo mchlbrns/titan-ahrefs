@@ -410,7 +410,7 @@ export default function DashboardPage() {
             <KpiCard
               title="SEO Health Score"
               value={summary?.healthScore ?? 0}
-              subText={summary?.healthScore !== undefined ? `Health Rating (0–100)` : 'Health Rating (0–100)'}
+              subText={summary?.healthScore !== undefined ? `Grade ${healthGrade} — Health Rating (0–100)` : 'Health Rating (0–100)'}
               hasData={hasSnapshot && summary?.healthScore !== undefined}
               size="hero"
             />
