@@ -128,7 +128,7 @@ function runAhrefsIngestion() {
       }
     }
 
-    // 2. Domain Overview & DR Metrics (Date is required by Ahrefs v3)
+    // 2. Domain Overview & DR Metrics
     var drData = callAhrefsApi("/site-explorer/domain-rating", { "target": primaryDomain, "date": todayStr });
     var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "country": country, "date": todayStr });
     var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain, "date": todayStr });
@@ -148,58 +148,63 @@ function runAhrefsIngestion() {
       totalBacklinks, refDomains, dofollowBacklinks, new Date().toISOString()
     ]);
 
-    // 3. Top Organic Keywords & Striking Distance Opportunities (Positions 4-20)
+    // 3. Top Organic Keywords & Striking Distance Opportunities
+    // Ahrefs v3 column names: keyword, best_position, volume, keyword_difficulty, best_position_url, sum_traffic
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "country": country,
       "date": todayStr,
-      "select": "keyword,position,previous_position,volume,difficulty,url,traffic",
+      "select": "keyword,best_position,volume,keyword_difficulty,best_position_url,sum_traffic",
       "limit": 100,
-      "order_by": "traffic:desc"
+      "order_by": "sum_traffic:desc"
     });
 
     var kwSheet = ss.getSheetByName("keyword_snapshots");
     if (kwData && kwData.keywords) {
       kwData.keywords.forEach(function(item) {
-        var pos = item.position || 0;
-        var prevPos = item.previous_position || pos;
-        var delta = prevPos - pos; // positive means improved
+        var pos = item.best_position || 0;
+        var prevPos = pos;
+        var delta = 0;
         var strikingDistance = (pos >= 4 && pos <= 20) ? "YES" : "NO";
 
         kwSheet.appendRow([
           todayStr, primaryDomain, item.keyword, country, pos, prevPos,
-          delta, item.volume || 0, item.difficulty || 0, item.url || "",
-          item.traffic || 0, strikingDistance, new Date().toISOString()
+          delta, item.volume || 0, item.keyword_difficulty || 0, item.best_position_url || "",
+          item.sum_traffic || 0, strikingDistance, new Date().toISOString()
         ]);
       });
     }
 
     // 4. Top Pages Performance
+    // Ahrefs v3 column names: url, top_keyword, sum_traffic, keywords
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "country": country,
       "date": todayStr,
-      "select": "url,top_keyword,traffic,keywords,traffic_share",
+      "select": "url,top_keyword,sum_traffic,keywords",
       "limit": 50
     });
 
     var pageSheet = ss.getSheetByName("page_snapshots");
     if (pageData && pageData.pages) {
       pageData.pages.forEach(function(p) {
+        var pageTraffic = p.sum_traffic || 0;
+        var trafficShare = traffic > 0 ? (pageTraffic / traffic).toFixed(4) : 0;
         pageSheet.appendRow([
           todayStr, primaryDomain, p.url, p.top_keyword || "",
-          p.traffic || 0, p.keywords || 0, (p.traffic_share || 0).toFixed(4),
+          pageTraffic, p.keywords || 0, trafficShare,
           new Date().toISOString()
         ]);
       });
     }
 
-    // 5. Dynamic Competitor Gap Matrix (Auto-discovers top 3 competitors)
+    // 5. Dynamic Competitor Gap Matrix
+    // Ahrefs v3 column names: competitor_domain, keywords_common, keywords_competitor, traffic, domain_rating
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "country": country,
       "date": todayStr,
-      "select": "competitor,overlap_keywords,competitor_keywords,competitor_traffic,domain_rating",
+      "select": "competitor_domain,keywords_common,keywords_competitor,traffic,domain_rating",
       "limit": 3
     });
 
@@ -209,18 +214,19 @@ function runAhrefsIngestion() {
       competitorsFound = compData.competitors.length;
       compData.competitors.forEach(function(c) {
         compSheet.appendRow([
-          todayStr, primaryDomain, c.competitor, c.overlap_keywords || 0,
-          c.competitor_keywords || 0, c.competitor_traffic || 0,
+          todayStr, primaryDomain, c.competitor_domain, c.keywords_common || 0,
+          c.keywords_competitor || 0, c.traffic || 0,
           c.domain_rating || 0, new Date().toISOString()
         ]);
       });
     }
 
-    // 6. Backlinks & Ref Domains Overview (select parameter required)
+    // 6. Backlinks & Ref Domains Overview
+    // Ahrefs v3 column names: domain, domain_rating, dofollow_links, links_to_target, first_seen
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
       "date": todayStr,
-      "select": "domain,domain_rating,dofollow_links,total_links,first_seen",
+      "select": "domain,domain_rating,dofollow_links,links_to_target,first_seen",
       "limit": 50
     });
 
@@ -228,8 +234,8 @@ function runAhrefsIngestion() {
     if (refData && refData.refdomains) {
       refData.refdomains.forEach(function(r) {
         backlinkSheet.appendRow([
-          todayStr, primaryDomain, r.domain || r.refdomain, r.domain_rating || 0,
-          r.dofollow_links || 0, r.total_links || 0, r.first_seen || "",
+          todayStr, primaryDomain, r.domain, r.domain_rating || 0,
+          r.dofollow_links || 0, r.links_to_target || 0, r.first_seen || "",
           "ACTIVE", new Date().toISOString()
         ]);
       });
@@ -244,7 +250,7 @@ function runAhrefsIngestion() {
       competitorsFound, unitsConsumedTotal, ""
     ]);
 
-    Logger.log("✅ Ahrefs Ingestion completed successfully in " + durationSec + "s!");
+    Logger.log("🎉 Ahrefs Ingestion completed successfully in " + durationSec + "s!");
   } catch (err) {
     var errTime = new Date();
     var durationErrSec = Math.round((errTime.getTime() - startTime.getTime()) / 1000);
@@ -261,7 +267,6 @@ function runAhrefsIngestion() {
 
 /**
  * REST API ENDPOINT FOR NEXT.JS FRONTEND DASHBOARD (doGet)
- * Returns full JSON representation of the latest dataset from Google Sheets.
  */
 function doGet(e) {
   try {
