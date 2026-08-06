@@ -8,8 +8,8 @@ export interface SeoHealthScoreBreakdown {
 
 export interface SeoHealthScore {
   score: number;
-  siteAuditHealthScore: number;
-  commercialGrowthScore: number;
+  siteAuditHealthScore?: number;
+  commercialGrowthScore?: number;
   grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
   breakdown: SeoHealthScoreBreakdown;
   recommendations: string[];
@@ -58,8 +58,8 @@ export function calculateSeoHealthScore(input: HealthScoreInput): SeoHealthScore
     domainRatingScore + referringDomainsScore + trafficScore + dofollowScore + serpScore
   );
 
-  // Technical Site Audit Health Score defaults to input or 95 for monitored domains
-  const siteAuditHealthScore = input.siteAuditHealthScore ?? (input.domainRating >= 20 ? 95 : commercialGrowthScore);
+  // Technical Site Audit Health Score defaults to input or 95 when explicitly passed
+  const siteAuditHealthScore = input.siteAuditHealthScore ?? 95;
   const score = input.siteAuditHealthScore !== undefined ? input.siteAuditHealthScore : commercialGrowthScore;
 
   let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';

@@ -510,73 +510,124 @@ export class AhrefsClient {
   }
 
   private generateMockOrganicKeywords(domain: string): DomainKeywordReport {
-    const seed = domain.length;
-    const baseKeywords: OrganicKeywordItem[] = [
-      {
-        keyword: `${domain.split('.')[0]} review`,
-        position: 2,
-        previousPosition: 4,
-        positionChange: 2,
-        searchVolume: 8400,
-        keywordDifficulty: 28,
-        estimatedTraffic: 3200,
-        trafficChange: 450,
-        url: `https://${domain}/review`,
-        serpFeatures: ['Featured Snippet', 'People Also Ask'],
-        searchIntent: 'Commercial'
-      },
-      {
-        keyword: `best ${domain.split('.')[0]} platform`,
-        position: 5,
-        previousPosition: 5,
-        positionChange: 0,
-        searchVolume: 4200,
-        keywordDifficulty: 42,
-        estimatedTraffic: 1100,
-        trafficChange: 0,
-        url: `https://${domain}/features`,
-        serpFeatures: ['People Also Ask'],
-        searchIntent: 'Informational'
-      },
-      {
-        keyword: `${domain.split('.')[0]} login bonus`,
-        position: 8,
-        previousPosition: 12,
-        positionChange: 4,
-        searchVolume: 2900,
-        keywordDifficulty: 19,
-        estimatedTraffic: 680,
-        trafficChange: 210,
-        url: `https://${domain}/bonus`,
-        serpFeatures: ['Image Pack'],
-        searchIntent: 'Transactional'
-      },
-      {
-        keyword: `top online ${domain.split('.')[0]} site`,
-        position: 14,
-        previousPosition: 11,
-        positionChange: -3,
-        searchVolume: 1600,
-        keywordDifficulty: 35,
-        estimatedTraffic: 140,
-        trafficChange: -60,
-        url: `https://${domain}/`,
-        serpFeatures: [],
-        searchIntent: 'Navigational'
-      }
-    ];
+    const isRed = domain.includes('red-engage');
+    const isHeaven = domain.includes('heavengirlfriend');
+    const isHorny = domain.includes('hornycompanion');
 
-    const estimatedTraffic = 12500 + (seed * 1800);
-    const trafficValue = Math.round(estimatedTraffic * 1.85);
+    let baseKeywords: OrganicKeywordItem[] = [];
+    if (isRed) {
+      baseKeywords = [
+        {
+          keyword: 'reddit marketing agency',
+          position: 3,
+          previousPosition: 3,
+          positionChange: 0,
+          searchVolume: 400,
+          keywordDifficulty: 1,
+          estimatedTraffic: 0,
+          trafficChange: 0,
+          url: `https://${domain}/blog/best-reddit-marketing-agencies`,
+          serpFeatures: ['Featured Snippet', 'People Also Ask'],
+          searchIntent: 'Transactional'
+        },
+        {
+          keyword: 'leading advertising companies',
+          position: 1,
+          previousPosition: 1,
+          positionChange: 0,
+          searchVolume: 90,
+          keywordDifficulty: 6,
+          estimatedTraffic: 0,
+          trafficChange: 0,
+          url: `https://${domain}/blog/best-international-marketing-agencies`,
+          serpFeatures: ['Featured Snippet'],
+          searchIntent: 'Commercial'
+        }
+      ];
+    } else if (isHeaven) {
+      baseKeywords = [
+        {
+          keyword: 'ai girlfriend',
+          position: 4,
+          previousPosition: 6,
+          positionChange: 2,
+          searchVolume: 18000,
+          keywordDifficulty: 45,
+          estimatedTraffic: 320,
+          trafficChange: 110,
+          url: `https://${domain}/`,
+          serpFeatures: ['People Also Ask'],
+          searchIntent: 'Commercial'
+        },
+        {
+          keyword: 'heaven girlfriend review',
+          position: 1,
+          previousPosition: 1,
+          positionChange: 0,
+          searchVolume: 1200,
+          keywordDifficulty: 12,
+          estimatedTraffic: 180,
+          trafficChange: 20,
+          url: `https://${domain}/about`,
+          serpFeatures: ['Featured Snippet'],
+          searchIntent: 'Informational'
+        },
+        {
+          keyword: 'virtual girlfriend simulator',
+          position: 7,
+          previousPosition: 10,
+          positionChange: 3,
+          searchVolume: 5400,
+          keywordDifficulty: 28,
+          estimatedTraffic: 43,
+          trafficChange: 15,
+          url: `https://${domain}/chat`,
+          serpFeatures: ['Image Pack'],
+          searchIntent: 'Transactional'
+        }
+      ];
+    } else if (isHorny) {
+      baseKeywords = [
+        {
+          keyword: 'horny companion',
+          position: 1,
+          previousPosition: 1,
+          positionChange: 0,
+          searchVolume: 9200,
+          keywordDifficulty: 15,
+          estimatedTraffic: 6100,
+          trafficChange: 400,
+          url: `https://${domain}/`,
+          serpFeatures: ['Featured Snippet'],
+          searchIntent: 'Navigational'
+        },
+        {
+          keyword: 'ai companion chat',
+          position: 3,
+          previousPosition: 4,
+          positionChange: 1,
+          searchVolume: 4100,
+          keywordDifficulty: 22,
+          estimatedTraffic: 2000,
+          trafficChange: 150,
+          url: `https://${domain}/chat`,
+          serpFeatures: ['People Also Ask'],
+          searchIntent: 'Commercial'
+        }
+      ];
+    }
+
+    const estimatedTraffic = isRed ? 0.18 : isHeaven ? 543 : isHorny ? 8100 : 1000;
+    const totalKeywords = isRed ? 7 : isHeaven ? 30 : isHorny ? 3 : 10;
 
     return {
       domain,
-      totalKeywords: 450 + (seed * 85),
-      top3Count: 12 + (seed % 5),
-      top10Count: 48 + (seed % 15),
-      top50Count: 230 + (seed % 40),
+      totalKeywords,
+      top3Count: baseKeywords.filter(k => k.position <= 3).length,
+      top10Count: baseKeywords.filter(k => k.position <= 10).length,
+      top50Count: totalKeywords,
       estimatedTraffic,
-      trafficValue,
+      trafficValue: isRed ? 0 : isHeaven ? 306 : isHorny ? 4100 : 100,
       keywords: baseKeywords
     };
   }
@@ -705,18 +756,22 @@ export class AhrefsClient {
   }
 
   private generateMockDomainOverview(domain: string): DomainOverviewMetrics {
-    const seed = domain.length;
-    const domainRating = 35 + (seed % 25);
-    const urlRating = 25 + (seed % 15);
-    const ahrefsRank = 100000 + (seed * 8500);
-    const totalBacklinks = 1500 + (seed * 300);
-    const referringDomains = 250 + (seed * 45);
+    const isRed = domain.includes('red-engage');
+    const isHeaven = domain.includes('heavengirlfriend');
+    const isHorny = domain.includes('hornycompanion');
+
+    const domainRating = isRed ? 26 : isHeaven ? 21 : isHorny ? 2 : 30;
+    const urlRating = isRed ? 12 : isHeaven ? 18 : isHorny ? 5 : 15;
+    const ahrefsRank = isRed ? 5469562 : isHeaven ? 8104494 : isHorny ? 12500000 : 4028135;
+    const totalBacklinks = isRed ? 745 : isHeaven ? 804 : isHorny ? 389 : 1200;
+    const referringDomains = isRed ? 423 : isHeaven ? 527 : isHorny ? 389 : 350;
     const dofollowBacklinks = Math.round(totalBacklinks * 0.78);
     const dofollowRefdomains = Math.round(referringDomains * 0.84);
     const nofollowLinks = Math.round(totalBacklinks * 0.22);
-    const organicTraffic = 14500 + (seed * 1100);
-    const trafficValue = Math.round(organicTraffic * 1.9);
-    const rankingKeywords = 420 + (seed * 65);
+    const organicTraffic = isRed ? 0.18 : isHeaven ? 543 : isHorny ? 8100 : 1200;
+    const trafficValue = isRed ? 0 : isHeaven ? 306 : isHorny ? 4100 : 500;
+    const rankingKeywords = isRed ? 7 : isHeaven ? 30 : isHorny ? 3 : 25;
+    const siteAuditHealthScore = isRed ? 95 : isHeaven ? 94 : isHorny ? 99 : 95;
 
     const seoHealthScore = calculateSeoHealthScore({
       domainRating,
@@ -724,7 +779,8 @@ export class AhrefsClient {
       totalBacklinks,
       dofollowLinks: dofollowBacklinks,
       estimatedTraffic: organicTraffic,
-      top10Count: Math.round(rankingKeywords * 0.15)
+      top10Count: Math.round(rankingKeywords * 0.15),
+      siteAuditHealthScore
     });
 
     return {
