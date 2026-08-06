@@ -80,7 +80,6 @@ function logApiUsage(endpoint, unitsCost, rowsCount, status) {
     if (!sheet) return;
 
     var timestamp = new Date().toISOString();
-    // Default estimate if subscription info isn't retrieved yet
     var monthlyUsed = unitsCost;
     var monthlyLimit = 100000;
     var usagePercent = ((monthlyUsed / monthlyLimit) * 100).toFixed(2);
@@ -108,12 +107,12 @@ function runAhrefsIngestion() {
   var startTime = new Date();
   var runId = "RUN_" + startTime.getTime();
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var todayStr = startTime.toISOString().split("T")[0];
+  var todayStr = startTime.toISOString().split("T")[0]; // YYYY-MM-DD
   var primaryDomain = SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com";
   var country = SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us";
   var unitsConsumedTotal = 0;
 
-  Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain);
+  Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " on date: " + todayStr);
 
   try {
     // 1. Subscription & Usage Safety Check
@@ -129,10 +128,10 @@ function runAhrefsIngestion() {
       }
     }
 
-    // 2. Domain Overview & DR Metrics
-    var drData = callAhrefsApi("/site-explorer/domain-rating", { "target": primaryDomain });
-    var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "country": country });
-    var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain });
+    // 2. Domain Overview & DR Metrics (Date is required by Ahrefs v3)
+    var drData = callAhrefsApi("/site-explorer/domain-rating", { "target": primaryDomain, "date": todayStr });
+    var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "country": country, "date": todayStr });
+    var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain, "date": todayStr });
 
     var dr = drData && drData.domain_rating ? drData.domain_rating.domain_rating : 0;
     var rank = drData && drData.domain_rating ? drData.domain_rating.ahrefs_rank : 0;
@@ -153,6 +152,7 @@ function runAhrefsIngestion() {
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "country": country,
+      "date": todayStr,
       "select": "keyword,position,previous_position,volume,difficulty,url,traffic",
       "limit": 100,
       "order_by": "traffic:desc"
@@ -178,6 +178,7 @@ function runAhrefsIngestion() {
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "country": country,
+      "date": todayStr,
       "select": "url,top_keyword,traffic,keywords,traffic_share",
       "limit": 50
     });
@@ -197,6 +198,7 @@ function runAhrefsIngestion() {
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "country": country,
+      "date": todayStr,
       "select": "competitor,overlap_keywords,competitor_keywords,competitor_traffic,domain_rating",
       "limit": 3
     });
@@ -214,9 +216,11 @@ function runAhrefsIngestion() {
       });
     }
 
-    // 6. Backlinks & Broken Links Overview
+    // 6. Backlinks & Ref Domains Overview (select parameter required)
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
+      "date": todayStr,
+      "select": "domain,domain_rating,dofollow_links,total_links,first_seen",
       "limit": 50
     });
 
@@ -263,7 +267,6 @@ function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-    // Helper to read sheet data into array of objects
     function getSheetObjects(sheetName) {
       var sheet = ss.getSheetByName(sheetName);
       if (!sheet) return [];
@@ -289,22 +292,18 @@ function doGet(e) {
     var apiLogs = getSheetObjects("api_usage_logs");
     var reportRuns = getSheetObjects("report_runs");
 
-    // Extract Latest Snapshots
     var latestDomain = domainSnapshots.length > 0 ? domainSnapshots[domainSnapshots.length - 1] : null;
     var prevDomain = domainSnapshots.length > 1 ? domainSnapshots[domainSnapshots.length - 2] : null;
 
-    // Calculate striking distance opportunities
     var strikingDistanceKw = keywordSnapshots.filter(function(k) {
       return k.striking_distance === "YES" || (k.position >= 4 && k.position <= 20);
     });
 
-    // Keyword distribution tier breakdown
     var tier1_3 = keywordSnapshots.filter(function(k) { return k.position >= 1 && k.position <= 3; }).length;
     var tier4_10 = keywordSnapshots.filter(function(k) { return k.position >= 4 && k.position <= 10; }).length;
     var tier11_20 = keywordSnapshots.filter(function(k) { return k.position >= 11 && k.position <= 20; }).length;
     var tier21_50 = keywordSnapshots.filter(function(k) { return k.position >= 21 && k.position <= 50; }).length;
 
-    // API usage stats
     var latestApiLog = apiLogs.length > 0 ? apiLogs[apiLogs.length - 1] : null;
 
     var responsePayload = {
