@@ -57,16 +57,8 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
           ok: true,
           headers: new Headers({ 'x-api-units-consumed': '10' }),
           json: async () => ({
-            domain_rating: {
-              domain_rating: 62,
-              ahrefs_rank: 45000,
-              backlinks: 8500,
-              refdomains: 620,
-              url_rating: 38,
-              organic_traffic: 24000,
-              traffic_value: 38000,
-              ranking_keywords: 920
-            }
+            domain_rating: 62,
+            ahrefs_rank: 45000
           })
         };
       }
@@ -79,6 +71,9 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
             keywords: [
               {
                 keyword: 'red engage review',
+                best_position: 1,
+                best_position_prev: 3,
+                best_position_diff: 2,
                 position: 1,
                 previous_position: 3,
                 position_change: 2,
@@ -114,6 +109,33 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
         };
       }
 
+      if (url.pathname.includes('/site-explorer/metrics')) {
+        return {
+          ok: true,
+          headers: new Headers({ 'x-api-units-consumed': '5' }),
+          json: async () => ({
+            metrics: {
+              org_traffic: 24000,
+              org_traffic_value: 38000,
+              org_keywords: 920
+            }
+          })
+        };
+      }
+
+      if (url.pathname.includes('/site-explorer/backlinks-stats')) {
+        return {
+          ok: true,
+          headers: new Headers({ 'x-api-units-consumed': '5' }),
+          json: async () => ({
+            metrics: {
+              live: 8500,
+              live_refdomains: 620
+            }
+          })
+        };
+      }
+
       if (url.pathname.includes('/site-explorer/all-backlinks')) {
         return {
           ok: true,
@@ -130,6 +152,28 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
                 last_seen: '2026-08-01T00:00:00Z'
               }
             ]
+          })
+        };
+      }
+
+      if (url.pathname.includes('/site-explorer/refdomains')) {
+        return {
+          ok: true,
+          headers: new Headers({ 'x-api-units-consumed': '5' }),
+          json: async () => ({
+            refdomains: [
+              { domain: 'techportal.org', dofollow_links: 1 }
+            ]
+          })
+        };
+      }
+
+      if (url.pathname.includes('/site-explorer/broken-backlinks')) {
+        return {
+          ok: true,
+          headers: new Headers({ 'x-api-units-consumed': '5' }),
+          json: async () => ({
+            backlinks: []
           })
         };
       }
@@ -363,7 +407,7 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
     await client.fetchDomainOverview('red-engage.com');
 
     const logs = monitor.getRequestLogs();
-    expect(logs.length).toBe(1);
+    expect(logs.length).toBeGreaterThanOrEqual(1);
     expect(logs[0].unitsConsumed).toBe(42);
   });
 

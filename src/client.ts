@@ -319,11 +319,11 @@ export class AhrefsClient {
 
         const pages: TopPageItem[] = rawPages.map(item => ({
           url: String(item.url || `https://${domain}/`),
-          organicTraffic: this.numberField(item, 'sum_traffic'),
-          trafficChange: this.numberField(item, 'traffic_diff'),
+          organicTraffic: this.numberField(item, 'sum_traffic') || this.numberField(item, 'organicTraffic') || this.numberField(item, 'traffic'),
+          trafficChange: this.numberField(item, 'traffic_diff') || this.numberField(item, 'traffic_change'),
           rankingKeywords: this.numberField(item, 'keywords'),
           topKeyword: String(item.top_keyword || domain),
-          trafficValue: this.numberField(item, 'value')
+          trafficValue: this.numberField(item, 'value') || this.numberField(item, 'traffic_value')
         }));
 
         const totalOrganicTraffic = pages.reduce((acc, p) => acc + p.organicTraffic, 0);
