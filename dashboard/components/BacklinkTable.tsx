@@ -7,6 +7,8 @@ interface BacklinkItem {
   dofollow_links: number;
   total_links: number;
   first_seen?: string;
+  last_seen?: string;
+  anchor_text?: string;
   status?: string;
 }
 
@@ -40,6 +42,9 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                 Referring domain
               </th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Anchor Text
+              </th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                 DR
               </th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
@@ -48,8 +53,11 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                 Total links
               </th>
-              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                 First seen
+              </th>
+              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                Last seen
               </th>
             </tr>
           </thead>
@@ -77,6 +85,9 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                       </span>
                     )}
                   </td>
+                  <td className="py-2.5 px-4 text-slate-400 max-w-[200px] truncate" title={b.anchor_text || b.ref_domain}>
+                    {b.anchor_text || b.ref_domain}
+                  </td>
                   <td className="py-2.5 px-4 font-semibold text-white">
                     {b.domain_rating || '—'}
                   </td>
@@ -86,8 +97,11 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                   <td className="py-2.5 px-4 text-slate-500">
                     {b.total_links ? b.total_links.toLocaleString() : '—'}
                   </td>
-                  <td className="py-2.5 pl-4 text-slate-500">
+                  <td className="py-2.5 px-4 text-slate-500">
                     {b.first_seen ? b.first_seen.split('T')[0] : '—'}
+                  </td>
+                  <td className="py-2.5 pl-4 text-slate-500">
+                    {b.last_seen ? b.last_seen.split('T')[0] : b.first_seen ? b.first_seen.split('T')[0] : '—'}
                   </td>
                 </tr>
               );

@@ -132,6 +132,13 @@ export class ReportGenerator {
         const wins = kwList.filter(k => (k.positionChange || 0) > 0).length;
         const losses = kwList.filter(k => (k.positionChange || 0) < 0).length;
 
+        const calculatedHealth = snapshot.seoHealthScore || calculateSeoHealthScore({
+          domainRating: snapshot.domainRating,
+          referringDomains: snapshot.referringDomains,
+          totalBacklinks: snapshot.totalBacklinks,
+          dofollowLinks: snapshot.overview?.dofollowBacklinks || Math.round(snapshot.totalBacklinks * 0.75)
+        });
+
         return {
           domain,
           domainRating: snapshot.overview?.domainRating ?? snapshot.domainRating,
@@ -142,12 +149,8 @@ export class ReportGenerator {
           totalBacklinks: snapshot.overview?.totalBacklinks ?? snapshot.totalBacklinks,
           keywordWins: wins,
           keywordLosses: losses,
-          seoHealthScore: snapshot.seoHealthScore || calculateSeoHealthScore({
-            domainRating: snapshot.domainRating,
-            referringDomains: snapshot.referringDomains,
-            totalBacklinks: snapshot.totalBacklinks,
-            dofollowLinks: snapshot.overview?.dofollowBacklinks || Math.round(snapshot.totalBacklinks * 0.75)
-          }),
+          seoHealthScore: calculatedHealth,
+          healthScore: typeof calculatedHealth === 'number' ? calculatedHealth : calculatedHealth.score,
           trend,
           recommendations
         };

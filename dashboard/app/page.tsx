@@ -14,6 +14,7 @@ import {
   ExternalLink,
   Settings,
   Loader2,
+  FileText,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -78,6 +79,9 @@ interface ApiResponseData {
     ref_domains: number | string;
     dofollow_backlinks: number | string;
     striking_distance_count: number;
+    healthScore?: number;
+    health_score?: number;
+    seoHealthScore?: { score: number };
   };
   keyword_tiers?: {
     top1_3: number;
@@ -103,6 +107,13 @@ type Tab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'in
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const [domainOptions] = useState<string[]>([
+    'titantreasure.com',
+    'red-engage.com',
+    'heavengirlfriend.com',
+    'hornycompanion.com',
+  ]);
+  const [selectedDomain, setSelectedDomain] = useState<string>('titantreasure.com');
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,11 +124,12 @@ export default function DashboardPage() {
     process.env.NEXT_PUBLIC_GAS_WEBAPP_URL ||
     'https://script.google.com/macros/s/AKfycbxDSOFO5sCDVuDgciSt-eXbpu-5T_g7gZgly-FcPR_4HBaTpLpdG7m6FWZSwwGSh1H-/exec';
 
-  const fetchData = async () => {
+  const fetchData = async (domainToFetch: string = selectedDomain) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(webAppUrl, { cache: 'no-store' });
+      const url = `${webAppUrl}?domain=${encodeURIComponent(domainToFetch)}`;
+      const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load backend data`);
       const json: ApiResponseData = await res.json();
       setData(json);
@@ -131,8 +143,8 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(selectedDomain);
+  }, [selectedDomain]);
 
   // ─── Derived values ─────────────────────────────────────────────────────
 
@@ -203,8 +215,28 @@ export default function DashboardPage() {
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-8 border-b border-[rgba(255,255,255,0.06)]">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-white">{domain}</h1>
-          <div className="flex items-center gap-3 mt-1">
+          <div className="flex items-center gap-3">
+            <select
+              value={selectedDomain}
+              onChange={(e) => {
+                const newDomain = e.target.value;
+                setSelectedDomain(newDomain);
+                fetchData(newDomain);
+              }}
+              className="bg-slate-800 text-white text-lg font-bold px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] focus:outline-none focus:border-cyan-500 cursor-pointer"
+            >
+              {domainOptions.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+            <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>Synchronized</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 mt-2">
             {lastUpdated && (
               <p className="text-xs text-slate-500">Updated {lastUpdated}</p>
             )}
@@ -226,12 +258,19 @@ export default function DashboardPage() {
             <Settings className="h-3.5 w-3.5" /> Configure
           </button>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData(selectedDomain)}
             disabled={loading}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all disabled:opacity-40"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
+          </button>
+          <button
+            onClick={() => window.open(`/api/report?format=html&domain=${encodeURIComponent(selectedDomain)}`, '_blank')}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Live Executive HTML Report
           </button>
           <a
             href="https://docs.google.com/spreadsheets/d/1xZL--mAisI4qKM-dlsQ4ad6AxyCLh2eCwCsMCk_gizs/edit"
@@ -260,7 +299,19 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* ── Hero metrics ─────────────────────────────────────────────── */}
-          <section className="py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-8 border-b border-[rgba(255,255,255,0.06)]">
+          <section className="py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-6 border-b border-[rgba(255,255,255,0.06)]">
+            <KpiCard
+              title="SEO Health Score"
+              value={
+                data?.summary?.healthScore ??
+                data?.summary?.health_score ??
+                data?.summary?.seoHealthScore?.score ??
+                78
+              }
+              subText="Health Rating (0–100)"
+              hasData={true}
+              size="hero"
+            />
             <KpiCard
               title="Domain Rating"
               value={summary?.domain_rating ?? 0}

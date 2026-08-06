@@ -212,6 +212,7 @@ export interface ExecutiveSummaryItem {
   keywordWins: number;
   keywordLosses: number;
   seoHealthScore?: SeoHealthScore;
+  healthScore?: number;
   trend?: TrendComparison;
   recommendations: SeoRecommendation[];
 }

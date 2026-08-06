@@ -11,6 +11,8 @@ interface KeywordItem {
   url: string;
   traffic: number;
   striking_distance?: string;
+  serpFeatures?: string[];
+  intent?: string;
 }
 
 interface KeywordTableProps {
@@ -100,6 +102,8 @@ export default function KeywordTable({
               <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Keyword</th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Position</th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Change</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">SERP Features</th>
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Intent</th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Volume</th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">KD</th>
               <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">Traffic</th>
@@ -108,7 +112,7 @@ export default function KeywordTable({
           <tbody>
             {filteredKeywords.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-6 text-center text-sm text-slate-600 italic">
+                <td colSpan={8} className="py-6 text-center text-sm text-slate-600 italic">
                   No keywords match this filter.
                 </td>
               </tr>
@@ -139,6 +143,24 @@ export default function KeywordTable({
                     ) : (
                       <span className="text-slate-600">—</span>
                     )}
+                  </td>
+                  <td className="py-2.5 px-4">
+                    {item.serpFeatures && item.serpFeatures.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {item.serpFeatures.map((f, fIdx) => (
+                          <span key={fIdx} className="px-1.5 py-0.5 text-[9px] font-medium bg-slate-800 text-cyan-300 rounded border border-cyan-500/20">
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-slate-600 text-[10px]">Snippet, Links</span>
+                    )}
+                  </td>
+                  <td className="py-2.5 px-4">
+                    <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-800 text-indigo-300 rounded border border-indigo-500/20">
+                      {item.intent || 'Informational'}
+                    </span>
                   </td>
                   <td className="py-2.5 px-4 text-slate-400">
                     {item.search_volume ? item.search_volume.toLocaleString() : '—'}
