@@ -113,7 +113,7 @@ function hostnameFrom(url: unknown): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [domainOptions] = useState<string[]>([
+  const [domainOptions, setDomainOptions] = useState<string[]>([
     'titantreasure.com',
     'red-engage.com',
     'heavengirlfriend.com',
@@ -125,6 +125,28 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function loadManagedDomains() {
+      try {
+        const res = await fetch('/api/domains');
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.managed_domains)) {
+            const domainList = json.managed_domains.map((d: { domain: string } | string) =>
+              typeof d === 'string' ? d : d.domain
+            );
+            if (domainList.length > 0) {
+              setDomainOptions(domainList);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load managed domains:', err);
+      }
+    }
+    loadManagedDomains();
+  }, []);
 
   const fetchData = async (domainToFetch: string = selectedDomain) => {
     setLoading(true);
@@ -594,7 +616,13 @@ export default function DashboardPage() {
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         currentConfig={config}
-        onConfigSaved={fetchData}
+        domainOptions={domainOptions}
+        onDomainsChange={(updatedDomains) => setDomainOptions(updatedDomains)}
+        onSelectDomain={(newDomain) => {
+          setSelectedDomain(newDomain);
+          fetchData(newDomain);
+        }}
+        onConfigSaved={() => fetchData(selectedDomain)}
       />
     </main>
   );
