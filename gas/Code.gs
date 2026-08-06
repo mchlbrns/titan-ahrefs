@@ -109,6 +109,7 @@ function runAhrefsIngestion() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var todayStr = startTime.toISOString().split("T")[0]; // YYYY-MM-DD
   var primaryDomain = SCRIPT_PROPERTIES.getProperty("PRIMARY_DOMAIN") || "titantreasure.com";
+  var country = SCRIPT_PROPERTIES.getProperty("TARGET_COUNTRY") || "us";
   var unitsConsumedTotal = 0;
 
   Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " on date: " + todayStr);
@@ -127,7 +128,7 @@ function runAhrefsIngestion() {
       }
     }
 
-    // 2. Domain Overview & DR Metrics (Using mode: "subdomains")
+    // 2. Domain Overview & DR Metrics
     var drData = callAhrefsApi("/site-explorer/domain-rating", { "target": primaryDomain, "date": todayStr });
     var metricsData = callAhrefsApi("/site-explorer/metrics", { "target": primaryDomain, "date": todayStr, "mode": "subdomains" });
     var backlinksStats = callAhrefsApi("/site-explorer/backlinks-stats", { "target": primaryDomain, "date": todayStr, "mode": "subdomains" });
@@ -148,7 +149,7 @@ function runAhrefsIngestion() {
     ]);
     Logger.log("✅ Appended domain overview metrics for " + primaryDomain + " (DR: " + dr + ", Traffic: " + traffic + ")");
 
-    // 3. Top Organic Keywords & Striking Distance Opportunities (mode: "subdomains")
+    // 3. Top Organic Keywords & Striking Distance Opportunities
     var kwData = callAhrefsApi("/site-explorer/organic-keywords", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -177,7 +178,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + kwCount + " keywords to keyword_snapshots");
 
-    // 4. Top Pages Performance (mode: "subdomains")
+    // 4. Top Pages Performance
     var pageData = callAhrefsApi("/site-explorer/top-pages", {
       "target": primaryDomain,
       "mode": "subdomains",
@@ -202,10 +203,11 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + pageCount + " pages to page_snapshots");
 
-    // 5. Dynamic Competitor Gap Matrix (mode: "subdomains")
+    // 5. Dynamic Competitor Gap Matrix (country parameter is required by Ahrefs for organic-competitors)
     var compData = callAhrefsApi("/site-explorer/organic-competitors", {
       "target": primaryDomain,
       "mode": "subdomains",
+      "country": country,
       "date": todayStr,
       "select": "competitor_domain,keywords_common,keywords_competitor,traffic,domain_rating",
       "limit": 3
@@ -225,7 +227,7 @@ function runAhrefsIngestion() {
     }
     Logger.log("✅ Appended " + competitorsFound + " competitors to competitor_snapshots");
 
-    // 6. Backlinks & Ref Domains Overview (mode: "subdomains")
+    // 6. Backlinks & Ref Domains Overview
     var refData = callAhrefsApi("/site-explorer/refdomains", {
       "target": primaryDomain,
       "mode": "subdomains",
