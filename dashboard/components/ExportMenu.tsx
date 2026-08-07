@@ -7,6 +7,56 @@ interface ExportMenuProps {
   domain: string;
 }
 
+interface PdfKeywordItem {
+  keyword: string;
+  position: number;
+  position_delta?: number;
+  positionChange?: number;
+  search_volume?: number;
+  searchVolume?: number;
+  keyword_difficulty?: number;
+  keywordDifficulty?: number;
+  traffic?: number;
+  estimatedTraffic?: number;
+  intent?: string;
+  searchIntent?: string;
+}
+
+interface PdfPageItem {
+  url: string;
+  top_keyword?: string;
+  topKeyword?: string;
+  organic_traffic?: number;
+  organicTraffic?: number;
+  organic_keywords?: number;
+  rankingKeywords?: number;
+}
+
+interface PdfBacklinkItem {
+  ref_domain?: string;
+  urlFrom?: string;
+  anchor_text?: string;
+  anchorText?: string;
+  domain_rating?: number;
+  domainRatingFrom?: number;
+  dofollow_links?: boolean | number;
+  isDofollow?: boolean | number;
+  status?: string;
+}
+
+interface PdfCompetitorItem {
+  competitor_domain?: string;
+  competitorDomain?: string;
+  competitor_dr?: number;
+  domainRating?: number;
+  overlap_keywords?: number;
+  sharedKeywords?: number;
+  competitor_keywords?: number;
+  competitorExclusiveKeywords?: number;
+  competitor_traffic?: number;
+  organicTraffic?: number;
+}
+
 export default function ExportMenu({ domain }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -39,10 +89,10 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
 
       const primaryDomain = domain || 'titantreasure.com';
       const summary = data.summary || {};
-      const keywords = data.keywords || [];
-      const topPages = data.pages || [];
-      const backlinks = data.backlinks || [];
-      const competitors = data.competitors || [];
+      const keywords: PdfKeywordItem[] = data.keywords || [];
+      const topPages: PdfPageItem[] = data.pages || [];
+      const backlinks: PdfBacklinkItem[] = data.backlinks || [];
+      const competitors: PdfCompetitorItem[] = data.competitors || [];
 
       // 2. Initialize vector PDF document
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -116,7 +166,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         startY += 3;
 
         const kwHeaders = [['Keyword', 'Position', 'Change', 'Search Volume', 'KD', 'Est. Traffic', 'Intent']];
-        const kwRows = keywords.slice(0, 10).map((k: any) => [
+        const kwRows = keywords.slice(0, 10).map((k: PdfKeywordItem) => [
           k.keyword,
           `#${k.position}`,
           (k.position_delta || k.positionChange || 0) > 0 ? `+${k.position_delta || k.positionChange}` : `${k.position_delta || k.positionChange || 0}`,
@@ -137,7 +187,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           margin: { left: 14, right: 14 }
         });
 
-        startY = (doc as any).lastAutoTable.finalY + 8;
+        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
+        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
       }
 
       // Section 2: Top Pages Table
@@ -150,7 +201,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         startY += 3;
 
         const pgHeaders = [['Page URL', 'Top Keyword', 'Organic Traffic', 'Ranking Keywords']];
-        const pgRows = topPages.slice(0, 5).map((p: any) => [
+        const pgRows = topPages.slice(0, 5).map((p: PdfPageItem) => [
           p.url,
           p.top_keyword || p.topKeyword || '—',
           (p.organic_traffic || p.organicTraffic || 0).toLocaleString(),
@@ -167,7 +218,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           margin: { left: 14, right: 14 }
         });
 
-        startY = (doc as any).lastAutoTable.finalY + 8;
+        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
+        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
       }
 
       // Section 3: Referring Domains Table
@@ -180,7 +232,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         startY += 3;
 
         const blHeaders = [['Referring Domain', 'Anchor Text', 'DR', 'Type', 'Status']];
-        const blRows = backlinks.slice(0, 10).map((b: any) => [
+        const blRows = backlinks.slice(0, 10).map((b: PdfBacklinkItem) => [
           b.ref_domain || b.urlFrom || 'external-site.com',
           (b.anchor_text || b.anchorText || 'Visit Site').slice(0, 35),
           b.domain_rating || b.domainRatingFrom || 30,
@@ -198,7 +250,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           margin: { left: 14, right: 14 }
         });
 
-        startY = (doc as any).lastAutoTable.finalY + 8;
+        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
+        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
       }
 
       // Section 4: Competitor Gap Matrix
@@ -216,8 +269,8 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         startY += 3;
 
         const compHeaders = [['Competitor Domain', 'DR', 'Shared Keywords', 'Exclusive Keywords', 'Est. Traffic']];
-        const compRows = competitors.slice(0, 5).map((c: any) => [
-          c.competitor_domain || c.competitorDomain,
+        const compRows = competitors.slice(0, 5).map((c: PdfCompetitorItem) => [
+          c.competitor_domain || c.competitorDomain || '',
           c.competitor_dr || c.domainRating || 30,
           (c.overlap_keywords || c.sharedKeywords || 0).toLocaleString(),
           (c.competitor_keywords || c.competitorExclusiveKeywords || 0).toLocaleString(),
