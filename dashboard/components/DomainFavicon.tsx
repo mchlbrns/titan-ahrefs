@@ -8,7 +8,7 @@ interface DomainFaviconProps {
   size?: number;
 }
 
-export default function DomainFavicon({ domain, className = 'h-5 w-5', size = 64 }: DomainFaviconProps) {
+export default function DomainFavicon({ domain, className = 'h-7 w-7', size = 64 }: DomainFaviconProps) {
   const [errorCount, setErrorCount] = useState(0);
 
   // Clean domain name to hostname (e.g., https://titantreasure.com/casino -> titantreasure.com)
@@ -18,7 +18,7 @@ export default function DomainFavicon({ domain, className = 'h-5 w-5', size = 64
     .trim();
 
   if (!cleanDomain || errorCount >= 2) {
-    return <Globe className={`text-slate-500 shrink-0 ${className}`} />;
+    return <Globe className={`text-slate-400 shrink-0 ${className}`} />;
   }
 
   // Favicon provider URLs
@@ -32,7 +32,7 @@ export default function DomainFavicon({ domain, className = 'h-5 w-5', size = 64
       src={src}
       alt={`${cleanDomain} favicon`}
       onError={() => setErrorCount((prev) => prev + 1)}
-      className={`rounded object-contain bg-slate-900/80 border border-slate-700/60 p-0.5 shadow-sm shrink-0 ${className}`}
+      className={`rounded-lg object-contain bg-slate-900 border border-slate-700/80 p-0.5 shadow-md shrink-0 transition-all hover:border-slate-500 ${className}`}
       loading="lazy"
     />
   );

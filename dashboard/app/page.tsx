@@ -493,7 +493,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-2">
             {/* Domain switcher */}
             <div className="flex items-center gap-2.5">
-              <DomainFavicon domain={selectedDomain} className="h-5 w-5 shrink-0" />
+              <DomainFavicon domain={selectedDomain} className="h-7 w-7 sm:h-8 sm:w-8 shrink-0" />
               <select
                 value={selectedDomain}
                 onChange={(e) => handleSelectDomain(e.target.value)}

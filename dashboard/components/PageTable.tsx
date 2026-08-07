@@ -147,7 +147,7 @@ export default function PageTable({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 font-semibold text-xs text-slate-100 hover:text-cyan-300 break-all"
                   >
-                    <DomainFavicon domain={cleanUrl} className="h-3.5 w-3.5 shrink-0" />
+                    <DomainFavicon domain={cleanUrl} className="h-4.5 w-4.5 shrink-0" />
                     <span>{cleanUrl}</span>
                     <ExternalLink className="h-3 w-3 text-slate-500 shrink-0" />
                   </a>
@@ -202,7 +202,7 @@ export default function PageTable({
                       rel="noreferrer"
                       className="inline-flex items-center gap-1.5 text-slate-200 hover:text-white transition-colors truncate max-w-full"
                     >
-                      <DomainFavicon domain={cleanUrl} className="h-3.5 w-3.5 shrink-0" />
+                      <DomainFavicon domain={cleanUrl} className="h-4.5 w-4.5 shrink-0" />
                       <span className="truncate">{cleanUrl}</span>
                       <ExternalLink className="h-2.5 w-2.5 text-slate-600 shrink-0" />
                     </a>
