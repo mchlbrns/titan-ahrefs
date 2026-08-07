@@ -32,6 +32,8 @@ export class RequestDeduplicator {
   }
 }
 
+import { SnapshotStore } from './snapshots';
+
 export class AhrefsCacheManager {
   private logger: Logger;
   private backgroundRevalidations = new Set<string>();
@@ -41,11 +43,16 @@ export class AhrefsCacheManager {
   }
 
   /**
-   * Checks Supabase for snapshot cache state.
+   * Checks Supabase for snapshot cache state with fallback to local SnapshotStore.
    */
   public async getCacheState(domain: string): Promise<CacheState> {
     try {
-      const snapshot = await getLatestSnapshotFromSupabase(domain);
+      let snapshot = await getLatestSnapshotFromSupabase(domain);
+      if (!snapshot) {
+        const snapshotStore = new SnapshotStore(undefined, undefined, this.logger);
+        snapshot = await snapshotStore.getLatestSnapshotForDomain(domain) || null;
+      }
+
       if (!snapshot || !snapshot.timestamp) {
         return { snapshot: null, isStale: true, isMissing: true, ageMs: Infinity };
       }
@@ -65,6 +72,7 @@ export class AhrefsCacheManager {
       return { snapshot: null, isStale: true, isMissing: true, ageMs: Infinity };
     }
   }
+
 
   /**
    * Non-blocking background revalidation of stale snapshots.

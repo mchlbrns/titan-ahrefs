@@ -114,18 +114,36 @@ export class SnapshotStore {
     this.ensureStorageDir();
     try {
       const prefix = `snap_${domain.replace(/\./g, '_')}`;
-      const files = fs.readdirSync(this.storageDir)
-        .filter(f => f.startsWith(prefix) && f.endsWith('.json'));
+      const searchDirs = Array.from(new Set([
+        this.storageDir,
+        path.join(process.cwd(), 'snapshots/local'),
+        path.join(process.cwd(), 'snapshots/live-evidence'),
+        path.join(__dirname, '../snapshots/local'),
+        path.join(__dirname, '../snapshots/live-evidence'),
+        path.join(__dirname, '../../snapshots/local'),
+        path.join(__dirname, '../../snapshots/live-evidence')
+      ])).filter(d => fs.existsSync(d));
 
-      return files.map(file => {
-        const content = fs.readFileSync(path.join(this.storageDir, file), 'utf-8');
-        return JSON.parse(content) as DomainSnapshot;
-      }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const foundSnapshots: DomainSnapshot[] = [];
+      for (const dir of searchDirs) {
+        try {
+          const files = fs.readdirSync(dir).filter(f => f.startsWith(prefix) && f.endsWith('.json'));
+          for (const file of files) {
+            const content = fs.readFileSync(path.join(dir, file), 'utf-8');
+            foundSnapshots.push(JSON.parse(content) as DomainSnapshot);
+          }
+        } catch {
+          // ignore unreadable directory
+        }
+      }
+
+      return foundSnapshots.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     } catch (err) {
       this.logger.warn(`Could not read snapshots for ${domain}`, { error: (err as Error).message });
       return [];
     }
   }
+
 
   public async getLatestSnapshotForDomain(domain: string): Promise<DomainSnapshot | undefined> {
     const snapshots = this.getSnapshotsForDomain(domain);
