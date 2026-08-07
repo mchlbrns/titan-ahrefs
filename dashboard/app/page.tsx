@@ -14,6 +14,7 @@ import {
   Settings,
   Loader2,
   CheckCircle,
+  Calendar,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -144,7 +145,7 @@ export default function DashboardPage() {
     }
   };
 
-  const [liveApiUsage, setLiveApiUsage] = useState<{ monthly_used: number | null; monthly_limit: number | null; usage_percent: string | number | null } | null>(null);
+  const [liveApiUsage, setLiveApiUsage] = useState<{ monthly_used: number | null; monthly_limit: number | null; usage_percent: string | number | null; resetDate?: string | null } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -192,8 +193,9 @@ export default function DashboardPage() {
           if (json.unitsLimit !== null && json.unitsLimit !== undefined) {
             setLiveApiUsage({
               monthly_used: json.unitsConsumed ?? 0,
-              monthly_limit: json.unitsLimit ?? 5000,
-              usage_percent: `${(((json.unitsConsumed ?? 0) / (json.unitsLimit || 1)) * 100).toFixed(2)}%`
+              monthly_limit: json.unitsLimit ?? 400000,
+              usage_percent: `${(((json.unitsConsumed ?? 0) / (json.unitsLimit || 1)) * 100).toFixed(2)}%`,
+              resetDate: json.resetDate || '2026-09-04'
             });
           }
         }
@@ -453,9 +455,12 @@ export default function DashboardPage() {
               />
             )}
             {!loading && data && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-500/30">
-                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                <span>DB: Supabase ({data.dataSource || 'supabase-db-snapshot'})</span>
+              <span
+                title={`Ahrefs API Unit Reset Date: ${liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}\nNext automated live ingestion cycle: ${liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-medium text-purple-300 bg-purple-950/60 border border-purple-500/30 cursor-default"
+              >
+                <Calendar className="h-3 w-3 text-purple-400 shrink-0" />
+                <span>API Refresh: {liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}</span>
               </span>
             )}
           </div>
