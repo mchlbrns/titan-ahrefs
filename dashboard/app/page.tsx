@@ -14,7 +14,6 @@ import ConfigModal from '@/components/ConfigModal';
 import ExportMenu from '@/components/ExportMenu';
 import {
   Settings,
-  Loader2,
   CheckCircle,
   Calendar,
   RefreshCw,
@@ -22,6 +21,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import DomainFavicon from '../components/DomainFavicon';
+import DashboardSkeleton from '../components/DashboardSkeleton';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -229,8 +229,26 @@ export default function DashboardPage() {
   const fetchData = async (domainToFetch: string = selectedDomain, isRefreshAction: boolean = false) => {
     if (isRefreshAction) {
       setRefreshing(true);
-    } else if (!data) {
-      setLoading(true);
+    } else {
+      // Check local storage cache for instant 0ms hydration
+      const cacheKey = `titan_ahrefs_cache_${domainToFetch}`;
+      let hasHydratedFromCache = false;
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed === 'object') {
+              setData(parsed);
+              setLoading(false);
+              hasHydratedFromCache = true;
+            }
+          } catch { /* ignore */ }
+        }
+      }
+      if (!hasHydratedFromCache) {
+        setLoading(true);
+      }
     }
     setError(null);
     try {
@@ -241,6 +259,11 @@ export default function DashboardPage() {
       const json: ApiResponseData = await res.json();
       if (currentDomainRef.current === domainToFetch) {
         setData(json);
+        if (typeof window !== 'undefined') {
+          try {
+            localStorage.setItem(`titan_ahrefs_cache_${domainToFetch}`, JSON.stringify(json));
+          } catch { /* ignore */ }
+        }
         if (isRefreshAction) {
           if (json.ingestionError) {
             setToast({
@@ -612,12 +635,9 @@ export default function DashboardPage() {
 
         {/* ── Loading state ─────────────────────────────────────────────────── */}
         {loading ? (
-          <div className="flex items-center justify-center py-32 gap-3">
-            <Loader2 className="h-5 w-5 text-slate-500 animate-spin" />
-            <span className="text-sm text-slate-500">Loading…</span>
-          </div>
+          <DashboardSkeleton />
         ) : (
-          <>
+          <div className="animate-fade-in space-y-6">
             {/* ── KPI Strip ───────────────────────────────────────────────── */}
             <section
               aria-label="Key performance indicators"
@@ -870,7 +890,7 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
-          </>
+          </div>
         )}
       </div>
 
