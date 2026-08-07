@@ -126,16 +126,20 @@ export class AhrefsClient {
 
       this.usageMonitor.recordApiCall(endpoint, units, true);
       const usage = (data.limits_and_usage || data) as Record<string, unknown>;
-      const unitsLimit = this.numberField(usage, 'units_limit_workspace') || this.numberField(usage, 'units_limit') || 500000;
-      const unitsConsumed = this.numberField(usage, 'units_consumed_workspace') || this.numberField(usage, 'units_consumed') || 0;
-      const unitsRemaining = this.numberField(usage, 'units_remaining_workspace') || this.numberField(usage, 'units_remaining') || Math.max(0, unitsLimit - unitsConsumed);
+      const unitsLimit = this.numberField(usage, 'units_limit_workspace') || this.numberField(usage, 'units_limit') || 400000;
+      const unitsConsumed = this.numberField(usage, 'units_usage_workspace') || this.numberField(usage, 'units_consumed_workspace') || this.numberField(usage, 'units_consumed') || 0;
+      const unitsRemaining = Math.max(0, unitsLimit - unitsConsumed);
+
+      const isExceeded = unitsConsumed >= unitsLimit;
+      const resetDateRaw = String(usage.usage_reset_date || usage.reset_date || usage.resetDate || '');
+      const resetDate = resetDateRaw ? resetDateRaw.split('T')[0] : '';
 
       const limits: ApiUsageLimits = {
         unitsLimit,
         unitsConsumed,
         unitsRemaining,
-        resetDate: String(usage.reset_date || usage.resetDate || ''),
-        apiKeyStatus: String(usage.api_key_status || 'ACTIVE')
+        resetDate,
+        apiKeyStatus: isExceeded ? 'QUOTA_EXCEEDED' : String(usage.api_key_status || 'ACTIVE')
       };
 
       this.usageMonitor.updateLimitsFromApi(limits);
