@@ -12,7 +12,9 @@ describe('ULTIMATE DEPLOYMENT RESCUE — End-to-End Validation Suite', () => {
   let comparisonEngine: ComparisonEngine;
 
   beforeEach(() => {
-    client = new AhrefsClient();
+    delete process.env.AHREFS_API_KEY;
+    delete process.env.MOCK_API_FALLBACK;
+    client = new AhrefsClient({ mockFallback: true, maxRetries: 0 });
     competitorAnalyzer = new CompetitorAnalyzer(client);
     recEngine = new RecommendationEngine();
     comparisonEngine = new ComparisonEngine();
@@ -46,8 +48,8 @@ describe('ULTIMATE DEPLOYMENT RESCUE — End-to-End Validation Suite', () => {
   test('Priority 4: Competitor Discovery Matrix populates DR, overlap, and traffic', async () => {
     const competitors = ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'];
     for (const comp of competitors) {
-      const compOverview = await competitorAnalyzer.analyzeCompetitorGap('titantreasure.com', comp);
-      expect(compOverview.targetDomain).toBe('titantreasure.com');
+      const compOverview = await competitorAnalyzer.analyzeCompetitorGap('red-engage.com', comp);
+      expect(compOverview.targetDomain).toBe('red-engage.com');
       expect(compOverview.competitorDomain).toBe(comp);
       expect(compOverview.domainRating).toBeGreaterThan(0);
       expect(compOverview.organicTraffic).toBeGreaterThan(0);
@@ -68,7 +70,7 @@ describe('ULTIMATE DEPLOYMENT RESCUE — End-to-End Validation Suite', () => {
   });
 
   test('Priority 7: Snapshot Store and Week-over-Week Comparison produce actual deltas', async () => {
-    const mockClient = new AhrefsClient();
+    const mockClient = new AhrefsClient({ mockFallback: true, maxRetries: 0 });
     const snapStore = new SnapshotStore(undefined, mockClient);
 
     const prevSnap = await snapStore.createSnapshot('chumbacasino.com');

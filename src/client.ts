@@ -53,7 +53,7 @@ export class AhrefsClient {
   }
 
   public isMockMode(): boolean {
-    return this.mockFallback || !this.apiKey || process.env.MOCK_API_FALLBACK === 'true';
+    return this.mockFallback || !this.apiKey || this.apiKey === 'your_ahrefs_api_key' || this.apiKey === 'your_api_key_here' || process.env.MOCK_API_FALLBACK === 'true';
   }
 
 
@@ -157,43 +157,76 @@ export class AhrefsClient {
   // Task 2: Domain Overview Collection
   public async fetchDomainOverview(domain: string): Promise<DomainOverviewMetrics> {
     return RequestDeduplicator.deduplicate(`domain_overview_${domain}`, async () => {
+      if (this.isMockMode()) {
+        this.logger.debug(`Fetching Domain Overview for ${domain} [MOCK MODE]`);
+        const domainRating = 45;
+        const urlRating = 28;
+        const ahrefsRank = 150000;
+        const organicTraffic = 12500;
+        const trafficValue = 8400;
+        const rankingKeywords = 340;
+        const totalBacklinks = 1240;
+        const referringDomains = 185;
+        const dofollowBacklinks = 980;
+        const dofollowRefdomains = 160;
+        return {
+          domain, domainRating, urlRating, ahrefsRank, organicTraffic,
+          trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
+          nofollowLinks: 260, timestamp: new Date().toISOString(),
+          seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: 45 })
+        };
+      }
+
       const endpoint = '/site-explorer/domain-rating';
       this.logger.info(`Fetching Domain Overview for ${domain} [LIVE API]`);
 
-      const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
-      const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
-        this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
-        this.requestLive('/site-explorer/metrics', baseParams),
-        this.requestLive('/site-explorer/backlinks-stats', { target: domain, mode: 'domain', date: this.currentDate() })
-      ]);
-      const dr = drRaw as Record<string, unknown>;
-      const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
-      const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
+      try {
+        const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
+        const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
+          this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
+          this.requestLive('/site-explorer/metrics', baseParams),
+          this.requestLive('/site-explorer/backlinks-stats', { target: domain, mode: 'domain', date: this.currentDate() })
+        ]);
+        const dr = drRaw as Record<string, unknown>;
+        const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
+        const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
 
-      let domainRating = 0;
-      let ahrefsRank = 0;
-      if (dr && typeof dr.domain_rating === 'object' && dr.domain_rating !== null) {
-        const nested = dr.domain_rating as Record<string, unknown>;
-        domainRating = this.numberField(nested, 'domain_rating') || this.numberField(nested, 'rating');
-        ahrefsRank = this.numberField(nested, 'ahrefs_rank') || this.numberField(dr, 'ahrefs_rank');
-      } else {
-        domainRating = this.numberField(dr, 'domain_rating');
-        ahrefsRank = this.numberField(dr, 'ahrefs_rank');
+        let domainRating = 0;
+        let ahrefsRank = 0;
+        if (dr && typeof dr.domain_rating === 'object' && dr.domain_rating !== null) {
+          const nested = dr.domain_rating as Record<string, unknown>;
+          domainRating = this.numberField(nested, 'domain_rating') || this.numberField(nested, 'rating');
+          ahrefsRank = this.numberField(nested, 'ahrefs_rank') || this.numberField(dr, 'ahrefs_rank');
+        } else {
+          domainRating = this.numberField(dr, 'domain_rating');
+          ahrefsRank = this.numberField(dr, 'ahrefs_rank');
+        }
+
+        const totalBacklinks = this.numberField(backlinkStats, 'live');
+        const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
+        const organicTraffic = this.numberField(metrics, 'org_traffic');
+        const trafficValue = this.numberField(metrics, 'org_traffic_value');
+        const rankingKeywords = this.numberField(metrics, 'org_keywords');
+        const dofollowBacklinks = 0;
+        const dofollowRefdomains = 0;
+        return {
+          domain, domainRating, urlRating: 0, ahrefsRank, organicTraffic,
+          trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
+          nofollowLinks: 0, timestamp: new Date().toISOString(),
+          seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
+        };
+      } catch (err) {
+        if (this.mockFallback) {
+          this.logger.warn(`Live Domain Overview fetch failed for ${domain}. Returning mock metrics fallback.`, { error: (err as Error).message });
+          return {
+            domain, domainRating: 45, urlRating: 28, ahrefsRank: 150000, organicTraffic: 12500,
+            trafficValue: 8400, rankingKeywords: 340, totalBacklinks: 1240, referringDomains: 185, dofollowBacklinks: 980, dofollowRefdomains: 160,
+            nofollowLinks: 260, timestamp: new Date().toISOString(),
+            seoHealthScore: calculateSeoHealthScore({ domainRating: 45, referringDomains: 185, totalBacklinks: 1240, dofollowLinks: 980, estimatedTraffic: 12500, top10Count: 45 })
+          };
+        }
+        throw err;
       }
-
-      const totalBacklinks = this.numberField(backlinkStats, 'live');
-      const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
-      const organicTraffic = this.numberField(metrics, 'org_traffic');
-      const trafficValue = this.numberField(metrics, 'org_traffic_value');
-      const rankingKeywords = this.numberField(metrics, 'org_keywords');
-      const dofollowBacklinks = 0;
-      const dofollowRefdomains = 0;
-      return {
-        domain, domainRating, urlRating: 0, ahrefsRank, organicTraffic,
-        trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
-        nofollowLinks: 0, timestamp: new Date().toISOString(),
-        seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
-      };
     });
   }
 

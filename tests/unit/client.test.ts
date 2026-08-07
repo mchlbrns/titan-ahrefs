@@ -6,6 +6,8 @@ describe('AhrefsClient Unit Tests', () => {
   beforeEach(() => {
     jest.resetModules();
     process.env = { ...originalEnv };
+    delete process.env.AHREFS_API_KEY;
+    delete process.env.MOCK_API_FALLBACK;
   });
 
   afterAll(() => {

@@ -3,7 +3,7 @@ import { Download, FileText, FileSpreadsheet, Mail, ChevronDown, Check, Loader2,
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type DashboardTab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights';
+type DashboardTab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights' | 'reddit';
 
 interface ExportMenuProps {
   domain: string;
@@ -112,6 +112,7 @@ export default function ExportMenu({
         backlinks: 'Referring Domains & Backlink Audit',
         competitors: 'Competitor Organic Gap Matrix',
         insights: 'SEO Recommendations & Action Feed',
+        reddit: 'Reddit Thread & Keyword Targeting Report',
       };
 
       const reportTitle = tabTitleMap[activeTab] || 'Executive SEO Report';

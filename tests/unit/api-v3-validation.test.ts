@@ -18,6 +18,8 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
   beforeEach(() => {
     jest.resetModules();
     process.env = { ...originalEnv };
+    delete process.env.AHREFS_API_KEY;
+    delete process.env.MOCK_API_FALLBACK;
     if (!fs.existsSync(testOutputDir)) fs.mkdirSync(testOutputDir, { recursive: true });
     if (!fs.existsSync(testSnapshotDir)) fs.mkdirSync(testSnapshotDir, { recursive: true });
   });

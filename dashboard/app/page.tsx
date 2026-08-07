@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import DomainFavicon from '../components/DomainFavicon';
 import DashboardSkeleton from '../components/DashboardSkeleton';
+import RedditTargetingPanel from '../components/RedditTargetingPanel';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ interface ApiResponseData {
   latest_run?: Record<string, unknown>;
 }
 
-type Tab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights';
+type Tab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights' | 'reddit';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -506,6 +507,7 @@ export default function DashboardPage() {
     { id: 'pages',      label: 'Pages',       count: pages.length },
     { id: 'backlinks',  label: 'Backlinks',   count: backlinks.length },
     { id: 'competitors',label: 'Competitors', count: competitors.length },
+    { id: 'reddit',     label: 'Reddit Targeting' },
     { id: 'insights',   label: 'Insights' },
   ];
 
@@ -889,6 +891,11 @@ export default function DashboardPage() {
                       onOpenConfig={() => setIsConfigOpen(true)}
                     />
                   </DataCard>
+                )}
+
+                {/* ── Reddit Targeting tab ──────────────────────────────────── */}
+                {activeTab === 'reddit' && (
+                  <RedditTargetingPanel />
                 )}
 
                 {/* ── Insights tab ──────────────────────────────────────────── */}

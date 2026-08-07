@@ -16,8 +16,9 @@ interface ManagedDomain {
 }
 
 const DEFAULT_DOMAINS: ManagedDomain[] = [
-  { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Primary Platform' },
-  { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement Platform' }
+  { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement Platform' },
+  { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion & Gaming Platform' },
+  { domain: 'hornycompanion.com', target_country: 'us', priority: 'medium', description: 'Adult Directory' }
 ];
 
 let inMemoryDomains: ManagedDomain[] = [...DEFAULT_DOMAINS];
