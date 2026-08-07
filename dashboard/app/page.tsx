@@ -692,10 +692,10 @@ export default function DashboardPage() {
                       count={keywords.length}
                       accentColor="cyan"
                       lastSynced={data?.timestamp}
-                      onViewAll={keywords.length > 5 ? () => setActiveTab('keywords') : undefined}
-                      viewAllLabel={`View all ${keywords.length}`}
+                      onViewAll={() => setActiveTab('keywords')}
+                      viewAllLabel="View Full Thread →"
                     >
-                      <KeywordTable keywords={keywords} domain={domain} previewRows={5} />
+                      <KeywordTable keywords={keywords.slice(0, 3)} domain={domain} />
                     </DataCard>
 
                     {/* Referring domains card */}

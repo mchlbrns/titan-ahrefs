@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ChevronUp, ChevronDown, Activity, AlertTriangle, Link, Target, Flame } from 'lucide-react';
 
 interface InsightItem {
@@ -71,6 +71,8 @@ export default function InsightThread({
   healthScore,
   healthGrade,
 }: InsightThreadProps) {
+  const [karmaMods, setKarmaMods] = useState<Record<number, number>>({});
+
   if (!dataLoaded) {
     return (
       <div className="py-8 text-center space-y-2">
@@ -163,11 +165,21 @@ export default function InsightThread({
             >
               {/* Karma column */}
               <div className="karma-arrows pt-0.5">
-                <button className="karma-arrow" aria-label="Upvote" title="Upvote this insight">
+                <button 
+                  className="karma-arrow" 
+                  aria-label="Upvote" 
+                  title="Upvote this insight"
+                  onClick={() => setKarmaMods(prev => ({ ...prev, [i]: (prev[i] || 0) + 1 }))}
+                >
                   <ChevronUp className="h-3.5 w-3.5" />
                 </button>
-                <span className="karma-score">{karma}</span>
-                <button className="karma-arrow down" aria-label="Downvote" title="Downvote this insight">
+                <span className="karma-score">{karma + (karmaMods[i] || 0)}</span>
+                <button 
+                  className="karma-arrow down" 
+                  aria-label="Downvote" 
+                  title="Downvote this insight"
+                  onClick={() => setKarmaMods(prev => ({ ...prev, [i]: (prev[i] || 0) - 1 }))}
+                >
                   <ChevronDown className="h-3.5 w-3.5" />
                 </button>
               </div>

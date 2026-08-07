@@ -48,16 +48,18 @@ export default function Sparkline({
   // fillColor prop is reserved for future use; gradient uses color at low opacity
   void fillColor;
 
+  const formattedTrend = data.map((n) => Math.round(n)).join(', ');
+
   return (
     <svg
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       fill="none"
-      aria-hidden="true"
       className="sparkline-wrap"
       style={{ display: 'block' }}
     >
+      <title>Trend: {formattedTrend}</title>
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.18" />
