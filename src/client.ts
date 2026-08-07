@@ -47,8 +47,10 @@ export class AhrefsClient {
   }
 
   public isMockMode(): boolean {
-    return false;
+    return this.mockFallback || !this.apiKey || process.env.MOCK_API_FALLBACK === 'true';
   }
+
+
 
   private extractUnitsFromResponse(res: Response, defaultUnits: number = 1): number {
     const headerVal = res.headers ? (res.headers.get('x-api-units-cost-total-actual') || res.headers.get('x-api-units-consumed') || res.headers.get('x-units-consumed')) : null;

@@ -8,9 +8,10 @@ describe('CLI Smoke Integration Tests', () => {
     return execSync(`npx tsx src/index.ts ${args}`, {
       cwd: rootDir,
       encoding: 'utf-8',
-      env: { ...process.env, MOCK_API_FALLBACK: 'true' }
+      env: { ...process.env, AHREFS_API_KEY: '', MOCK_API_FALLBACK: 'true' }
     });
   };
+
 
   test('CLI command audit:domains executes cleanly', () => {
     const output = runCli('audit:domains');
@@ -27,7 +28,7 @@ describe('CLI Smoke Integration Tests', () => {
   test('CLI command snapshot:create executes cleanly', () => {
     const output = runCli('snapshot:create');
     expect(output).toContain('snapshot:create');
-    expect(output).toContain('Snapshot Created for');
+    expect(output).toContain('Normalized Snapshot Ready for');
   });
 
   test('CLI command analyze:competitors executes cleanly', () => {

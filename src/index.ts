@@ -124,11 +124,12 @@ async function main() {
     }
 
     case 'snapshot:create': {
+      const force = process.argv.includes('--force');
       const store = new SnapshotStore(undefined, client, logger);
       for (const domain of domains) {
         const competitors = competitorRegistry.competitors_by_domain[domain] || [];
-        const snapshot = await store.createSnapshot(domain, competitors);
-        console.log(`\n📸 Normalized Snapshot Created for ${domain}:`);
+        const snapshot = await store.createSnapshot(domain, competitors, { force });
+        console.log(`\n📸 Normalized Snapshot Ready for ${domain}:`);
         console.log(`   - Snapshot ID: ${snapshot.snapshotId}`);
         console.log(`   - DR: ${snapshot.domainRating} | Health Score: ${snapshot.seoHealthScore?.score ?? 'N/A'}/100 | RefDomains: ${snapshot.referringDomains} | Backlinks: ${snapshot.totalBacklinks} | Traffic: ${snapshot.estimatedTraffic}`);
       }

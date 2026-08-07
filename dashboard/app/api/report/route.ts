@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
 
       const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];
 
-      // Step 1: Check Supabase Cache State (6-Hour TTL)
+      // Step 1: Check Supabase Cache State (7-Day Weekly TTL)
       const cacheState = await cacheManager.getCacheState(requestedDomain);
 
       // Step 2: Handle Stale-While-Revalidate (SWR) Background Refresh

@@ -11,7 +11,8 @@ export interface CacheState {
   ageMs: number;
 }
 
-export const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+export const SNAPSHOT_INTERVAL_DAYS = parseInt(process.env.SNAPSHOT_INTERVAL_DAYS || '7', 10);
+export const CACHE_TTL_MS = SNAPSHOT_INTERVAL_DAYS * 24 * 60 * 60 * 1000; // 7 days (Weekly Report Frequency)
 
 export class RequestDeduplicator {
   private static inFlightMap = new Map<string, Promise<unknown>>();

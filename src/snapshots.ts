@@ -19,6 +19,12 @@ import { saveSnapshotToSupabase, getLatestSnapshotFromSupabase } from './supabas
 import { getStaticSnapshot } from './snapshot-registry';
 
 
+import { CACHE_TTL_MS, SNAPSHOT_INTERVAL_DAYS } from './cache';
+
+export interface CreateSnapshotOptions {
+  force?: boolean;
+}
+
 export class SnapshotStore {
   private client: AhrefsClient;
   private storageDir: string;
@@ -48,8 +54,21 @@ export class SnapshotStore {
     }
   }
 
-  public async createSnapshot(domain: string, competitorDomains: string[] = []): Promise<DomainSnapshot> {
-    this.logger.info(`Creating normalized snapshot for domain: ${domain}`);
+  public async createSnapshot(domain: string, competitorDomains: string[] = [], options: CreateSnapshotOptions = {}): Promise<DomainSnapshot> {
+    // 0. Quota Safeguard: Check if a recent snapshot exists in Supabase or local store (Weekly frequency limit: 7 days)
+    if (!options.force) {
+      const existingSnapshot = await this.getLatestSnapshotForDomain(domain);
+      if (existingSnapshot && existingSnapshot.timestamp) {
+        const ageMs = Date.now() - new Date(existingSnapshot.timestamp).getTime();
+        if (ageMs < CACHE_TTL_MS) {
+          const ageDays = (ageMs / (1000 * 60 * 60 * 24)).toFixed(1);
+          this.logger.info(`[QUOTA SAFEGUARD] Snapshot for ${domain} was created ${ageDays} days ago. Weekly threshold is ${SNAPSHOT_INTERVAL_DAYS} days. Serving cached snapshot to protect Ahrefs API quota.`);
+          return existingSnapshot;
+        }
+      }
+    }
+
+    this.logger.info(`Creating normalized live snapshot for domain: ${domain} (force: ${options.force ?? false})`);
     try {
       const overview: DomainOverviewMetrics = await this.client.fetchDomainOverview(domain);
       const keywords: DomainKeywordReport = await this.client.fetchOrganicKeywords(domain);
@@ -107,10 +126,17 @@ export class SnapshotStore {
       this.logger.info(`Snapshot persisted for ${domain}`, { snapshotId: snapshot.snapshotId, filePath });
       return snapshot;
     } catch (err) {
-      this.logger.error(`Failed to create snapshot for ${domain}`, { error: (err as Error).message });
+      this.logger.warn(`Live Ahrefs fetch failed for ${domain}: ${(err as Error).message}. Attempting fallback to latest cached snapshot.`);
+      const cachedFallback = await this.getLatestSnapshotForDomain(domain);
+      if (cachedFallback) {
+        this.logger.info(`[QUOTA SAFEGUARD FALLBACK] Successfully served cached snapshot for ${domain}`);
+        return cachedFallback;
+      }
+      this.logger.error(`Failed to create snapshot and no cached fallback exists for ${domain}`, { error: (err as Error).message });
       throw new SnapshotError(`Snapshot creation failed for ${domain}`, domain, { cause: (err as Error).message });
     }
   }
+
 
   public getSnapshotsForDomain(domain: string): DomainSnapshot[] {
     this.ensureStorageDir();

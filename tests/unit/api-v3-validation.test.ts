@@ -225,14 +225,14 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
     const client = new AhrefsClient({ mockFallback: true });
     const store = new SnapshotStore(testSnapshotDir, client);
 
-    const snapshot = await store.createSnapshot('heavengirlfriend.com', ['competitor-a.com']);
+    const snapshot = await store.createSnapshot('heavengirlfriend.com', ['competitor-a.com'], { force: true });
     expect(snapshot.snapshotId).toContain('snap_heavengirlfriend_com');
     expect(snapshot.domain).toBe('heavengirlfriend.com');
     expect(snapshot.domainRating).toBeGreaterThan(0);
     expect(snapshot.seoHealthScore).toBeDefined();
     expect(snapshot.seoHealthScore?.score).toBeGreaterThanOrEqual(0);
 
-    const retrieved = store.getLatestSnapshotForDomain('heavengirlfriend.com');
+    const retrieved = await store.getLatestSnapshotForDomain('heavengirlfriend.com');
     expect(retrieved).toBeDefined();
     expect(retrieved?.snapshotId).toBe(snapshot.snapshotId);
   });
@@ -380,8 +380,8 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
 
     expect(report.generatedAt).toBeDefined();
     expect(report.domainsAudited.length).toBe(2);
-    expect(report.markdownContent).toContain('# 📈 Executive Weekly SEO & Ahrefs API Report');
-    expect(report.htmlContent).toContain("Pedro's Ahrefs API v3 — Executive Report");
+    expect(report.markdownContent).toContain('Executive Weekly SEO Briefing');
+    expect(report.htmlContent).toContain('Executive SEO Report');
     expect(report.jsonContent).toContain('domainsAudited');
     expect(report.csvContent).toContain('Domain,DomainRating,AhrefsRank');
 

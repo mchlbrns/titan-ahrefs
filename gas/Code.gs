@@ -146,15 +146,16 @@ function runAhrefsIngestion() {
   Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " (Date: " + todayStr + ", Compare: " + comparedDateStr + ")");
 
   try {
-    // 0. 6-Hour Rate-Limit Safeguard: Check last execution timestamp
+    // 0. 7-Day (Weekly) Rate-Limit Safeguard: Check last execution timestamp
     var lastRunTime = parseInt(SCRIPT_PROPERTIES.getProperty("LAST_INGESTION_TIMESTAMP") || "0", 10);
     var nowMs = new Date().getTime();
-    var sixHoursMs = 6 * 60 * 60 * 1000;
-    if (nowMs - lastRunTime < sixHoursMs) {
-      Logger.log("ℹ️ Skipping ingestion: Last run occurred less than 6 hours ago to protect Ahrefs API quota.");
+    var sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    if (nowMs - lastRunTime < sevenDaysMs) {
+      Logger.log("ℹ️ Skipping ingestion: Last run occurred less than 7 days ago. Weekly report frequency safeguard active.");
       return;
     }
     SCRIPT_PROPERTIES.setProperty("LAST_INGESTION_TIMESTAMP", String(nowMs));
+
 
     // 1. Subscription & Usage Safety Check
 
