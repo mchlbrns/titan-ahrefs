@@ -332,15 +332,23 @@ export class ReportGenerator {
       </tr>
     `).join('');
 
-    const compRowsHtml = competitors.slice(0, 5).map(c => `
+    const compRowsHtml = competitors.slice(0, 5).map(c => {
+      const compRecord = c as unknown as Record<string, unknown>;
+      const domainName = String(compRecord.competitorDomain || compRecord.competitor_domain || compRecord.domain || '—');
+      const drVal = Number(compRecord.domainRating || compRecord.competitor_dr || compRecord.dr || 0);
+      const sharedKw = Number(compRecord.sharedKeywords || compRecord.overlap_keywords || 0);
+      const exclKw = Number(compRecord.competitorExclusiveKeywords || compRecord.competitor_keywords || 0);
+      const traffic = Number(compRecord.organicTraffic || compRecord.competitor_traffic || 0);
+      return `
       <tr>
-        <td class="font-medium">${c.competitorDomain}</td>
-        <td><strong>${c.domainRating}</strong></td>
-        <td>${(c.sharedKeywords || 0).toLocaleString()}</td>
-        <td>${(c.competitorExclusiveKeywords || 0).toLocaleString()}</td>
-        <td>${(c.organicTraffic || 0).toLocaleString()}</td>
+        <td class="font-medium">${domainName}</td>
+        <td><strong>${drVal}</strong></td>
+        <td>${sharedKw.toLocaleString()}</td>
+        <td>${exclKw.toLocaleString()}</td>
+        <td>${traffic.toLocaleString()}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     const recsHtml = recommendations.map(r => `
       <div class="rec-card rec-${r.priority.toLowerCase()}">

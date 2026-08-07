@@ -17,9 +17,11 @@ export async function GET(req: NextRequest) {
   const client = new AhrefsClient({ logger });
   const analyzer = new CompetitorAnalyzer(client, logger);
 
+  const competitorRegistry = configLoader.loadCompetitorRegistry();
+
   const competitorList = requestedCompetitor 
     ? [requestedCompetitor]
-    : domainRegistry.competitor_targets[primaryDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'];
+    : (competitorRegistry.competitors_by_domain[primaryDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']);
 
   try {
     const results = await Promise.all(

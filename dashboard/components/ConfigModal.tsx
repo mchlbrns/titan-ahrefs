@@ -33,7 +33,6 @@ export default function ConfigModal({
   const [comp3, setComp3] = useState(currentConfig.competitors?.[2] || 'luckylandslots.com');
   const [frequency, setFrequency] = useState(currentConfig.report_frequency || 'Weekly');
   const [comparisonPeriod, setComparisonPeriod] = useState(currentConfig.comparison_period || 'Previous 7 days');
-  const [triggerSync, setTriggerSync] = useState(true);
 
   const [newDomainInput, setNewDomainInput] = useState('');
   const [addingDomain, setAddingDomain] = useState(false);
@@ -121,7 +120,7 @@ export default function ConfigModal({
 
     try {
       onSelectDomain(primaryDomain);
-      setSuccessMsg('Settings updated successfully. Native Ahrefs ingestion triggered.');
+      setSuccessMsg('Settings updated successfully.');
       setTimeout(() => {
         onConfigSaved();
         onClose();
@@ -320,20 +319,6 @@ export default function ConfigModal({
                 <option value="Previous 30 days">Previous 30 days</option>
               </select>
             </div>
-          </div>
-
-          {/* Trigger live sync checkbox */}
-          <div className="flex items-center gap-2 pt-1">
-            <input
-              type="checkbox"
-              id="triggerSync"
-              checked={triggerSync}
-              onChange={(e) => setTriggerSync(e.target.checked)}
-              className="rounded border-[rgba(255,255,255,0.12)] bg-[#0a0b0d] text-slate-200 accent-slate-400 focus:ring-0 cursor-pointer"
-            />
-            <label htmlFor="triggerSync" className="text-slate-400 hover:text-slate-300 cursor-pointer">
-              Run immediate live Ahrefs ingestion run after saving
-            </label>
           </div>
 
           {/* Footer Actions */}

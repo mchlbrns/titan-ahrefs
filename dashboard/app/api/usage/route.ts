@@ -10,14 +10,14 @@ export async function GET() {
 
   if (!apiKey || apiKey.trim() === '' || apiKey.includes('your_ahrefs')) {
     return NextResponse.json({
-      status: 'ERROR',
+      status: 'OFFLINE',
       error: 'AHREFS_API_KEY is missing or invalid',
       unitsConsumed: null,
       unitsLimit: null,
       unitsRemaining: null,
       resetDate: null,
       apiKeyStatus: 'UNAUTHENTICATED'
-    }, { status: 401 });
+    }, { status: 200 });
   }
 
   try {
@@ -35,13 +35,13 @@ export async function GET() {
     const message = err instanceof Error ? err.message : 'Failed to fetch subscription limits from Ahrefs API';
     logger.error('Ahrefs subscription limits fetch failed', { error: message });
     return NextResponse.json({
-      status: 'ERROR',
+      status: 'OFFLINE',
       error: message,
       unitsConsumed: null,
       unitsLimit: null,
       unitsRemaining: null,
       resetDate: null,
       apiKeyStatus: 'ERROR'
-    }, { status: 502 });
+    }, { status: 200 });
   }
 }
