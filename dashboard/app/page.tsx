@@ -140,6 +140,8 @@ export default function DashboardPage() {
     }
   };
 
+  const [liveApiUsage, setLiveApiUsage] = useState<{ monthly_used: number | null; monthly_limit: number | null; usage_percent: string | number | null } | null>(null);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedDomain = localStorage.getItem('titan_ahrefs_selected_domain');
@@ -177,7 +179,27 @@ export default function DashboardPage() {
         console.warn('Could not load managed domains:', err);
       }
     }
+
+    async function checkApiUsage() {
+      try {
+        const res = await fetch('/api/usage');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.unitsLimit !== null && json.unitsLimit !== undefined) {
+            setLiveApiUsage({
+              monthly_used: json.unitsConsumed ?? 0,
+              monthly_limit: json.unitsLimit ?? 5000,
+              usage_percent: `${(((json.unitsConsumed ?? 0) / (json.unitsLimit || 1)) * 100).toFixed(2)}%`
+            });
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     loadManagedDomains();
+    checkApiUsage();
   }, []);
 
 
@@ -273,13 +295,13 @@ export default function DashboardPage() {
   // Support both flat api_usage and nested apiUsageSummary from ReportGenerator format
   const rawApiUsage = data?.api_usage ||
     (data as unknown as { apiUsageSummary?: { totalConsumed?: number; totalLimit?: number; usagePercent?: number } })?.apiUsageSummary;
-  const apiUsage = rawApiUsage
+  const apiUsage = liveApiUsage || (rawApiUsage
     ? {
         monthly_used: (rawApiUsage as Record<string, unknown>).monthly_used ?? (rawApiUsage as Record<string, unknown>).totalConsumed ?? null,
         monthly_limit: (rawApiUsage as Record<string, unknown>).monthly_limit ?? (rawApiUsage as Record<string, unknown>).totalLimit ?? null,
         usage_percent: (rawApiUsage as Record<string, unknown>).usage_percent ?? (rawApiUsage as Record<string, unknown>).usagePercent ?? null,
       }
-    : { monthly_used: null, monthly_limit: null, usage_percent: null };
+    : { monthly_used: null, monthly_limit: null, usage_percent: null });
 
   // Null-safe filtered arrays — support both flat and summaries format
   const keywords: KeywordItem[] = (data?.keywords || []).filter(
