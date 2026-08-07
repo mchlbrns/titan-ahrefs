@@ -14,6 +14,8 @@ import { Logger } from './logger';
 import { withRetry } from './utils/retry';
 import { AhrefsApiError } from './errors';
 import { ApiUsageMonitor } from './usage';
+import { RequestDeduplicator } from './cache';
+
 
 export interface AhrefsClientOptions {
   apiKey?: string;
@@ -142,45 +144,47 @@ export class AhrefsClient {
 
   // Task 2: Domain Overview Collection
   public async fetchDomainOverview(domain: string): Promise<DomainOverviewMetrics> {
-    const endpoint = '/site-explorer/domain-rating';
-    this.logger.info(`Fetching Domain Overview for ${domain} [LIVE API]`);
+    return RequestDeduplicator.deduplicate(`domain_overview_${domain}`, async () => {
+      const endpoint = '/site-explorer/domain-rating';
+      this.logger.info(`Fetching Domain Overview for ${domain} [LIVE API]`);
 
-    const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
-    const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
-      this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
-      this.requestLive('/site-explorer/metrics', baseParams),
-      this.requestLive('/site-explorer/backlinks-stats', { target: domain, mode: 'domain', date: this.currentDate() })
-    ]);
-    const dr = drRaw as Record<string, unknown>;
-    const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
-    const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
+      const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
+      const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
+        this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
+        this.requestLive('/site-explorer/metrics', baseParams),
+        this.requestLive('/site-explorer/backlinks-stats', { target: domain, mode: 'domain', date: this.currentDate() })
+      ]);
+      const dr = drRaw as Record<string, unknown>;
+      const metrics = (metricsRaw.metrics || metricsRaw) as Record<string, unknown>;
+      const backlinkStats = (backlinksRaw.metrics || backlinksRaw) as Record<string, unknown>;
 
-    // Handle both nested { domain_rating: { domain_rating: 42, ahrefs_rank: 12345 } } and flat response formats
-    let domainRating = 0;
-    let ahrefsRank = 0;
-    if (dr && typeof dr.domain_rating === 'object' && dr.domain_rating !== null) {
-      const nested = dr.domain_rating as Record<string, unknown>;
-      domainRating = this.numberField(nested, 'domain_rating') || this.numberField(nested, 'rating');
-      ahrefsRank = this.numberField(nested, 'ahrefs_rank') || this.numberField(dr, 'ahrefs_rank');
-    } else {
-      domainRating = this.numberField(dr, 'domain_rating');
-      ahrefsRank = this.numberField(dr, 'ahrefs_rank');
-    }
+      let domainRating = 0;
+      let ahrefsRank = 0;
+      if (dr && typeof dr.domain_rating === 'object' && dr.domain_rating !== null) {
+        const nested = dr.domain_rating as Record<string, unknown>;
+        domainRating = this.numberField(nested, 'domain_rating') || this.numberField(nested, 'rating');
+        ahrefsRank = this.numberField(nested, 'ahrefs_rank') || this.numberField(dr, 'ahrefs_rank');
+      } else {
+        domainRating = this.numberField(dr, 'domain_rating');
+        ahrefsRank = this.numberField(dr, 'ahrefs_rank');
+      }
 
-    const totalBacklinks = this.numberField(backlinkStats, 'live');
-    const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
-    const organicTraffic = this.numberField(metrics, 'org_traffic');
-    const trafficValue = this.numberField(metrics, 'org_traffic_value');
-    const rankingKeywords = this.numberField(metrics, 'org_keywords');
-    const dofollowBacklinks = 0;
-    const dofollowRefdomains = 0;
-    return {
-      domain, domainRating, urlRating: 0, ahrefsRank, organicTraffic,
-      trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
-      nofollowLinks: 0, timestamp: new Date().toISOString(),
-      seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
-    };
+      const totalBacklinks = this.numberField(backlinkStats, 'live');
+      const referringDomains = this.numberField(backlinkStats, 'live_refdomains');
+      const organicTraffic = this.numberField(metrics, 'org_traffic');
+      const trafficValue = this.numberField(metrics, 'org_traffic_value');
+      const rankingKeywords = this.numberField(metrics, 'org_keywords');
+      const dofollowBacklinks = 0;
+      const dofollowRefdomains = 0;
+      return {
+        domain, domainRating, urlRating: 0, ahrefsRank, organicTraffic,
+        trafficValue, rankingKeywords, totalBacklinks, referringDomains, dofollowBacklinks, dofollowRefdomains,
+        nofollowLinks: 0, timestamp: new Date().toISOString(),
+        seoHealthScore: calculateSeoHealthScore({ domainRating, referringDomains, totalBacklinks, dofollowLinks: dofollowBacklinks, estimatedTraffic: organicTraffic, top10Count: this.numberField(metrics, 'org_keywords_4_10') })
+      };
+    });
   }
+
 
   // Alias for backward compatibility
   public async fetchDomainRating(domain: string): Promise<DomainOverviewMetrics> {

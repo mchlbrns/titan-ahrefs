@@ -146,7 +146,18 @@ function runAhrefsIngestion() {
   Logger.log("🚀 Starting Ahrefs Ingestion Run: " + runId + " for domain: " + primaryDomain + " (Date: " + todayStr + ", Compare: " + comparedDateStr + ")");
 
   try {
+    // 0. 6-Hour Rate-Limit Safeguard: Check last execution timestamp
+    var lastRunTime = parseInt(SCRIPT_PROPERTIES.getProperty("LAST_INGESTION_TIMESTAMP") || "0", 10);
+    var nowMs = new Date().getTime();
+    var sixHoursMs = 6 * 60 * 60 * 1000;
+    if (nowMs - lastRunTime < sixHoursMs) {
+      Logger.log("ℹ️ Skipping ingestion: Last run occurred less than 6 hours ago to protect Ahrefs API quota.");
+      return;
+    }
+    SCRIPT_PROPERTIES.setProperty("LAST_INGESTION_TIMESTAMP", String(nowMs));
+
     // 1. Subscription & Usage Safety Check
+
     var limitsData = callAhrefsApi("/subscription-info/limits-and-usage", {});
     if (limitsData && limitsData.limits_and_usage) {
       var used = limitsData.limits_and_usage.units_usage_workspace || 0;

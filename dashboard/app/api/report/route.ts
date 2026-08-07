@@ -6,6 +6,8 @@ import { ConfigLoader } from '../../../src/config';
 import { Logger } from '../../../src/logger';
 import { calculateSeoHealthScore } from '../../../src/health';
 
+import { AhrefsCacheManager } from '../../../src/cache';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -17,6 +19,7 @@ export async function GET(req: NextRequest) {
 
   const client = new AhrefsClient({ logger });
   const snapshotStore = new SnapshotStore(undefined, client, logger);
+  const cacheManager = new AhrefsCacheManager(logger);
 
   try {
     if (format === 'json') {
@@ -29,16 +32,37 @@ export async function GET(req: NextRequest) {
 
       const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];
 
-      const [overview, kwData, pgData, blData, compResults, limits] = await Promise.all([
-        client.fetchDomainOverview(requestedDomain).catch(() => null),
-        client.fetchOrganicKeywords(requestedDomain).catch(() => ({ keywords: [] })),
-        client.fetchTopPages(requestedDomain).catch(() => ({ pages: [] })),
-        client.fetchAllBacklinks(requestedDomain).catch(() => ({ recentBacklinks: [] })),
-        Promise.all(targetCompetitors.map(c => client.fetchCompetitorOverview(requestedDomain, c).catch(() => null))),
-        client.fetchLimitsAndUsage().catch(() => null)
-      ]);
+      // Step 1: Check Supabase Cache State (6-Hour TTL)
+      const cacheState = await cacheManager.getCacheState(requestedDomain);
 
-      const snapshotFallback = await snapshotStore.getLatestSnapshotForDomain(requestedDomain);
+      // Step 2: Handle Stale-While-Revalidate (SWR) Background Refresh
+      if (cacheState.snapshot && cacheState.isStale) {
+        cacheManager.triggerBackgroundRevalidate(requestedDomain, async () => {
+          return snapshotStore.createSnapshot(requestedDomain, targetCompetitors).catch(() => null);
+        });
+      }
+
+      // Step 3: Fetch Live API data ONLY if cache is completely missing
+      let overview = null;
+      let kwData: { keywords?: unknown[] } | null = null;
+      let pgData: { pages?: unknown[] } | null = null;
+      let blData: { recentBacklinks?: unknown[] } | null = null;
+      let compResults: unknown[] = [];
+      let limits = null;
+
+      if (cacheState.isMissing) {
+        [overview, kwData, pgData, blData, compResults, limits] = await Promise.all([
+          client.fetchDomainOverview(requestedDomain).catch(() => null),
+          client.fetchOrganicKeywords(requestedDomain).catch(() => ({ keywords: [] })),
+          client.fetchTopPages(requestedDomain).catch(() => ({ pages: [] })),
+          client.fetchAllBacklinks(requestedDomain).catch(() => ({ recentBacklinks: [] })),
+          Promise.all(targetCompetitors.map(c => client.fetchCompetitorOverview(requestedDomain, c).catch(() => null))),
+          client.fetchLimitsAndUsage().catch(() => null)
+        ]);
+      }
+
+      const snapshotFallback = cacheState.snapshot || (await snapshotStore.getLatestSnapshotForDomain(requestedDomain));
+
 
       const rawKeywords = (kwData?.keywords && kwData.keywords.length > 0)
         ? kwData.keywords
@@ -92,13 +116,17 @@ export async function GET(req: NextRequest) {
       }));
 
       const validCompResults = (compResults || []).filter((c): c is NonNullable<typeof c> => c !== null);
-      const competitorsList = (validCompResults.length > 0) ? validCompResults.map(compData => ({
-        competitor_domain: compData.competitorDomain,
-        overlap_keywords: compData.sharedKeywords,
-        competitor_keywords: compData.competitorExclusiveKeywords,
-        competitor_traffic: compData.organicTraffic,
-        competitor_dr: compData.domainRating
-      })) : (snapshotFallback?.competitors || []);
+      const competitorsList = (validCompResults.length > 0) ? validCompResults.map(comp => {
+        const compData = comp as Record<string, unknown>;
+        return {
+          competitor_domain: String(compData.competitorDomain || compData.competitor_domain || ''),
+          overlap_keywords: Number(compData.sharedKeywords || compData.overlap_keywords || 0),
+          competitor_keywords: Number(compData.competitorExclusiveKeywords || compData.competitor_keywords || 0),
+          competitor_traffic: Number(compData.organicTraffic || compData.competitor_traffic || 0),
+          competitor_dr: Number(compData.domainRating || compData.competitor_dr || 0)
+        };
+      }) : (snapshotFallback?.competitors || []);
+
 
       const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? snapshotFallback?.overview?.domainRating ?? null;
       const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? snapshotFallback?.overview?.organicTraffic ?? null;
