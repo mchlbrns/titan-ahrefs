@@ -76,7 +76,8 @@ export default function ExportMenu({
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailTab, setEmailTab] = useState<'rich' | 'plain'>('rich');
   const [copied, setCopied] = useState(false);
-  const [emailContent, setEmailContent] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
@@ -466,35 +467,62 @@ export default function ExportMenu({
     try {
       const primaryDomain = domain || 'titantreasure.com';
       const dateStr = new Date().toISOString().slice(0, 10);
-      let content = '';
+      let subject = '';
+      let body = '';
 
       if (activeTab === 'overview') {
-        content = `Subject: Executive Weekly SEO Briefing — ${primaryDomain} (${dateStr})\n\nHi Team,\n\nHere is your high-level Executive SEO Briefing for ${primaryDomain}:\n\n` +
+        subject = `Executive Weekly SEO Briefing — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere is your high-level Executive SEO Briefing for ${primaryDomain}:\n\n` +
           `• SEO Health Score: ${summary?.healthScore ?? 'N/A'}/100\n` +
           `• Domain Rating: ${summary?.domain_rating ?? 'N/A'}\n` +
           `• Est. Organic Traffic: ${(summary?.organic_traffic ?? 0).toLocaleString()} monthly visits\n` +
           `• Referring Domains: ${summary?.ref_domains ?? backlinks.length}\n\n` +
           `Top Keyword Movements (Condensed):\n` +
-          (overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => `  - ${k.keyword} (#${k.position}, Traffic: ${k.traffic})`).join('\n') + '\n\n' +
+          (overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => `  - ${k.keyword} (#${k.position}, Traffic: ${k.traffic?.toLocaleString() ?? '—'})`).join('\n') + '\n\n' +
           `Best regards,\nTitan SEO Automation Engine`;
       } else if (activeTab === 'keywords') {
-        content = `Subject: Keyword Rankings Report — ${primaryDomain} (${dateStr}${keywordFilterLabel ? ` | ${keywordFilterLabel}` : ''})\n\nHi Team,\n\nHere is the keyword performance summary for ${primaryDomain}:\n\n` +
+        subject = `Keyword Rankings Report — ${primaryDomain} (${dateStr}${keywordFilterLabel ? ` | ${keywordFilterLabel}` : ''})`;
+        body = `Hi Team,\n\nHere is the keyword performance summary for ${primaryDomain}:\n\n` +
           keywords.map((k: any) => `• ${k.keyword} | Pos #${k.position} (${(k.position_delta || 0) >= 0 ? `+${k.position_delta || 0}` : k.position_delta}) | Volume: ${k.search_volume?.toLocaleString() ?? 0} | Est. Traffic: ${k.traffic?.toLocaleString() ?? 0}`).join('\n') + '\n\n' +
           `Best regards,\nTitan SEO Team`;
+      } else if (activeTab === 'pages') {
+        subject = `Top Pages Performance Report — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere is the top performing pages summary for ${primaryDomain}:\n\n` +
+          pages.map((p: any) => `• ${p.url.replace(/^https?:\/\//, '')} | Est. Traffic: ${(p.organic_traffic || 0).toLocaleString()} | Top Kw: ${p.top_keyword || '—'} | Keywords: ${p.organic_keywords || 0}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
+      } else if (activeTab === 'backlinks') {
+        subject = `Referring Domains & Backlinks Report — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere is the referring domains summary for ${primaryDomain}:\n\n` +
+          backlinks.map((b: any) => `• ${b.ref_domain || b.urlFrom || ''} | DR ${b.domain_rating || 0} | Dofollow: ${b.dofollow_links ? 'Yes' : 'No'} | Status: ${b.status || 'ACTIVE'}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
+      } else if (activeTab === 'competitors') {
+        subject = `Competitor SERP Gap Analysis — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere is the competitor keyword gap analysis for ${primaryDomain}:\n\n` +
+          competitors.map((c: any) => `• ${c.competitor_domain} | DR ${c.competitor_dr || 0} | Kw Overlap: ${c.overlap_keywords?.toLocaleString() ?? 0} | Their Kws: ${c.competitor_keywords?.toLocaleString() ?? 0} | Est. Traffic: ${c.competitor_traffic?.toLocaleString() ?? 0}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
       } else {
-        content = `Subject: SEO Performance Report (${activeTab.toUpperCase()}) — ${primaryDomain}\n\nHi Team,\n\nHere is the latest ${activeTab} data export for ${primaryDomain}.\n\nTotal Entries: ${activeTab === 'pages' ? pages.length : activeTab === 'backlinks' ? backlinks.length : activeTab === 'competitors' ? competitors.length : liveRecommendations.length}\n\nBest regards,\nTitan SEO Team`;
+        subject = `SEO Action & Insights Briefing — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere are the latest actionable SEO recommendations for ${primaryDomain}:\n\n` +
+          (liveRecommendations.length > 0 ? liveRecommendations : [
+            'Maintain backlink acquisition velocity and monitor core branded ranking keywords.',
+            'Refrain from aggressive title updates on top 3 ranking URLs.'
+          ]).map((rec: string, idx: number) => `• [${idx <= 1 ? 'HIGH IMPACT' : 'RECOMMENDATION'}] ${rec}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
       }
 
-      setEmailContent(content);
+      setEmailSubject(subject);
+      setEmailBody(body);
     } catch {
-      setEmailContent(`Subject: Executive Weekly SEO Briefing — ${domain}\n\nHi Team,\n\nHere is the executive SEO performance briefing for ${domain}.\n\nBest regards,\nTitan SEO Team`);
+      setEmailSubject(`Executive Weekly SEO Briefing — ${domain}`);
+      setEmailBody(`Hi Team,\n\nHere is the executive SEO performance briefing for ${domain}.\n\nBest regards,\nTitan SEO Team`);
     } finally {
       setLoadingEmail(false);
     }
   };
 
   const handleCopyEmail = () => {
-    navigator.clipboard.writeText(emailContent);
+    const textToCopy = emailTab === 'plain' ? `Subject: ${emailSubject}\n\n${emailBody}` : emailBody;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -608,16 +636,16 @@ export default function ExportMenu({
               ) : emailTab === 'rich' ? (
                 <div className="bg-slate-900 border border-[rgba(255,255,255,0.08)] rounded-xl p-6 text-xs text-slate-300 space-y-4 shadow-inner">
                   <div className="pb-3 border-b border-[rgba(255,255,255,0.06)] font-semibold text-purple-300 text-sm">
-                    Subject: Executive Weekly SEO Briefing — {domain} ({new Date().toISOString().slice(0, 10)})
+                    Subject: {emailSubject}
                   </div>
 
                   <div className="whitespace-pre-line leading-relaxed text-slate-200 font-sans">
-                    {emailContent}
+                    {emailBody}
                   </div>
                 </div>
               ) : (
                 <div className="p-4 font-mono text-xs text-slate-300 bg-slate-900 rounded-xl border border-[rgba(255,255,255,0.06)] whitespace-pre-wrap">
-                  {emailContent}
+                  {`Subject: ${emailSubject}\n\n${emailBody}`}
                 </div>
               )}
             </div>
@@ -625,7 +653,7 @@ export default function ExportMenu({
             {/* Modal Footer */}
             <div className="flex items-center justify-between px-6 py-4 border-t border-[rgba(255,255,255,0.08)] bg-slate-900">
               <a
-                href={`mailto:?subject=${encodeURIComponent(`Executive Weekly SEO Briefing — ${domain}`)}&body=${encodeURIComponent(emailContent.slice(0, 1500))}`}
+                href={`mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody.slice(0, 1500))}`}
                 className="text-xs text-purple-400 hover:text-purple-300 font-medium underline inline-flex items-center gap-1"
               >
                 Open in Email Client ↗
