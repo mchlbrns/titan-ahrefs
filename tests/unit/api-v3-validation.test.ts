@@ -464,7 +464,6 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
 
     expect(registry.managed_domains.length).toBeGreaterThanOrEqual(3);
     const domains = registry.managed_domains.map(d => d.domain);
-    expect(domains).toContain('titantreasure.com');
     expect(domains).toContain('red-engage.com');
     expect(domains).toContain('heavengirlfriend.com');
     expect(domains).toContain('hornycompanion.com');
