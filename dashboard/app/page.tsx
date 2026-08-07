@@ -139,8 +139,8 @@ function generateSparkline(current: number, delta: number): number[] {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [domainOptions, setDomainOptions] = useState<string[]>(['titantreasure.com', 'red-engage.com']);
-  const [selectedDomain, setSelectedDomain] = useState<string>('titantreasure.com');
+  const [domainOptions, setDomainOptions] = useState<string[]>(['red-engage.com', 'heavengirlfriend.com', 'hornycompanion.com']);
+  const [selectedDomain, setSelectedDomain] = useState<string>('red-engage.com');
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -224,7 +224,7 @@ export default function DashboardPage() {
 
             // Imperative Cache Overwrite: Update cache with verified live telemetry
             if (typeof window !== 'undefined') {
-              const activeDomain = currentDomainRef.current || 'titantreasure.com';
+              const activeDomain = currentDomainRef.current || 'red-engage.com';
               const cacheKey = `titan_ahrefs_cache_${activeDomain}`;
               const cachedStr = localStorage.getItem(cacheKey);
               if (cachedStr) {
@@ -293,7 +293,7 @@ export default function DashboardPage() {
             resetDate: liveApiUsage?.resetDate || '2026-09-04',
           };
           setLiveApiUsage(freshUsage);
-          setIsLiveVerified(true);
+          setIsQuotaVerified(true);
         }
         if (typeof window !== 'undefined') {
           try {
@@ -339,7 +339,7 @@ export default function DashboardPage() {
     selectedDomain ||
     data?.config?.primary_domain ||
     data?.primary_domain ||
-    'titantreasure.com';
+    'red-engage.com';
 
   const config = data?.config || {
     primary_domain: domain,
@@ -895,7 +895,7 @@ export default function DashboardPage() {
 
                 {/* ── Reddit Targeting tab ──────────────────────────────────── */}
                 {activeTab === 'reddit' && (
-                  <RedditTargetingPanel />
+                  <RedditTargetingPanel selectedDomain={domain} />
                 )}
 
                 {/* ── Insights tab ──────────────────────────────────────────── */}

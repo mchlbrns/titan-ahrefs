@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { TrendingUp, AlertTriangle, Lock, ArrowUpRight, Link } from 'lucide-react';
+import { TrendingUp, AlertTriangle, Lock, ArrowUpRight, Link, Globe } from 'lucide-react';
 
 interface RedditThread {
   url: string;
@@ -25,7 +25,33 @@ interface RedditKeyword {
   traffic?: number;
 }
 
-const PRESET_SUBREDDITS = ['hiking', 'DatingApps', 'datingoverthirty', 'seduction'];
+interface RedditTargetingPanelProps {
+  selectedDomain?: string;
+}
+
+const DOMAIN_PRESETS: Record<string, { defaultSub: string; presets: string[]; label: string }> = {
+  'heavengirlfriend.com': {
+    label: 'AI Companion & Gaming Platform',
+    defaultSub: 'AICompanion',
+    presets: ['AICompanion', 'SoulmateAI', 'CharacterAI', 'Replika', 'virtualgf'],
+  },
+  'hornycompanion.com': {
+    label: 'Adult Entertainment Directory',
+    defaultSub: 'AICompanion',
+    presets: ['AICompanion', 'NSFWAI', 'virtualgf', 'CharacterAI', 'Replika'],
+  },
+  'red-engage.com': {
+    label: 'Engagement & Content Platform',
+    defaultSub: 'digitalmarketing',
+    presets: ['digitalmarketing', 'SEO', 'contentmarketing', 'growthhacking', 'B2Bmarketing'],
+  },
+};
+
+const DEFAULT_CONFIG = {
+  label: 'Managed Portfolio Target',
+  defaultSub: 'AICompanion',
+  presets: ['AICompanion', 'digitalmarketing', 'SEO', 'CharacterAI'],
+};
 
 const volumeColor = (v: number): string =>
   v >= 20000 ? 'text-rose-400' : v >= 10000 ? 'text-amber-400' : v >= 1000 ? 'text-emerald-400' : 'text-slate-500';
@@ -33,15 +59,25 @@ const volumeColor = (v: number): string =>
 const kdColor = (d: number): string =>
   d > 60 ? 'text-rose-400' : d > 30 ? 'text-amber-400' : 'text-emerald-400';
 
-export default function RedditTargetingPanel() {
-  const [subreddit, setSubreddit] = useState('hiking');
-  const [input, setInput] = useState('hiking');
+export default function RedditTargetingPanel({ selectedDomain }: RedditTargetingPanelProps) {
+  const activeDomain = selectedDomain || 'red-engage.com';
+  const domainConfig = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
+
+  const [subreddit, setSubreddit] = useState(domainConfig.defaultSub);
+  const [input, setInput] = useState(domainConfig.defaultSub);
   const [threads, setThreads] = useState<RedditThread[]>([]);
   const [keywords, setKeywords] = useState<RedditKeyword[]>([]);
   const [loadingThreads, setLoadingThreads] = useState(true);
   const [loadingKeywords, setLoadingKeywords] = useState(true);
   const [isMockThreads, setIsMockThreads] = useState(false);
   const [isMockKeywords, setIsMockKeywords] = useState(false);
+
+  // Sync subreddit presets when selected domain changes
+  useEffect(() => {
+    const config = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
+    setSubreddit(config.defaultSub);
+    setInput(config.defaultSub);
+  }, [activeDomain]);
 
   const fetchThreads = useCallback(async () => {
     setLoadingThreads(true);
@@ -103,59 +139,83 @@ export default function RedditTargetingPanel() {
 
   return (
     <div className="space-y-4">
-      {/* ── Subreddit search ── */}
-      <div className="flex flex-col sm:flex-row sm:items-end gap-3 px-1">
-        <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
-          <div className="flex-1">
-            <label htmlFor="subreddit-input" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1.5">
-              Subreddit to target
-            </label>
-            <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 focus-within:border-cyan-500/40 transition-colors">
-              <span className="text-cyan-400 font-bold text-sm shrink-0">r/</span>
-              <input
-                id="subreddit-input"
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="hiking"
-                className="w-full bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
-              />
-            </div>
+      {/* ── Domain Context Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/30 via-slate-900/60 to-slate-900/40 backdrop-blur-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <Globe className="h-5 w-5" />
           </div>
-          <button
-            type="submit"
-            className="self-end inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-all whitespace-nowrap"
-          >
-            <TrendingUp className="h-3.5 w-3.5" /> Analyze
-          </button>
-        </form>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-mono font-semibold uppercase tracking-wider text-cyan-400">Target Domain Context</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                {domainConfig.label}
+              </span>
+            </div>
+            <h2 className="text-base font-bold text-slate-100 mt-0.5">{activeDomain}</h2>
+          </div>
+        </div>
+        <div className="text-xs text-slate-400 sm:text-right">
+          Analyzing Reddit organic opportunities for <strong className="text-cyan-300">{activeDomain}</strong>
+        </div>
       </div>
 
-      {/* ── Preset quick-picks ── */}
-      <div className="flex flex-wrap gap-1.5 px-1">
-        {PRESET_SUBREDDITS.map((s) => (
-          <button
-            key={s}
-            onClick={() => { setInput(s); setSubreddit(s); }}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
-              s === subreddit
-                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-600'
-            }`}
-          >
-            r/{s}
-          </button>
-        ))}
+      {/* ── Subreddit search & presets ── */}
+      <div className="space-y-2">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-3 px-1">
+          <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
+            <div className="flex-1">
+              <label htmlFor="subreddit-input" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                Target Subreddit for {activeDomain}
+              </label>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 focus-within:border-cyan-500/40 transition-colors">
+                <span className="text-cyan-400 font-bold text-sm shrink-0">r/</span>
+                <input
+                  id="subreddit-input"
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder={domainConfig.defaultSub}
+                  className="w-full bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="self-end inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-all whitespace-nowrap"
+            >
+              <TrendingUp className="h-3.5 w-3.5" /> Analyze Subreddit
+            </button>
+          </form>
+        </div>
+
+        {/* ── Niche Presets ── */}
+        <div className="flex items-center gap-2 flex-wrap px-1">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Niche Suggestions:</span>
+          {domainConfig.presets.map((s) => (
+            <button
+              key={s}
+              onClick={() => { setInput(s); setSubreddit(s); }}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                s.toLowerCase() === subreddit.toLowerCase()
+                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
+                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-600'
+              }`}
+            >
+              r/{s}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* ── Mock / quota warning ── */}
+      {/* ── Quota warning ── */}
       {(isMockThreads || isMockKeywords) && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <p>
-            <strong>Sample data.</strong> The Ahrefs API quota is currently locked, so this panel is showing seeded
-            Reddit targeting data rather than live results. Once the quota resets, results go live automatically for{' '}
-            <span className="font-semibold text-slate-100">r/{subreddit}</span>.
+            <strong>Quota Fallback Active.</strong> Ahrefs API limit reached. Showing tailored niche sample targeting data for{' '}
+            <span className="font-semibold text-slate-100">r/{subreddit}</span> aligned with{' '}
+            <span className="font-semibold text-cyan-300">{activeDomain}</span>. Live stream will re-engage upon key refresh.
           </p>
         </div>
       )}
@@ -186,10 +246,14 @@ export default function RedditTargetingPanel() {
       <div className="data-card">
         <div className="data-card-header flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
-            <span className="subreddit-pill">r/Threads</span>
-            <h2 className="text-xs sm:text-sm font-semibold text-slate-200">Top Ranking Threads</h2>
+            <span className="subreddit-pill">r/{subreddit}</span>
+            <h3 className="text-xs sm:text-sm font-semibold text-slate-200">Top Ranking Threads on Google</h3>
           </div>
-          {isMockThreads && <Lock className="h-3.5 w-3.5 text-amber-400/70" />}
+          {isMockThreads && (
+            <span className="flex items-center gap-1 text-[10px] text-amber-400/80">
+              <Lock className="h-3 w-3" /> sample mode
+            </span>
+          )}
         </div>
         <div className="data-card-body">
           {loadingThreads ? (
@@ -240,10 +304,14 @@ export default function RedditTargetingPanel() {
       <div className="data-card">
         <div className="data-card-header flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
-            <span className="subreddit-pill violet">r/Keywords</span>
-            <h2 className="text-xs sm:text-sm font-semibold text-slate-200">Target Keywords (positions 1–20)</h2>
+            <span className="subreddit-pill violet">r/{subreddit}</span>
+            <h3 className="text-xs sm:text-sm font-semibold text-slate-200">Target Keywords (Positions 1–20)</h3>
           </div>
-          {isMockKeywords && <span className="flex items-center gap-1 text-[10px] text-amber-400/80"><Lock className="h-3 w-3" /> seeded</span>}
+          {isMockKeywords && (
+            <span className="flex items-center gap-1 text-[10px] text-amber-400/80">
+              <Lock className="h-3 w-3" /> sample mode
+            </span>
+          )}
         </div>
         <div className="data-card-body">
           {loadingKeywords ? (
