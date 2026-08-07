@@ -64,6 +64,7 @@ export default function PageTable({
   previewRows,
 }: PageTableProps) {
   const [expanded, setExpanded] = useState(!previewRows);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('organic_traffic');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [sortMode, setSortMode] = useState<'traffic' | 'keywords' | 'share' | 'all'>('all');
@@ -78,7 +79,16 @@ export default function PageTable({
   };
 
   const sortedPages = useMemo(() => {
-    const result = [...pages];
+    let result = [...pages];
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (p) =>
+          p.url.toLowerCase().includes(q) ||
+          (p.top_keyword && p.top_keyword.toLowerCase().includes(q))
+      );
+    }
+
     const effectiveKey: SortKey =
       sortMode === 'traffic' ? 'organic_traffic' :
       sortMode === 'keywords' ? 'organic_keywords' :
@@ -100,7 +110,7 @@ export default function PageTable({
     });
 
     return result;
-  }, [pages, sortKey, sortDir, sortMode]);
+  }, [pages, searchQuery, sortKey, sortDir, sortMode]);
 
   const displayRows = previewRows && !expanded ? sortedPages.slice(0, previewRows) : sortedPages;
 
@@ -126,6 +136,9 @@ export default function PageTable({
         activeSort={sortMode}
         onSort={(k) => setSortMode(k as typeof sortMode)}
         resultCount={sortedPages.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Filter page URLs..."
       />
 
       {/* ── Mobile Card List View (< sm) ── */}

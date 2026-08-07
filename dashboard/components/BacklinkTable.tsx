@@ -62,6 +62,7 @@ function SortableHeader({
 
 export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableProps) {
   const [expanded, setExpanded] = useState(!previewRows);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('domain_rating');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'lost' | 'live'>('all');
@@ -85,6 +86,15 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
       return true;
     });
 
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (b) =>
+          b.ref_domain.toLowerCase().includes(q) ||
+          (b.anchor_text && b.anchor_text.toLowerCase().includes(q))
+      );
+    }
+
     result = [...result].sort((a, b) => {
       if (sortKey === 'ref_domain') {
         return sortDir === 'asc'
@@ -102,7 +112,7 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
     });
 
     return result;
-  }, [backlinks, sortKey, sortDir, statusFilter]);
+  }, [backlinks, searchQuery, sortKey, sortDir, statusFilter]);
 
   const displayRows = previewRows && !expanded ? sortedFiltered.slice(0, previewRows) : sortedFiltered;
 
@@ -125,7 +135,7 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
   if (backlinks.length === 0) {
     return (
       <p className="text-xs text-slate-600 italic py-4">
-        No referring domain data yet. Populates after first ingestion run.
+        No backlink data found.
       </p>
     );
   }
@@ -137,6 +147,9 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
         activeSort={statusFilter}
         onSort={(k) => setStatusFilter(k as typeof statusFilter)}
         resultCount={sortedFiltered.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Filter referring domains..."
       />
 
       {/* ── Mobile Card List View (< sm) ── */}

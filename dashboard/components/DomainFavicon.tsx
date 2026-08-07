@@ -8,14 +8,16 @@ interface DomainFaviconProps {
   size?: number;
 }
 
-export default function DomainFavicon({ domain, className = 'h-7 w-7', size = 64 }: DomainFaviconProps) {
-  const [errorCount, setErrorCount] = useState(0);
+const faviconErrorCache = new Map<string, number>();
 
+export default function DomainFavicon({ domain, className = 'h-7 w-7', size = 64 }: DomainFaviconProps) {
   // Clean domain name to hostname (e.g., https://titantreasure.com/casino -> titantreasure.com)
   const cleanDomain = (domain || '')
     .replace(/^https?:\/\//i, '')
     .split('/')[0]
     .trim();
+
+  const [errorCount, setErrorCount] = useState<number>(() => faviconErrorCache.get(cleanDomain) || 0);
 
   if (!cleanDomain || errorCount >= 2) {
     return <Globe className={`text-slate-400 shrink-0 ${className}`} />;
@@ -27,11 +29,19 @@ export default function DomainFavicon({ domain, className = 'h-7 w-7', size = 64
 
   const src = errorCount === 0 ? googleFaviconUrl : duckduckgoFaviconUrl;
 
+  const handleError = () => {
+    setErrorCount((prev) => {
+      const next = prev + 1;
+      faviconErrorCache.set(cleanDomain, next);
+      return next;
+    });
+  };
+
   return (
     <img
       src={src}
       alt={`${cleanDomain} favicon`}
-      onError={() => setErrorCount((prev) => prev + 1)}
+      onError={handleError}
       className={`rounded-lg object-contain bg-slate-900 border border-slate-700/80 p-0.5 shadow-md shrink-0 transition-all hover:border-slate-500 ${className}`}
       loading="lazy"
     />

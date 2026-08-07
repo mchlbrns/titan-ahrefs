@@ -73,6 +73,7 @@ export default function KeywordTable({
   onProcessedKeywordsChange,
 }: KeywordTableProps) {
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('traffic');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [expanded, setExpanded] = useState(!previewRows);
@@ -98,6 +99,16 @@ export default function KeywordTable({
       return true;
     });
 
+    if (searchQuery.trim() !== '') {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (k) =>
+          k.keyword.toLowerCase().includes(q) ||
+          k.url.toLowerCase().includes(q) ||
+          (k.intent && k.intent.toLowerCase().includes(q))
+      );
+    }
+
     result = [...result].sort((a, b) => {
       let av = 0, bv = 0;
       if (sortKey === 'keyword') return sortDir === 'asc' ? a.keyword.localeCompare(b.keyword) : b.keyword.localeCompare(a.keyword);
@@ -107,7 +118,7 @@ export default function KeywordTable({
     });
 
     return result;
-  }, [safe, filterMode, sortKey, sortDir]);
+  }, [safe, filterMode, searchQuery, sortKey, sortDir]);
 
   React.useEffect(() => {
     if (onProcessedKeywordsChange) {
@@ -147,6 +158,9 @@ export default function KeywordTable({
         activeSort={filterMode}
         onSort={(k) => setFilterMode(k as FilterMode)}
         resultCount={filteredKeywords.length}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Filter keywords..."
       />
 
       {/* ── Mobile Card List View (< sm) ── */}
