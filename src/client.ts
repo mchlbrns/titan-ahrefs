@@ -37,9 +37,11 @@ export class AhrefsClient {
   public usageMonitor: ApiUsageMonitor;
 
   constructor(options: AhrefsClientOptions = {}) {
-    this.apiKey = options.apiKey !== undefined ? options.apiKey : (process.env.AHREFS_API_KEY || '');
+    const isMockEnv = process.env.MOCK_API_FALLBACK === 'true';
+    this.apiKey = isMockEnv ? '' : (options.apiKey !== undefined ? options.apiKey : (process.env.AHREFS_API_KEY || ''));
     this.baseUrl = options.baseUrl || process.env.AHREFS_API_BASE_URL || 'https://api.ahrefs.com/v3';
-    this.mockFallback = options.mockFallback ?? (process.env.MOCK_API_FALLBACK === 'true');
+    this.mockFallback = options.mockFallback ?? isMockEnv;
+
     this.maxRetries = options.maxRetries ?? 3;
     this.retryDelayMs = options.retryDelayMs ?? 500;
     this.logger = options.logger || new Logger({ context: 'AhrefsClient' });
