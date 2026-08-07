@@ -58,8 +58,8 @@ export default function KpiCard({
             <span
               className={
                 size === 'hero'
-                  ? 'text-display text-white'
-                  : 'text-display-sm text-white'
+                  ? 'text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white'
+                  : 'text-xl sm:text-2xl font-bold text-white'
               }
             >
               {displayValue}

@@ -127,8 +127,8 @@ export default function PageTable({
         resultCount={sortedPages.length}
       />
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+      <div className="overflow-x-auto no-scrollbar">
+        <table className="w-full text-left text-xs min-w-[550px]">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">
               <SortableHeader label="Page"         sortKey="url"             activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="pr-4" />

@@ -486,18 +486,18 @@ export default function DashboardPage() {
       )}
 
       {/* ── Max-width wrapper ─────────────────────────────────────────────── */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
+      <div className="max-w-[1440px] mx-auto px-3 sm:px-6 py-4 sm:py-6">
 
         {/* ── Header ───────────────────────────────────────────────────────── */}
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-5 border-b border-[rgba(255,255,255,0.06)]">
+        <header className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 mb-5 pb-4 border-b border-[rgba(255,255,255,0.06)]">
           <div className="flex flex-col gap-2">
             {/* Domain switcher */}
-            <div className="flex items-center gap-3">
-              <Globe className="h-5 w-5 text-slate-600 shrink-0" />
+            <div className="flex items-center gap-2.5">
+              <Globe className="h-5 w-5 text-slate-500 shrink-0" />
               <select
                 value={selectedDomain}
                 onChange={(e) => handleSelectDomain(e.target.value)}
-                className="domain-select"
+                className="domain-select w-full sm:w-auto text-sm sm:text-base"
                 id="domain-switcher"
                 aria-label="Select domain"
               >
@@ -508,7 +508,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Meta row */}
-            <div className="flex flex-wrap items-center gap-2.5 ml-8">
+            <div className="flex flex-wrap items-center gap-2 ml-0 sm:ml-8">
               {lastUpdated && (
                 <span className="text-[10px] text-slate-600 flex items-center gap-1">
                   <Calendar className="h-3 w-3" />
@@ -535,7 +535,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar w-full md:w-auto justify-start md:justify-end">
             <button
               onClick={() => setIsConfigOpen(true)}
               className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all"
@@ -657,21 +657,23 @@ export default function DashboardPage() {
                 subText="Unique linking domains"
                 hasData={hasSnapshot || refDomainsCount > 0}
               />
-              <KpiCard
-                title="Striking Distance"
-                value={summary?.striking_distance_count ?? 0}
-                subText={
-                  hasSnapshot && (summary?.striking_distance_count ?? 0) === 0
-                    ? 'No keywords in pos. 4–20'
-                    : 'Keywords in positions 4–20'
-                }
-                hasData={hasSnapshot}
-              />
+              <div className="col-span-2 sm:col-span-1">
+                <KpiCard
+                  title="Striking Distance"
+                  value={summary?.striking_distance_count ?? 0}
+                  subText={
+                    hasSnapshot && (summary?.striking_distance_count ?? 0) === 0
+                      ? 'No keywords in pos. 4–20'
+                      : 'Keywords in positions 4–20'
+                  }
+                  hasData={hasSnapshot}
+                />
+              </div>
             </section>
 
             {/* ── Tab navigation ───────────────────────────────────────────── */}
             <nav
-              className="flex border-b border-[rgba(255,255,255,0.06)] overflow-x-auto mb-6"
+              className="flex border-b border-[rgba(255,255,255,0.06)] overflow-x-auto mb-5 -mx-3 px-3 sm:mx-0 sm:px-0 no-scrollbar"
               aria-label="Dashboard sections"
             >
               {tabs.map((tab) => (
