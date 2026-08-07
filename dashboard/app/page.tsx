@@ -59,6 +59,7 @@ interface ApiResponseData {
   primary_domain: string;
   timestamp: string;
   dataSource?: string;
+  ingestionError?: string | null;
   snapshotId?: string;
   supabaseSynced?: boolean;
   status: string;
@@ -222,11 +223,18 @@ export default function DashboardPage() {
       if (currentDomainRef.current === domainToFetch) {
         setData(json);
         if (isRefreshAction) {
-          setToast({
-            message: `⚡ Live Ingestion Completed! Synced to Supabase ahrefs_snapshots (Record ID: ${json.snapshotId || 'synced'} | Source: ${json.dataSource || 'supabase-db'}).`,
-            type: 'success'
-          });
-          setTimeout(() => setToast(null), 5500);
+          if (json.ingestionError) {
+            setToast({
+              message: `⚠ Ingestion Halted: ${json.ingestionError}. Displaying latest saved Supabase snapshot.`,
+              type: 'error'
+            });
+          } else {
+            setToast({
+              message: `⚡ Live Ingestion Completed! Synced to Supabase ahrefs_snapshots (Record ID: ${json.snapshotId || 'synced'} | Source: ${json.dataSource || 'supabase-db'}).`,
+              type: 'success'
+            });
+          }
+          setTimeout(() => setToast(null), 6500);
         }
       }
     } catch (err: unknown) {
@@ -404,12 +412,16 @@ export default function DashboardPage() {
     <main className="min-h-screen max-w-6xl mx-auto px-6 py-8 space-y-0 relative">
       {/* ── Toast notification banner ───────────────────────────────────── */}
       {toast && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-xs text-emerald-300 shadow-xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-top-2">
+        <div className={`mb-6 flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs shadow-xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-top-2 ${
+          toast.type === 'error'
+            ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
+            : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+        }`}>
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+            <CheckCircle className={`h-4 w-4 shrink-0 ${toast.type === 'error' ? 'text-amber-400' : 'text-emerald-400'}`} />
             <span>{toast.message}</span>
           </div>
-          <button onClick={() => setToast(null)} className="text-emerald-400/60 hover:text-emerald-200 text-sm font-bold">×</button>
+          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-white text-sm font-bold">×</button>
         </div>
       )}
 

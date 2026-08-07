@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];
 
       const forceRefresh = searchParams.get('refresh') === 'true' || searchParams.get('force') === 'true';
+      let ingestionError: string | null = null;
 
       // Step 1: Check Supabase Cache State (7-Day Weekly TTL)
       let cacheState = await cacheManager.getCacheState(requestedDomain);
@@ -46,7 +47,8 @@ export async function GET(req: NextRequest) {
             cacheState = { snapshot: freshSnapshot, isStale: false, isMissing: false };
           }
         } catch (err) {
-          logger.warn(`Forced live ingestion fallback for ${requestedDomain}: ${(err as Error).message}`);
+          ingestionError = (err as Error).message;
+          logger.warn(`Forced live ingestion fallback for ${requestedDomain}: ${ingestionError}`);
         }
       } else if (cacheState.snapshot && cacheState.isStale) {
         // Handle Stale-While-Revalidate (SWR) Background Refresh
@@ -180,9 +182,12 @@ export async function GET(req: NextRequest) {
       const formattedResponse = {
         status: 'SUCCESS',
         timestamp: snapshotTimestamp,
-        dataSource: forceRefresh ? 'ahrefs-api-v3-live' : (snapshotFallback ? 'supabase-db-snapshot' : 'static-fallback'),
+        dataSource: ingestionError
+          ? 'ahrefs-quota-exceeded-fallback'
+          : (forceRefresh ? 'ahrefs-api-v3-live' : (snapshotFallback ? 'supabase-db-snapshot' : 'static-fallback')),
+        ingestionError,
         snapshotId: snapshotFallback?.snapshotId || `snap_${requestedDomain.replace(/\./g, '_')}_${new Date(snapshotTimestamp).getTime()}`,
-        supabaseSynced: true,
+        supabaseSynced: !ingestionError,
         primary_domain: requestedDomain,
         config: {
           primary_domain: requestedDomain,
