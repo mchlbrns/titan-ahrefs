@@ -21,6 +21,8 @@ interface KeywordTableProps {
   domain?: string;
   /** When provided, shows only this many rows with expand option */
   previewRows?: number;
+  /** Callback fired whenever keywords are filtered or sorted */
+  onProcessedKeywordsChange?: (processed: KeywordItem[], filterLabel?: string) => void;
 }
 
 type SortKey = 'keyword' | 'position' | 'position_delta' | 'search_volume' | 'keyword_difficulty' | 'traffic';
@@ -68,6 +70,7 @@ export default function KeywordTable({
   keywords,
   domain = 'titantreasure.com',
   previewRows,
+  onProcessedKeywordsChange,
 }: KeywordTableProps) {
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [sortKey, setSortKey] = useState<SortKey>('traffic');
@@ -105,6 +108,18 @@ export default function KeywordTable({
 
     return result;
   }, [safe, filterMode, sortKey, sortDir]);
+
+  React.useEffect(() => {
+    if (onProcessedKeywordsChange) {
+      const labelMap: Record<FilterMode, string> = {
+        all: 'All',
+        striking: 'Striking Distance',
+        gains: 'Gains',
+        drops: 'Drops',
+      };
+      onProcessedKeywordsChange(filteredKeywords, labelMap[filterMode]);
+    }
+  }, [filteredKeywords, filterMode, onProcessedKeywordsChange]);
 
   const displayRows = previewRows && !expanded
     ? filteredKeywords.slice(0, previewRows)

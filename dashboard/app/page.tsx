@@ -148,6 +148,8 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [processedKeywords, setProcessedKeywords] = useState<KeywordItem[]>([]);
+  const [keywordFilterLabel, setKeywordFilterLabel] = useState<string>('All');
 
   const currentDomainRef = React.useRef<string>(selectedDomain);
   currentDomainRef.current = selectedDomain;
@@ -584,7 +586,20 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <ExportMenu domain={selectedDomain} />
+            <ExportMenu
+              domain={selectedDomain}
+              activeTab={activeTab}
+              summary={summary}
+              keywords={processedKeywords.length > 0 ? processedKeywords : keywords}
+              overviewKeywords={keywords.slice(0, 3)}
+              pages={pages}
+              backlinks={backlinks}
+              competitors={competitors}
+              liveRecommendations={liveRecommendations}
+              healthScore={summary?.healthScore}
+              healthGrade={healthGrade}
+              keywordFilterLabel={keywordFilterLabel}
+            />
           </div>
         </header>
 
@@ -755,7 +770,14 @@ export default function DashboardPage() {
                     accentColor="cyan"
                     lastSynced={data?.timestamp}
                   >
-                    <KeywordTable keywords={keywords} domain={domain} />
+                    <KeywordTable
+                      keywords={keywords}
+                      domain={domain}
+                      onProcessedKeywordsChange={(items, label) => {
+                        setProcessedKeywords(items);
+                        if (label) setKeywordFilterLabel(label);
+                      }}
+                    />
                   </DataCard>
                 )}
 

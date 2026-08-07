@@ -3,64 +3,78 @@ import { Download, FileText, FileSpreadsheet, Mail, ChevronDown, Check, Loader2,
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+type DashboardTab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'insights';
+
 interface ExportMenuProps {
   domain: string;
+  activeTab?: DashboardTab;
+  summary?: {
+    healthScore?: number | null;
+    domain_rating?: number | null;
+    domainRating?: number | null;
+    ahrefs_rank?: number | null;
+    ahrefsRank?: number | null;
+    organic_traffic?: number | null;
+    organicTraffic?: number | null;
+    ref_domains?: number | string | null;
+    referringDomains?: number | string | null;
+    total_backlinks?: number | string | null;
+    totalBacklinks?: number | string | null;
+    striking_distance_count?: number;
+  };
+  keywords?: any[];
+  overviewKeywords?: any[];
+  pages?: any[];
+  backlinks?: any[];
+  competitors?: any[];
+  liveRecommendations?: string[];
+  healthScore?: number;
+  healthGrade?: string;
+  keywordFilterLabel?: string;
 }
 
-interface PdfKeywordItem {
-  keyword: string;
-  position: number;
-  position_delta?: number;
-  positionChange?: number;
-  search_volume?: number;
-  searchVolume?: number;
-  keyword_difficulty?: number;
-  keywordDifficulty?: number;
-  traffic?: number;
-  estimatedTraffic?: number;
-  intent?: string;
-  searchIntent?: string;
+function downloadCsv(filename: string, headers: string[], rows: (string | number)[][]) {
+  const escapeCsv = (val: string | number) => {
+    const str = String(val ?? '');
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const csvContent = [
+    headers.map(escapeCsv).join(','),
+    ...rows.map((row) => row.map(escapeCsv).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
-interface PdfPageItem {
-  url: string;
-  top_keyword?: string;
-  topKeyword?: string;
-  organic_traffic?: number;
-  organicTraffic?: number;
-  organic_keywords?: number;
-  rankingKeywords?: number;
-}
-
-interface PdfBacklinkItem {
-  ref_domain?: string;
-  urlFrom?: string;
-  anchor_text?: string;
-  anchorText?: string;
-  domain_rating?: number;
-  domainRatingFrom?: number;
-  dofollow_links?: boolean | number;
-  isDofollow?: boolean | number;
-  status?: string;
-}
-
-interface PdfCompetitorItem {
-  competitor_domain?: string;
-  competitorDomain?: string;
-  competitor_dr?: number;
-  domainRating?: number;
-  overlap_keywords?: number;
-  sharedKeywords?: number;
-  competitor_keywords?: number;
-  competitorExclusiveKeywords?: number;
-  competitor_traffic?: number;
-  organicTraffic?: number;
-}
-
-export default function ExportMenu({ domain }: ExportMenuProps) {
+export default function ExportMenu({
+  domain,
+  activeTab = 'overview',
+  summary,
+  keywords = [],
+  overviewKeywords = [],
+  pages = [],
+  backlinks = [],
+  competitors = [],
+  liveRecommendations = [],
+  healthScore,
+  healthGrade,
+  keywordFilterLabel = 'All',
+}: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'rich' | 'plain'>('rich');
+  const [emailTab, setEmailTab] = useState<'rich' | 'plain'>('rich');
   const [copied, setCopied] = useState(false);
   const [emailContent, setEmailContent] = useState('');
   const [loadingEmail, setLoadingEmail] = useState(false);
@@ -83,204 +97,283 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
     setIsPdfGenerating(true);
 
     try {
-      // 1. Fetch domain report telemetry data in JSON format
-      const res = await fetch(`/api/report?format=json&domain=${encodeURIComponent(domain)}`);
-      const data = await res.json();
-
       const primaryDomain = domain || 'titantreasure.com';
-      const summary = data.summary || {};
-      const keywords: PdfKeywordItem[] = data.keywords || [];
-      const topPages: PdfPageItem[] = data.pages || [];
-      const backlinks: PdfBacklinkItem[] = data.backlinks || [];
-      const competitors: PdfCompetitorItem[] = data.competitors || [];
-
-      // 2. Initialize vector PDF document
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
       // Title Header Banner
       doc.setFillColor(15, 23, 42); // slate-900
       doc.rect(0, 0, 210, 30, 'F');
 
-      // Title & Logo
+      const tabTitleMap: Record<DashboardTab, string> = {
+        overview: 'Executive Overview Report',
+        keywords: 'Organic Keyword Rankings Report',
+        pages: 'Top Organic Traffic Pages Report',
+        backlinks: 'Referring Domains & Backlink Audit',
+        competitors: 'Competitor Organic Gap Matrix',
+        insights: 'SEO Recommendations & Action Feed',
+      };
+
+      const reportTitle = tabTitleMap[activeTab] || 'Executive SEO Report';
+      const filterSuffix = (activeTab === 'keywords' && keywordFilterLabel && keywordFilterLabel !== 'All')
+        ? ` · Filtered: ${keywordFilterLabel}`
+        : '';
+
       doc.setTextColor(6, 182, 212); // cyan-400
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(16);
-      doc.text('Titan Ahrefs Executive SEO Report', 14, 14);
+      doc.setFontSize(15);
+      doc.text(`Titan Ahrefs ${reportTitle}`, 14, 14);
 
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184); // slate-400
-      doc.text(`Domain: ${primaryDomain}`, 14, 22);
-      doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`, 155, 22);
+      doc.text(`Domain: ${primaryDomain}${filterSuffix}`, 14, 22);
+      doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`, 150, 22);
 
       let startY = 38;
 
-      const healthScoreVal = summary.healthScore !== null && summary.healthScore !== undefined ? `${summary.healthScore}/100` : 'N/A';
-      const drVal = (summary.domain_rating ?? summary.domainRating) !== null && (summary.domain_rating ?? summary.domainRating) !== undefined ? `${summary.domain_rating ?? summary.domainRating}` : 'N/A';
-      const rankSub = (summary.ahrefs_rank ?? summary.ahrefsRank) ? `Ahrefs Rank #${(summary.ahrefs_rank ?? summary.ahrefsRank).toLocaleString()}` : 'Ahrefs Rank N/A';
-      const trafficVal = (summary.organic_traffic ?? summary.organicTraffic) !== null && (summary.organic_traffic ?? summary.organicTraffic) !== undefined ? (summary.organic_traffic ?? summary.organicTraffic).toLocaleString() : 'N/A';
-      const refDomainsVal = (summary.ref_domains ?? summary.referringDomains) !== null && (summary.ref_domains ?? summary.referringDomains) !== undefined ? (summary.ref_domains ?? summary.referringDomains).toLocaleString() : 'N/A';
-      const backlinksSub = (summary.total_backlinks ?? summary.totalBacklinks) !== null && (summary.total_backlinks ?? summary.totalBacklinks) !== undefined ? `${(summary.total_backlinks ?? summary.totalBacklinks).toLocaleString()} Total Links` : 'Links N/A';
+      const healthScoreVal = summary?.healthScore !== null && summary?.healthScore !== undefined
+        ? `${summary.healthScore}/100`
+        : (healthScore !== undefined ? `${healthScore}/100` : 'N/A');
+      const drVal = (summary?.domain_rating ?? summary?.domainRating) !== null && (summary?.domain_rating ?? summary?.domainRating) !== undefined
+        ? `${summary.domain_rating ?? summary.domainRating}`
+        : 'N/A';
+      const rankSub = (summary?.ahrefs_rank ?? summary?.ahrefsRank)
+        ? `Rank #${(summary.ahrefs_rank ?? summary.ahrefsRank).toLocaleString()}`
+        : 'Rank N/A';
+      const trafficVal = (summary?.organic_traffic ?? summary?.organicTraffic) !== null && (summary?.organic_traffic ?? summary?.organicTraffic) !== undefined
+        ? (summary.organic_traffic ?? summary.organicTraffic).toLocaleString()
+        : 'N/A';
+      const refDomainsVal = (summary?.ref_domains ?? summary?.referringDomains) !== null && (summary?.ref_domains ?? summary?.referringDomains) !== undefined
+        ? `${summary.ref_domains ?? summary.referringDomains}`
+        : `${backlinks.length}`;
 
-      // Key Metrics Cards
-      const kpis = [
-        { label: 'SEO HEALTH SCORE', val: healthScoreVal, sub: 'Health Rating (0–100)' },
-        { label: 'DOMAIN RATING (DR)', val: drVal, sub: rankSub },
-        { label: 'EST. ORGANIC TRAFFIC', val: trafficVal, sub: 'Monthly Visits' },
-        { label: 'REFERRING DOMAINS', val: refDomainsVal, sub: backlinksSub }
-      ];
+      if (activeTab === 'overview' || activeTab === 'keywords') {
+        const kpis = [
+          { label: 'SEO HEALTH SCORE', val: healthScoreVal, sub: healthGrade ? `Grade ${healthGrade}` : 'Health Rating' },
+          { label: 'DOMAIN RATING (DR)', val: drVal, sub: rankSub },
+          { label: 'EST. ORGANIC TRAFFIC', val: trafficVal, sub: 'Monthly Visits' },
+          { label: 'REFERRING DOMAINS', val: refDomainsVal, sub: 'Unique Domains' }
+        ];
 
+        const cardWidth = 43;
+        kpis.forEach((kpi, idx) => {
+          const x = 14 + idx * 47;
+          doc.setFillColor(248, 250, 252);
+          doc.setDrawColor(226, 232, 240);
+          doc.roundedRect(x, startY, cardWidth, 24, 2, 2, 'FD');
 
-      const cardWidth = 43;
-      kpis.forEach((kpi, idx) => {
-        const x = 14 + idx * 47;
-        doc.setFillColor(248, 250, 252);
-        doc.setDrawColor(226, 232, 240);
-        doc.roundedRect(x, startY, cardWidth, 24, 2, 2, 'FD');
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(100, 116, 139);
+          doc.text(kpi.label, x + 4, startY + 6);
 
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(100, 116, 139);
-        doc.text(kpi.label, x + 4, startY + 6);
+          doc.setFontSize(13);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text(kpi.val, x + 4, startY + 14);
 
-        doc.setFontSize(13);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(15, 23, 42);
-        doc.text(kpi.val, x + 4, startY + 14);
+          doc.setFontSize(6.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(5, 150, 105);
+          doc.text(kpi.sub, x + 4, startY + 20);
+        });
 
-        doc.setFontSize(6.5);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(5, 150, 105);
-        doc.text(kpi.sub, x + 4, startY + 20);
-      });
+        startY += 30;
+      }
 
-      startY += 30;
+      if (activeTab === 'overview') {
+        const kwList = overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3);
+        if (kwList.length > 0) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text('1. Top Keywords Preview (Condensed — 3 entries)', 14, startY);
+          startY += 3;
 
-      // Section 1: Organic Keywords Table
-      if (keywords.length > 0) {
+          autoTable(doc, {
+            startY,
+            head: [['Keyword', 'Position', 'Change', 'Search Volume', 'KD', 'Est. Traffic', 'Intent']],
+            body: kwList.map((k: any) => [
+              k.keyword,
+              `#${k.position}`,
+              (k.position_delta || k.positionChange || 0) > 0 ? `+${k.position_delta || k.positionChange}` : `${k.position_delta || k.positionChange || 0}`,
+              (k.search_volume || k.searchVolume || 0).toLocaleString(),
+              k.keyword_difficulty || k.keywordDifficulty || 0,
+              (k.traffic || k.estimatedTraffic || 0).toLocaleString(),
+              k.intent || k.searchIntent || 'Informational'
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
+          const docWithAutoTable = doc as any;
+          startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
+        }
+
+        const pgList = pages.slice(0, 3);
+        if (pgList.length > 0) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text('2. Top Pages Preview (Condensed — 3 entries)', 14, startY);
+          startY += 3;
+
+          autoTable(doc, {
+            startY,
+            head: [['Page URL', 'Top Keyword', 'Organic Traffic', 'Ranking Keywords']],
+            body: pgList.map((p: any) => [
+              p.url,
+              p.top_keyword || p.topKeyword || '—',
+              (p.organic_traffic || p.organicTraffic || 0).toLocaleString(),
+              p.organic_keywords || p.rankingKeywords || 0
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
+          const docWithAutoTable = doc as any;
+          startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
+        }
+
+        const blList = backlinks.slice(0, 3);
+        if (blList.length > 0) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text('3. Referring Domains Preview (Condensed — 3 entries)', 14, startY);
+          startY += 3;
+
+          autoTable(doc, {
+            startY,
+            head: [['Referring Domain', 'DR', 'Dofollow Links', 'Status']],
+            body: blList.map((b: any) => [
+              b.ref_domain || b.urlFrom || 'external-site.com',
+              b.domain_rating || b.domainRatingFrom || 30,
+              b.dofollow_links || b.isDofollow ? 'Yes' : 'No',
+              (b.status || 'ACTIVE').toUpperCase()
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
+        }
+      } else if (activeTab === 'keywords') {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(15, 23, 42);
-        doc.text('1. Organic Keyword Rankings & Movements', 14, startY);
-
+        doc.text(`Organic Keyword Rankings (${keywords.length} entries${keywordFilterLabel ? ` · ${keywordFilterLabel}` : ''})`, 14, startY);
         startY += 3;
 
-        const kwHeaders = [['Keyword', 'Position', 'Change', 'Search Volume', 'KD', 'Est. Traffic', 'Intent']];
-        const kwRows = keywords.slice(0, 10).map((k: PdfKeywordItem) => [
-          k.keyword,
-          `#${k.position}`,
-          (k.position_delta || k.positionChange || 0) > 0 ? `+${k.position_delta || k.positionChange}` : `${k.position_delta || k.positionChange || 0}`,
-          (k.search_volume || k.searchVolume || 0).toLocaleString(),
-          k.keyword_difficulty || k.keywordDifficulty || 0,
-          (k.traffic || k.estimatedTraffic || 0).toLocaleString(),
-          k.intent || k.searchIntent || 'Informational'
-        ]);
-
         autoTable(doc, {
-          startY: startY,
-          head: kwHeaders,
-          body: kwRows,
+          startY,
+          head: [['Keyword', 'Position', 'Change', 'Search Volume', 'KD', 'Est. Traffic', 'Intent']],
+          body: keywords.map((k: any) => [
+            k.keyword,
+            `#${k.position}`,
+            (k.position_delta || k.positionChange || 0) > 0 ? `+${k.position_delta || k.positionChange}` : `${k.position_delta || k.positionChange || 0}`,
+            (k.search_volume || k.searchVolume || 0).toLocaleString(),
+            k.keyword_difficulty || k.keywordDifficulty || 0,
+            (k.traffic || k.estimatedTraffic || 0).toLocaleString(),
+            k.intent || k.searchIntent || 'Informational'
+          ]),
           theme: 'grid',
           headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
           bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
           alternateRowStyles: { fillColor: [248, 250, 252] },
           margin: { left: 14, right: 14 }
         });
-
-        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
-        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
-      }
-
-      // Section 2: Top Pages Table
-      if (topPages.length > 0) {
+      } else if (activeTab === 'pages') {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(15, 23, 42);
-        doc.text('2. Top Organic Traffic Driving Pages', 14, startY);
-
+        doc.text(`Top Organic Pages (${pages.length} entries)`, 14, startY);
         startY += 3;
 
-        const pgHeaders = [['Page URL', 'Top Keyword', 'Organic Traffic', 'Ranking Keywords']];
-        const pgRows = topPages.slice(0, 5).map((p: PdfPageItem) => [
-          p.url,
-          p.top_keyword || p.topKeyword || '—',
-          (p.organic_traffic || p.organicTraffic || 0).toLocaleString(),
-          p.organic_keywords || p.rankingKeywords || 0
-        ]);
-
         autoTable(doc, {
-          startY: startY,
-          head: pgHeaders,
-          body: pgRows,
+          startY,
+          head: [['Page URL', 'Top Keyword', 'Organic Traffic', 'Ranking Keywords']],
+          body: pages.map((p: any) => [
+            p.url,
+            p.top_keyword || p.topKeyword || '—',
+            (p.organic_traffic || p.organicTraffic || 0).toLocaleString(),
+            p.organic_keywords || p.rankingKeywords || 0
+          ]),
           theme: 'grid',
           headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
           bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
           margin: { left: 14, right: 14 }
         });
-
-        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
-        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
-      }
-
-      // Section 3: Referring Domains Table
-      if (backlinks.length > 0) {
+      } else if (activeTab === 'backlinks') {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(15, 23, 42);
-        doc.text('3. Referring Domains & Backlink Audit', 14, startY);
-
+        doc.text(`Referring Domains Audit (${backlinks.length} entries)`, 14, startY);
         startY += 3;
 
-        const blHeaders = [['Referring Domain', 'Anchor Text', 'DR', 'Type', 'Status']];
-        const blRows = backlinks.slice(0, 10).map((b: PdfBacklinkItem) => [
-          b.ref_domain || b.urlFrom || 'external-site.com',
-          (b.anchor_text || b.anchorText || 'Visit Site').slice(0, 35),
-          b.domain_rating || b.domainRatingFrom || 30,
-          b.dofollow_links || b.isDofollow ? 'Dofollow' : 'Nofollow',
-          (b.status || 'ACTIVE').toUpperCase()
-        ]);
-
         autoTable(doc, {
-          startY: startY,
-          head: blHeaders,
-          body: blRows,
+          startY,
+          head: [['Referring Domain', 'DR', 'Dofollow Links', 'Status']],
+          body: backlinks.map((b: any) => [
+            b.ref_domain || b.urlFrom || 'external-site.com',
+            b.domain_rating || b.domainRatingFrom || 30,
+            b.dofollow_links || b.isDofollow ? 'Dofollow' : 'Nofollow',
+            (b.status || 'ACTIVE').toUpperCase()
+          ]),
           theme: 'grid',
           headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
           bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
           margin: { left: 14, right: 14 }
         });
+      } else if (activeTab === 'competitors') {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.text(`Competitor Organic Gap Matrix (${competitors.length} entries)`, 14, startY);
+        startY += 3;
 
-        const docWithAutoTable = doc as unknown as { lastAutoTable?: { finalY: number } };
-        startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
-      }
-
-      // Section 4: Competitor Gap Matrix
-      if (competitors.length > 0) {
-        if (startY > 250) {
-          doc.addPage();
-          startY = 14;
+        if (competitors.length === 0) {
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'italic');
+          doc.setTextColor(100, 116, 139);
+          doc.text('No competitor data currently configured.', 14, startY + 6);
+        } else {
+          autoTable(doc, {
+            startY,
+            head: [['Competitor Domain', 'DR', 'Shared Keywords', 'Exclusive Keywords', 'Est. Traffic']],
+            body: competitors.map((c: any) => [
+              c.competitor_domain || c.competitorDomain || '',
+              c.competitor_dr || c.domainRating || 30,
+              (c.overlap_keywords || c.sharedKeywords || 0).toLocaleString(),
+              (c.competitor_keywords || c.competitorExclusiveKeywords || 0).toLocaleString(),
+              (c.competitor_traffic || c.organicTraffic || 0).toLocaleString()
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
         }
-
+      } else if (activeTab === 'insights') {
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(15, 23, 42);
-        doc.text('4. Organic Competitor Gap Matrix', 14, startY);
-
+        doc.text('SEO Recommendations Feed', 14, startY);
         startY += 3;
 
-        const compHeaders = [['Competitor Domain', 'DR', 'Shared Keywords', 'Exclusive Keywords', 'Est. Traffic']];
-        const compRows = competitors.slice(0, 5).map((c: PdfCompetitorItem) => [
-          c.competitor_domain || c.competitorDomain || '',
-          c.competitor_dr || c.domainRating || 30,
-          (c.overlap_keywords || c.sharedKeywords || 0).toLocaleString(),
-          (c.competitor_keywords || c.competitorExclusiveKeywords || 0).toLocaleString(),
-          (c.competitor_traffic || c.organicTraffic || 0).toLocaleString()
+        const recRows = (liveRecommendations || []).map((rec: string, idx: number) => [
+          idx <= 1 ? 'HIGH IMPACT' : 'MEDIUM',
+          'Recommendation',
+          '99',
+          rec
         ]);
 
         autoTable(doc, {
-          startY: startY,
-          head: compHeaders,
-          body: compRows,
+          startY,
+          head: [['Priority', 'Category', 'Karma', 'Action Signal / Recommendation']],
+          body: recRows.length > 0 ? recRows : [['HIGH IMPACT', 'Striking distance', '99', 'Monitor keyword positions and internal linking.']],
           theme: 'grid',
           headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
           bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
@@ -288,8 +381,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         });
       }
 
-      // 3. Direct PDF File Download
-      doc.save(`Titan_Ahrefs_Executive_Report_${primaryDomain.replace(/\./g, '_')}.pdf`);
+      doc.save(`Titan_Ahrefs_${reportTitle.replace(/\s+/g, '_')}_${primaryDomain.replace(/\./g, '_')}.pdf`);
     } catch (err) {
       console.error('PDF export error:', err);
     } finally {
@@ -299,22 +391,101 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
 
   const handleCsvExport = () => {
     setIsOpen(false);
-    const link = document.createElement('a');
-    link.href = `/api/report?format=csv&domain=${encodeURIComponent(domain)}`;
-    link.download = `ahrefs-seo-report-${domain}-${new Date().toISOString().slice(0, 10)}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const primaryDomain = domain || 'titantreasure.com';
+
+    if (activeTab === 'overview') {
+      const headers = ['Section', 'Item / URL', 'Metric 1', 'Metric 2', 'Details'];
+      const rows: (string | number)[][] = [
+        ['KPI Summary', 'SEO Health Score', summary?.healthScore ?? 'N/A', '', '0-100 Score'],
+        ['KPI Summary', 'Domain Rating', summary?.domain_rating ?? 'N/A', summary?.ahrefs_rank ? `Rank #${summary.ahrefs_rank}` : '', 'Ahrefs DR'],
+        ['KPI Summary', 'Organic Traffic', summary?.organic_traffic ?? 'N/A', '', 'Monthly visits'],
+        ['KPI Summary', 'Referring Domains', summary?.ref_domains ?? backlinks.length, '', 'Unique linking domains'],
+        ...(overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => ['Top Keyword', k.keyword, `#${k.position}`, k.traffic, `Volume: ${k.search_volume}`]),
+        ...pages.slice(0, 3).map((p: any) => ['Top Page', p.url, p.top_keyword || '—', p.organic_traffic, `Keywords: ${p.organic_keywords}`]),
+        ...backlinks.slice(0, 3).map((b: any) => ['Backlink', b.ref_domain || b.urlFrom || '', b.domain_rating || 0, b.dofollow_links ? 'Dofollow' : 'Nofollow', b.status || 'ACTIVE'])
+      ];
+      downloadCsv(`titan-ahrefs-overview-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'keywords') {
+      const headers = ['Keyword', 'Position', 'Position Delta', 'Search Volume', 'Keyword Difficulty', 'Est. Traffic', 'Intent', 'Striking Distance'];
+      const rows = keywords.map((k: any) => [
+        k.keyword,
+        k.position,
+        k.position_delta || 0,
+        k.search_volume || 0,
+        k.keyword_difficulty || 0,
+        k.traffic || 0,
+        k.intent || 'Informational',
+        k.striking_distance || (k.position >= 4 && k.position <= 20 ? 'YES' : 'NO')
+      ]);
+      downloadCsv(`titan-ahrefs-keywords-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'pages') {
+      const headers = ['Page URL', 'Top Keyword', 'Organic Traffic', 'Ranking Keywords'];
+      const rows = pages.map((p: any) => [
+        p.url,
+        p.top_keyword || '—',
+        p.organic_traffic || 0,
+        p.organic_keywords || 0
+      ]);
+      downloadCsv(`titan-ahrefs-pages-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'backlinks') {
+      const headers = ['Referring Domain', 'Domain Rating', 'Dofollow Links', 'Status'];
+      const rows = backlinks.map((b: any) => [
+        b.ref_domain || b.urlFrom || '',
+        b.domain_rating || 0,
+        b.dofollow_links ? 'Yes' : 'No',
+        b.status || 'ACTIVE'
+      ]);
+      downloadCsv(`titan-ahrefs-backlinks-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'competitors') {
+      const headers = ['Competitor Domain', 'Domain Rating', 'Shared Keywords', 'Exclusive Keywords', 'Est. Traffic'];
+      const rows = competitors.map((c: any) => [
+        c.competitor_domain || '',
+        c.competitor_dr || 0,
+        c.overlap_keywords || 0,
+        c.competitor_keywords || 0,
+        c.competitor_traffic || 0
+      ]);
+      downloadCsv(`titan-ahrefs-competitors-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'insights') {
+      const headers = ['Priority', 'Category', 'Karma', 'Recommendation'];
+      const rows = (liveRecommendations || []).map((rec: string, idx: number) => [
+        idx <= 1 ? 'HIGH IMPACT' : 'MEDIUM',
+        'Recommendation',
+        99,
+        rec
+      ]);
+      downloadCsv(`titan-ahrefs-insights-${primaryDomain}.csv`, headers, rows);
+    }
   };
 
   const handleEmailSummary = async () => {
     setIsOpen(false);
     setIsEmailModalOpen(true);
     setLoadingEmail(true);
+
     try {
-      const res = await fetch(`/api/report?format=markdown&domain=${encodeURIComponent(domain)}`);
-      const text = await res.text();
-      setEmailContent(text);
+      const primaryDomain = domain || 'titantreasure.com';
+      const dateStr = new Date().toISOString().slice(0, 10);
+      let content = '';
+
+      if (activeTab === 'overview') {
+        content = `Subject: Executive Weekly SEO Briefing — ${primaryDomain} (${dateStr})\n\nHi Team,\n\nHere is your high-level Executive SEO Briefing for ${primaryDomain}:\n\n` +
+          `• SEO Health Score: ${summary?.healthScore ?? 'N/A'}/100\n` +
+          `• Domain Rating: ${summary?.domain_rating ?? 'N/A'}\n` +
+          `• Est. Organic Traffic: ${(summary?.organic_traffic ?? 0).toLocaleString()} monthly visits\n` +
+          `• Referring Domains: ${summary?.ref_domains ?? backlinks.length}\n\n` +
+          `Top Keyword Movements (Condensed):\n` +
+          (overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => `  - ${k.keyword} (#${k.position}, Traffic: ${k.traffic})`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Automation Engine`;
+      } else if (activeTab === 'keywords') {
+        content = `Subject: Keyword Rankings Report — ${primaryDomain} (${dateStr}${keywordFilterLabel ? ` | ${keywordFilterLabel}` : ''})\n\nHi Team,\n\nHere is the keyword performance summary for ${primaryDomain}:\n\n` +
+          keywords.map((k: any) => `• ${k.keyword} | Pos #${k.position} (${(k.position_delta || 0) >= 0 ? `+${k.position_delta || 0}` : k.position_delta}) | Volume: ${k.search_volume?.toLocaleString() ?? 0} | Est. Traffic: ${k.traffic?.toLocaleString() ?? 0}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
+      } else {
+        content = `Subject: SEO Performance Report (${activeTab.toUpperCase()}) — ${primaryDomain}\n\nHi Team,\n\nHere is the latest ${activeTab} data export for ${primaryDomain}.\n\nTotal Entries: ${activeTab === 'pages' ? pages.length : activeTab === 'backlinks' ? backlinks.length : activeTab === 'competitors' ? competitors.length : liveRecommendations.length}\n\nBest regards,\nTitan SEO Team`;
+      }
+
+      setEmailContent(content);
     } catch {
       setEmailContent(`Subject: Executive Weekly SEO Briefing — ${domain}\n\nHi Team,\n\nHere is the executive SEO performance briefing for ${domain}.\n\nBest regards,\nTitan SEO Team`);
     } finally {
@@ -334,6 +505,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPdfGenerating}
         className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all disabled:opacity-50"
+        aria-label="Export Report"
       >
         {isPdfGenerating ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -346,40 +518,40 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
-          <div className="px-3 py-1.5 border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-            Export As
+          <div className="px-3.5 py-2 border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase font-bold text-slate-500 tracking-wider text-left">
+            Export As ({activeTab.toUpperCase()})
           </div>
 
           <button
             onClick={handlePdfExport}
-            className="w-full text-left px-3 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2.5 transition-colors"
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
           >
             <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
-            <div>
+            <div className="text-left">
               <div className="font-semibold text-white">Download PDF Report (.pdf)</div>
-              <div className="text-[10px] text-slate-500">Full SEO report as a PDF file</div>
+              <div className="text-[10px] text-slate-400">Current tab view as PDF</div>
             </div>
           </button>
 
           <button
             onClick={handleCsvExport}
-            className="w-full text-left px-3 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2.5 transition-colors"
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />
-            <div>
+            <div className="text-left">
               <div className="font-semibold text-white">Download CSV / Excel (.csv)</div>
-              <div className="text-[10px] text-slate-500">Spreadsheet-ready data export</div>
+              <div className="text-[10px] text-slate-400">Spreadsheet-ready data export</div>
             </div>
           </button>
 
           <button
             onClick={handleEmailSummary}
-            className="w-full text-left px-3 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-2.5 transition-colors"
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
           >
             <Mail className="h-4 w-4 text-purple-400 shrink-0" />
-            <div>
+            <div className="text-left">
               <div className="font-semibold text-white">Email Summary</div>
-              <div className="text-[10px] text-slate-500">Copy-ready summary for your team</div>
+              <div className="text-[10px] text-slate-400">Copy-ready summary for your team</div>
             </div>
           </button>
         </div>
@@ -389,7 +561,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
       {isEmailModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 border border-[rgba(255,255,255,0.12)] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[rgba(255,255,255,0.08)] bg-slate-900">
               <div className="flex items-center gap-2.5">
@@ -401,18 +573,18 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
                   <p className="text-[11px] text-slate-400">{domain}</p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <div className="flex bg-slate-950 p-0.5 rounded-lg border border-[rgba(255,255,255,0.06)] text-[11px]">
                   <button
-                    onClick={() => setActiveTab('rich')}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${activeTab === 'rich' ? 'bg-purple-500/20 text-purple-300 font-semibold' : 'text-slate-500 hover:text-slate-300'}`}
+                    onClick={() => setEmailTab('rich')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${emailTab === 'rich' ? 'bg-purple-500/20 text-purple-300 font-semibold' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     Email Preview
                   </button>
                   <button
-                    onClick={() => setActiveTab('plain')}
-                    className={`px-2.5 py-1 rounded-md transition-colors ${activeTab === 'plain' ? 'bg-purple-500/20 text-purple-300 font-semibold' : 'text-slate-500 hover:text-slate-300'}`}
+                    onClick={() => setEmailTab('plain')}
+                    className={`px-2.5 py-1 rounded-md transition-colors ${emailTab === 'plain' ? 'bg-purple-500/20 text-purple-300 font-semibold' : 'text-slate-500 hover:text-slate-300'}`}
                   >
                     Plain Text
                   </button>
@@ -433,12 +605,12 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
                   <Sparkles className="h-5 w-5 text-purple-400 animate-pulse" />
                   Preparing email summary...
                 </div>
-              ) : activeTab === 'rich' ? (
+              ) : emailTab === 'rich' ? (
                 <div className="bg-slate-900 border border-[rgba(255,255,255,0.08)] rounded-xl p-6 text-xs text-slate-300 space-y-4 shadow-inner">
                   <div className="pb-3 border-b border-[rgba(255,255,255,0.06)] font-semibold text-purple-300 text-sm">
                     Subject: Executive Weekly SEO Briefing — {domain} ({new Date().toISOString().slice(0, 10)})
                   </div>
-                  
+
                   <div className="whitespace-pre-line leading-relaxed text-slate-200 font-sans">
                     {emailContent}
                   </div>
@@ -458,7 +630,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
               >
                 Open in Email Client ↗
               </a>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsEmailModalOpen(false)}
