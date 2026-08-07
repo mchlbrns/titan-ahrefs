@@ -20,7 +20,6 @@ import {
   RefreshCw,
   Lock,
   AlertTriangle,
-  Globe,
 } from 'lucide-react';
 import DomainFavicon from '../components/DomainFavicon';
 
