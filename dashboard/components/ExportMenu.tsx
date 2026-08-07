@@ -528,20 +528,20 @@ export default function ExportMenu({
   };
 
   return (
-    <div className="relative inline-block text-left" ref={menuRef}>
+    <div className="relative inline-block text-left flex-1 sm:flex-initial" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPdfGenerating}
-        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all disabled:opacity-50"
+        className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 hover:border-cyan-500/60 transition-all disabled:opacity-50 w-full sm:w-auto whitespace-nowrap"
         aria-label="Export Report"
       >
         {isPdfGenerating ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
         ) : (
-          <Download className="h-3.5 w-3.5" />
+          <Download className="h-3.5 w-3.5 shrink-0" />
         )}
-        {isPdfGenerating ? 'Generating PDF...' : 'Export Report'}
-        <ChevronDown className="h-3 w-3 opacity-60" />
+        <span className="whitespace-nowrap">{isPdfGenerating ? 'Generating...' : 'Export Report'}</span>
+        <ChevronDown className="h-3 w-3 opacity-60 shrink-0" />
       </button>
 
       {isOpen && (
