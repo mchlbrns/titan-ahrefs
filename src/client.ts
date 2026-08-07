@@ -45,10 +45,7 @@ export class AhrefsClient {
   }
 
   public isMockMode(): boolean {
-    if (this.apiKey && !this.apiKey.includes('your_ahrefs')) {
-      return this.mockFallback;
-    }
-    return true;
+    return false;
   }
 
   private extractUnitsFromResponse(res: Response, defaultUnits: number = 1): number {
@@ -146,13 +143,8 @@ export class AhrefsClient {
   // Task 2: Domain Overview Collection
   public async fetchDomainOverview(domain: string): Promise<DomainOverviewMetrics> {
     const endpoint = '/site-explorer/domain-rating';
-    if (this.isMockMode()) {
-      this.logger.debug(`Fetching Domain Overview for ${domain} [MOCK MODE]`);
-      this.usageMonitor.recordApiCall(endpoint, 1, true);
-      return this.generateMockDomainOverview(domain);
-    }
-
     this.logger.info(`Fetching Domain Overview for ${domain} [LIVE API]`);
+
     const baseParams = { target: domain, mode: 'domain', date: this.currentDate(), country: 'us' };
     const [drRaw, metricsRaw, backlinksRaw] = await Promise.all([
       this.requestLive(endpoint, { target: domain, date: this.currentDate() }),
@@ -202,13 +194,8 @@ export class AhrefsClient {
     const select = options.select ?? 'keyword,best_position,volume,keyword_difficulty,sum_traffic,best_position_url,serp_features,is_informational,is_transactional,is_commercial,is_navigational';
     const orderBy = options.orderBy ?? 'sum_traffic:desc';
 
-    if (this.isMockMode()) {
-      this.logger.info(`Fetching Organic Keywords for ${domain} [MOCK MODE]`);
-      this.usageMonitor.recordApiCall(endpoint, 5, true);
-      return this.generateMockOrganicKeywords(domain);
-    }
-
     this.logger.info(`Fetching Organic Keywords for ${domain} [LIVE API]`);
+
     try {
       const report = await withRetry(async (attempt) => {
         const queryParams = new URLSearchParams({
@@ -293,9 +280,18 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} organic keywords. Returning resilient mock baseline. Reason: ${(err as Error).message}`);
+      this.logger.warn(`API request failed for ${domain} organic keywords. Returning empty report. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockOrganicKeywords(domain);
+      return {
+        domain,
+        totalKeywords: 0,
+        top3Count: 0,
+        top10Count: 0,
+        top50Count: 0,
+        estimatedTraffic: 0,
+        trafficValue: 0,
+        keywords: []
+      };
     }
   }
 
@@ -304,12 +300,6 @@ export class AhrefsClient {
     const endpoint = '/site-explorer/top-pages';
     const limit = options.limit ?? 50;
     const select = options.select ?? 'url,sum_traffic,keywords,top_keyword,value';
-
-    if (this.isMockMode()) {
-      this.logger.info(`Fetching Top Pages for ${domain} [MOCK MODE]`);
-      this.usageMonitor.recordApiCall(endpoint, 5, true);
-      return this.generateMockTopPages(domain);
-    }
 
     this.logger.info(`Fetching Top Pages for ${domain} [LIVE API]`);
     try {
@@ -366,9 +356,15 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} top pages. Returning resilient mock baseline. Reason: ${(err as Error).message}`);
+      this.logger.warn(`API request failed for ${domain} top pages. Returning empty report. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockTopPages(domain);
+      return {
+        domain,
+        totalPages: 0,
+        totalOrganicTraffic: 0,
+        totalTrafficValue: 0,
+        pages: []
+      };
     }
   }
 
@@ -377,11 +373,6 @@ export class AhrefsClient {
     const endpoint = '/site-explorer/organic-competitors';
     this.logger.info(`Fetching Competitor Overview for ${competitorDomain} (vs ${targetDomain})`);
     
-    if (this.isMockMode()) {
-      this.usageMonitor.recordApiCall(endpoint, 5, true);
-      return this.generateMockCompetitorOverview(targetDomain, competitorDomain);
-    }
-
     try {
       const data = await this.requestLive(endpoint, {
         target: targetDomain, mode: 'domain', country: 'us', date: this.currentDate(), limit: '100',
@@ -422,8 +413,17 @@ export class AhrefsClient {
       };
 
     } catch (err) {
-      this.logger.warn(`Failed to fetch competitor ${competitorDomain}. Returning fallback mock metrics. Reason: ${(err as Error).message}`);
-      return this.generateMockCompetitorOverview(targetDomain, competitorDomain);
+      this.logger.warn(`Failed to fetch competitor ${competitorDomain}. Returning empty metrics. Reason: ${(err as Error).message}`);
+      return {
+        targetDomain,
+        competitorDomain,
+        domainRating: 0,
+        organicTraffic: 0,
+        trafficValue: 0,
+        sharedKeywords: 0,
+        competitorExclusiveKeywords: 0,
+        gapOpportunities: []
+      };
     }
   }
 
@@ -432,12 +432,6 @@ export class AhrefsClient {
     const endpoint = '/site-explorer/all-backlinks';
     const limit = options.limit ?? 100;
     const select = options.select ?? 'url_from,url_to,anchor,domain_rating_source,is_dofollow,first_seen,last_seen,is_lost,is_new';
-
-    if (this.isMockMode()) {
-      this.logger.info(`Fetching All Backlinks for ${domain} [MOCK MODE]`);
-      this.usageMonitor.recordApiCall(endpoint, 10, true);
-      return this.generateMockBacklinkReport(domain);
-    }
 
     this.logger.info(`Fetching All Backlinks for ${domain} [LIVE API]`);
     try {
@@ -501,389 +495,24 @@ export class AhrefsClient {
 
       return report;
     } catch (err) {
-      this.logger.warn(`API request failed for ${domain} backlinks. Returning resilient mock baseline. Reason: ${(err as Error).message}`);
+      this.logger.warn(`API request failed for ${domain} backlinks. Returning empty report. Reason: ${(err as Error).message}`);
       this.usageMonitor.recordApiCall(endpoint, 0, false);
-      return this.generateMockBacklinkReport(domain);
+      return {
+        domain,
+        totalBacklinks: 0,
+        referringDomains: 0,
+        dofollowRatio: 0,
+        dofollowBacklinks: 0,
+        dofollowRefdomains: 0,
+        topAnchors: [],
+        recentBacklinks: [],
+        seoHealthScore: undefined
+      };
+
     }
-  }
-
-  public generateMockOrganicKeywords(domain: string): DomainKeywordReport {
-    const isRed = domain.includes('red-engage');
-    const isHeaven = domain.includes('heavengirlfriend');
-    const isHorny = domain.includes('hornycompanion');
-
-    let baseKeywords: OrganicKeywordItem[] = [];
-    if (isRed) {
-      baseKeywords = [
-        {
-          keyword: 'reddit marketing agency',
-          position: 3,
-          previousPosition: 3,
-          positionChange: 0,
-          searchVolume: 400,
-          keywordDifficulty: 1,
-          estimatedTraffic: 0,
-          trafficChange: 0,
-          url: `https://${domain}/blog/best-reddit-marketing-agencies`,
-          serpFeatures: ['Featured Snippet', 'People Also Ask'],
-          searchIntent: 'Transactional'
-        },
-        {
-          keyword: 'leading advertising companies',
-          position: 1,
-          previousPosition: 1,
-          positionChange: 0,
-          searchVolume: 90,
-          keywordDifficulty: 6,
-          estimatedTraffic: 0,
-          trafficChange: 0,
-          url: `https://${domain}/blog/best-international-marketing-agencies`,
-          serpFeatures: ['Featured Snippet'],
-          searchIntent: 'Commercial'
-        }
-      ];
-    } else if (isHeaven) {
-      baseKeywords = [
-        {
-          keyword: 'ai girlfriend',
-          position: 4,
-          previousPosition: 6,
-          positionChange: 2,
-          searchVolume: 18000,
-          keywordDifficulty: 45,
-          estimatedTraffic: 320,
-          trafficChange: 110,
-          url: `https://${domain}/`,
-          serpFeatures: ['People Also Ask'],
-          searchIntent: 'Commercial'
-        },
-        {
-          keyword: 'heaven girlfriend review',
-          position: 1,
-          previousPosition: 1,
-          positionChange: 0,
-          searchVolume: 1200,
-          keywordDifficulty: 12,
-          estimatedTraffic: 180,
-          trafficChange: 20,
-          url: `https://${domain}/about`,
-          serpFeatures: ['Featured Snippet'],
-          searchIntent: 'Informational'
-        },
-        {
-          keyword: 'virtual girlfriend simulator',
-          position: 7,
-          previousPosition: 10,
-          positionChange: 3,
-          searchVolume: 5400,
-          keywordDifficulty: 28,
-          estimatedTraffic: 43,
-          trafficChange: 15,
-          url: `https://${domain}/chat`,
-          serpFeatures: ['Image Pack'],
-          searchIntent: 'Transactional'
-        }
-      ];
-    } else if (isHorny) {
-      baseKeywords = [
-        {
-          keyword: 'horny companion',
-          position: 1,
-          previousPosition: 1,
-          positionChange: 0,
-          searchVolume: 9200,
-          keywordDifficulty: 15,
-          estimatedTraffic: 6100,
-          trafficChange: 400,
-          url: `https://${domain}/`,
-          serpFeatures: ['Featured Snippet'],
-          searchIntent: 'Navigational'
-        },
-        {
-          keyword: 'ai companion chat',
-          position: 3,
-          previousPosition: 4,
-          positionChange: 1,
-          searchVolume: 4100,
-          keywordDifficulty: 22,
-          estimatedTraffic: 2000,
-          trafficChange: 150,
-          url: `https://${domain}/chat`,
-          serpFeatures: ['People Also Ask'],
-          searchIntent: 'Commercial'
-        }
-      ];
-    } else {
-      baseKeywords = [
-        {
-          keyword: 'titan treasure casino',
-          position: 2,
-          previousPosition: 3,
-          positionChange: 1,
-          searchVolume: 3200,
-          keywordDifficulty: 14,
-          estimatedTraffic: 850,
-          trafficChange: 120,
-          url: `https://${domain}/`,
-          serpFeatures: ['Featured Snippet'],
-          searchIntent: 'Navigational'
-        },
-        {
-          keyword: 'titan treasure sweepstakes',
-          position: 5,
-          previousPosition: 8,
-          positionChange: 3,
-          searchVolume: 1900,
-          keywordDifficulty: 21,
-          estimatedTraffic: 350,
-          trafficChange: 80,
-          url: `https://${domain}/sweeps`,
-          serpFeatures: ['People Also Ask'],
-          searchIntent: 'Commercial'
-        }
-      ];
-    }
-
-    const estimatedTraffic = isRed ? 0.18 : isHeaven ? 543 : isHorny ? 8100 : 1000;
-    const totalKeywords = isRed ? 7 : isHeaven ? 30 : isHorny ? 3 : 10;
-
-    return {
-      domain,
-      totalKeywords,
-      top3Count: baseKeywords.filter(k => k.position <= 3).length,
-      top10Count: baseKeywords.filter(k => k.position <= 10).length,
-      top50Count: totalKeywords,
-      estimatedTraffic,
-      trafficValue: isRed ? 0 : isHeaven ? 306 : isHorny ? 4100 : 100,
-      keywords: baseKeywords
-    };
-  }
-
-  public generateMockTopPages(domain: string): TopPagesReport {
-    const isTitan = domain.includes('titantreasure');
-    const isRed = domain.includes('red-engage');
-
-    let pages: TopPageItem[] = [];
-
-    if (isTitan) {
-      pages = [
-        {
-          url: `https://${domain}/`,
-          organicTraffic: 8500,
-          trafficChange: 420,
-          rankingKeywords: 180,
-          topKeyword: 'titan treasure casino',
-          trafficValue: 14500
-        },
-        {
-          url: `https://${domain}/casino`,
-          organicTraffic: 3200,
-          trafficChange: 250,
-          rankingKeywords: 85,
-          topKeyword: 'titan treasure games',
-          trafficValue: 6200
-        },
-        {
-          url: `https://${domain}/sportsbook`,
-          organicTraffic: 1900,
-          trafficChange: -80,
-          rankingKeywords: 45,
-          topKeyword: 'titan treasure sportsbook',
-          trafficValue: 3400
-        }
-      ];
-    } else if (isRed) {
-      pages = [
-        {
-          url: `https://${domain}/`,
-          organicTraffic: 1200,
-          trafficChange: 80,
-          rankingKeywords: 45,
-          topKeyword: 'red engage marketing',
-          trafficValue: 2200
-        }
-      ];
-    } else {
-      pages = [
-        {
-          url: `https://${domain}/`,
-          organicTraffic: 4200,
-          trafficChange: 150,
-          rankingKeywords: 120,
-          topKeyword: `${domain.split('.')[0]} official`,
-          trafficValue: 7800
-        },
-        {
-          url: `https://${domain}/chat`,
-          organicTraffic: 2100,
-          trafficChange: 90,
-          rankingKeywords: 60,
-          topKeyword: `${domain.split('.')[0]} app`,
-          trafficValue: 4100
-        }
-      ];
-    }
-
-    const totalOrganicTraffic = pages.reduce((acc, p) => acc + p.organicTraffic, 0);
-    const totalTrafficValue = pages.reduce((acc, p) => acc + p.trafficValue, 0);
-
-    return {
-      domain,
-      totalPages: pages.length,
-      totalOrganicTraffic,
-      totalTrafficValue,
-      pages
-    };
-  }
-
-  public generateMockCompetitorOverview(targetDomain: string, competitorDomain: string): CompetitorMetrics {
-    const compMap: Record<string, { dr: number; traffic: number; keywords: number; overlap: number }> = {
-      'chumbacasino.com': { dr: 78, traffic: 1200000, keywords: 45000, overlap: 120 },
-      'pulsz.com': { dr: 74, traffic: 850000, keywords: 32000, overlap: 95 },
-      'luckylandslots.com': { dr: 69, traffic: 620000, keywords: 28000, overlap: 80 },
-      'candy.ai': { dr: 68, traffic: 450000, keywords: 14000, overlap: 310 },
-      'crushon.ai': { dr: 64, traffic: 320000, keywords: 11500, overlap: 240 },
-      'spicychat.ai': { dr: 61, traffic: 280000, keywords: 9800, overlap: 190 },
-      'janitorai.com': { dr: 72, traffic: 3500000, keywords: 65000, overlap: 520 },
-      'character.ai': { dr: 86, traffic: 18500000, keywords: 240000, overlap: 840 },
-      'dopple.ai': { dr: 59, traffic: 190000, keywords: 8200, overlap: 150 },
-      'singlegrain.com': { dr: 76, traffic: 180000, keywords: 22000, overlap: 45 },
-      'growthrocks.com': { dr: 65, traffic: 42000, keywords: 6500, overlap: 28 },
-      'disruptiveadvertising.com': { dr: 72, traffic: 95000, keywords: 14200, overlap: 35 }
-    };
-
-    const cfg = compMap[competitorDomain] || {
-      dr: 55 + (competitorDomain.length % 20),
-      traffic: 50000 + (competitorDomain.length * 1000),
-      keywords: 5000 + (competitorDomain.length * 500),
-      overlap: 50 + (competitorDomain.length * 5)
-    };
-
-    return {
-      targetDomain,
-      competitorDomain,
-      domainRating: cfg.dr,
-      organicTraffic: cfg.traffic,
-      trafficValue: Math.round(cfg.traffic * 1.75),
-      sharedKeywords: cfg.overlap,
-      competitorExclusiveKeywords: cfg.keywords,
-      gapOpportunities: [
-        {
-          keyword: `top alternatives to ${competitorDomain.split('.')[0]}`,
-          competitorPosition: 3,
-          searchVolume: 5400,
-          keywordDifficulty: 24,
-          searchIntent: 'Commercial'
-        },
-        {
-          keyword: `${competitorDomain.split('.')[0]} promo codes`,
-          competitorPosition: 2,
-          searchVolume: 3200,
-          keywordDifficulty: 18,
-          searchIntent: 'Transactional'
-        }
-      ]
-    };
-  }
-
-  private generateMockBacklinkReport(domain: string): BacklinkAuditReport {
-    const seed = domain.length;
-    const domainRating = 35 + (seed % 25);
-    const totalBacklinks = 1500 + (seed * 300);
-    const referringDomains = 250 + (seed * 45);
-    const dofollowBacklinks = Math.round(totalBacklinks * 0.78);
-    const dofollowRefdomains = Math.round(referringDomains * 0.84);
-
-    const recentBacklinks: BacklinkItem[] = [
-      {
-        urlFrom: `https://techblog-news.org/review/${domain.replace(/\./g, '-')}`,
-        urlTo: `https://${domain}/`,
-        anchorText: domain,
-        domainRatingFrom: domainRating + 5,
-        isDofollow: true,
-        firstSeen: new Date(Date.now() - 86400000 * 2).toISOString(),
-        lastSeen: new Date().toISOString(),
-        status: 'LIVE'
-      },
-      {
-        urlFrom: `https://industry-directory.com/listing/${domain}`,
-        urlTo: `https://${domain}/about`,
-        anchorText: `visit ${domain}`,
-        domainRatingFrom: domainRating - 3,
-        isDofollow: true,
-        firstSeen: new Date(Date.now() - 86400000 * 5).toISOString(),
-        lastSeen: new Date().toISOString(),
-        status: 'LIVE'
-      }
-    ];
-
-    return {
-      domain,
-      totalBacklinks,
-      referringDomains,
-      dofollowRatio: 0.78,
-      dofollowBacklinks,
-      dofollowRefdomains,
-      topAnchors: [
-        { anchor: domain, count: Math.round(referringDomains * 0.4) },
-        { anchor: `visit ${domain}`, count: Math.round(referringDomains * 0.25) }
-      ],
-      recentBacklinks,
-      seoHealthScore: calculateSeoHealthScore({
-        domainRating,
-        referringDomains,
-        totalBacklinks,
-        dofollowLinks: dofollowBacklinks,
-        estimatedTraffic: 14500 + (seed * 1100),
-        top10Count: 65
-      })
-    };
-  }
-
-  private generateMockDomainOverview(domain: string): DomainOverviewMetrics {
-    const isRed = domain.includes('red-engage');
-    const isHeaven = domain.includes('heavengirlfriend');
-    const isHorny = domain.includes('hornycompanion');
-
-    const domainRating = isRed ? 26 : isHeaven ? 21 : isHorny ? 2 : 30;
-    const urlRating = isRed ? 12 : isHeaven ? 18 : isHorny ? 5 : 15;
-    const ahrefsRank = isRed ? 5469562 : isHeaven ? 8104494 : isHorny ? 12500000 : 4028135;
-    const totalBacklinks = isRed ? 745 : isHeaven ? 804 : isHorny ? 389 : 1200;
-    const referringDomains = isRed ? 423 : isHeaven ? 527 : isHorny ? 389 : 350;
-    const dofollowBacklinks = Math.round(totalBacklinks * 0.78);
-    const dofollowRefdomains = Math.round(referringDomains * 0.84);
-    const nofollowLinks = Math.round(totalBacklinks * 0.22);
-    const organicTraffic = isRed ? 0.18 : isHeaven ? 543 : isHorny ? 8100 : 1200;
-    const trafficValue = isRed ? 0 : isHeaven ? 306 : isHorny ? 4100 : 500;
-    const rankingKeywords = isRed ? 7 : isHeaven ? 30 : isHorny ? 3 : 25;
-    const siteAuditHealthScore = isRed ? 95 : isHeaven ? 94 : isHorny ? 99 : 95;
-
-    const seoHealthScore = calculateSeoHealthScore({
-      domainRating,
-      referringDomains,
-      totalBacklinks,
-      dofollowLinks: dofollowBacklinks,
-      estimatedTraffic: organicTraffic,
-      top10Count: Math.round(rankingKeywords * 0.15),
-      siteAuditHealthScore
-    });
-
-    return {
-      domain,
-      domainRating,
-      urlRating,
-      ahrefsRank,
-      organicTraffic,
-      trafficValue,
-      rankingKeywords,
-      totalBacklinks,
-      referringDomains,
-      dofollowBacklinks,
-      dofollowRefdomains,
-      nofollowLinks,
-      timestamp: new Date().toISOString(),
-      seoHealthScore
-    };
   }
 }
+
+
+
 

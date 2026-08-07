@@ -64,13 +64,21 @@ export class SnapshotStore {
         }
       }
 
-      const healthScore = calculateSeoHealthScore(domain, overview, backlinks, keywords, topPages);
+      const healthScore = calculateSeoHealthScore({
+        domainRating: overview.domainRating,
+        referringDomains: overview.referringDomains,
+        totalBacklinks: overview.totalBacklinks,
+        dofollowLinks: overview.dofollowBacklinks,
+        estimatedTraffic: overview.organicTraffic,
+        top10Count: keywords.top10Count
+      });
 
       const snapshot: DomainSnapshot = {
         snapshotId: `snap_${domain.replace(/\./g, '_')}_${Date.now()}`,
         domain,
         timestamp: new Date().toISOString(),
-        dataSource: this.client.isMockMode() ? 'mock' : 'live_api',
+        dataSource: 'ahrefs-api-v3',
+
         overview,
         keywords,
         topPages,
@@ -129,34 +137,7 @@ export class SnapshotStore {
     const remoteSnapshot = await getLatestSnapshotFromSupabase(domain);
     if (remoteSnapshot) return remoteSnapshot;
 
-    // Only generate mock fallback if client is explicitly in mock mode
-    if (this.client.isMockMode()) {
-      const clientAny = this.client as unknown as Record<string, (d: string) => unknown>;
-      const overview = clientAny.generateMockDomainOverview?.(domain) as DomainOverviewMetrics | undefined;
-      const keywords = clientAny.generateMockOrganicKeywords?.(domain) as DomainKeywordReport | undefined;
-      const topPages = clientAny.generateMockTopPages?.(domain) as TopPagesReport | undefined;
-      const backlinks = clientAny.generateMockBacklinkReport?.(domain) as BacklinkAuditReport | undefined;
-
-      if (overview) {
-        return {
-          snapshotId: `snap_fallback_${domain.replace(/\./g, '_')}`,
-          domain,
-          timestamp: new Date().toISOString(),
-          dataSource: 'mock',
-          overview,
-          keywords: keywords || { domain, totalKeywords: 0, top3Count: 0, top10Count: 0, top50Count: 0, estimatedTraffic: 0, keywords: [] },
-          topPages: topPages || { domain, totalPages: 0, totalOrganicTraffic: 0, totalTrafficValue: 0, pages: [] },
-          backlinks: backlinks || { domain, totalBacklinks: 0, referringDomains: 0, dofollowRatio: 0, recentBacklinks: [], topAnchors: [] },
-          competitors: [],
-          domainRating: overview.domainRating,
-          referringDomains: overview.referringDomains,
-          totalBacklinks: overview.totalBacklinks,
-          estimatedTraffic: overview.organicTraffic,
-          organicKeywords: keywords?.totalKeywords || 0,
-          seoHealthScore: 95
-        };
-      }
-    }
     return undefined;
   }
 }
+

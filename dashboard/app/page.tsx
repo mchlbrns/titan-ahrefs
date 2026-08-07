@@ -218,23 +218,23 @@ export default function DashboardPage() {
 
   const summary = rawSummary
     ? {
-        domain_rating: rawSummary.domain_rating ?? rawSummary.domainRating ?? 30,
-        ahrefs_rank: rawSummary.ahrefs_rank ?? rawSummary.ahrefsRank ?? 4028135,
-        organic_traffic: rawSummary.organic_traffic ?? rawSummary.organicTraffic ?? 0,
+        domain_rating: rawSummary.domain_rating ?? rawSummary.domainRating ?? null,
+        ahrefs_rank: rawSummary.ahrefs_rank ?? rawSummary.ahrefsRank ?? null,
+        organic_traffic: rawSummary.organic_traffic ?? rawSummary.organicTraffic ?? null,
         organic_traffic_prev: rawSummary.organic_traffic_prev ?? 0,
         traffic_delta_percent: rawSummary.traffic_delta_percent ?? 0,
         organic_keywords: rawSummary.organic_keywords ?? rawSummary.keywordWins ?? 0,
-        organic_cost: rawSummary.organic_cost ?? rawSummary.trafficValue ?? 0,
-        total_backlinks: rawSummary.total_backlinks ?? rawSummary.totalBacklinks ?? 120,
-        ref_domains: rawSummary.ref_domains ?? rawSummary.referringDomains ?? 50,
-        dofollow_backlinks: rawSummary.dofollow_backlinks ?? Math.round((rawSummary.totalBacklinks || 120) * 0.75),
+        organic_cost: rawSummary.organic_cost ?? rawSummary.trafficValue ?? null,
+        total_backlinks: rawSummary.total_backlinks ?? rawSummary.totalBacklinks ?? null,
+        ref_domains: rawSummary.ref_domains ?? rawSummary.referringDomains ?? null,
+        dofollow_backlinks: rawSummary.dofollow_backlinks ?? null,
         striking_distance_count: rawSummary.striking_distance_count ?? 0,
         healthScore:
           typeof rawSummary.healthScore === 'number'
             ? rawSummary.healthScore
             : typeof rawSummary.seoHealthScore === 'number'
             ? rawSummary.seoHealthScore
-            : rawSummary.seoHealthScore?.score ?? 78,
+            : (rawSummary.seoHealthScore as { score?: number })?.score ?? null,
       }
     : undefined;
 
@@ -243,11 +243,11 @@ export default function DashboardPage() {
     (data as unknown as { apiUsageSummary?: { totalConsumed?: number; totalLimit?: number; usagePercent?: number } })?.apiUsageSummary;
   const apiUsage = rawApiUsage
     ? {
-        monthly_used: (rawApiUsage as Record<string, unknown>).monthly_used ?? (rawApiUsage as Record<string, unknown>).totalConsumed ?? 0,
-        monthly_limit: (rawApiUsage as Record<string, unknown>).monthly_limit ?? (rawApiUsage as Record<string, unknown>).totalLimit ?? 500000,
-        usage_percent: (rawApiUsage as Record<string, unknown>).usage_percent ?? (rawApiUsage as Record<string, unknown>).usagePercent ?? '0.00%',
+        monthly_used: (rawApiUsage as Record<string, unknown>).monthly_used ?? (rawApiUsage as Record<string, unknown>).totalConsumed ?? null,
+        monthly_limit: (rawApiUsage as Record<string, unknown>).monthly_limit ?? (rawApiUsage as Record<string, unknown>).totalLimit ?? null,
+        usage_percent: (rawApiUsage as Record<string, unknown>).usage_percent ?? (rawApiUsage as Record<string, unknown>).usagePercent ?? null,
       }
-    : { monthly_used: 0, monthly_limit: 500000, usage_percent: '0.00%' };
+    : { monthly_used: null, monthly_limit: null, usage_percent: null };
 
   // Null-safe filtered arrays — support both flat and summaries format
   const keywords: KeywordItem[] = (data?.keywords || []).filter(
@@ -270,7 +270,7 @@ export default function DashboardPage() {
   const trendBacklinks: BacklinkItem[] = [
     ...rawLostBacklinks.map((b) => ({
       ref_domain: b.urlFrom ? hostnameFrom(b.urlFrom) : 'external-site.com',
-      domain_rating: Number(b.domainRatingFrom || 30),
+      domain_rating: Number(b.domainRatingFrom || 0),
       dofollow_links: b.isDofollow ? 1 : 0,
       total_links: 1,
       first_seen: String(b.firstSeen || ''),
@@ -278,7 +278,7 @@ export default function DashboardPage() {
     })),
     ...rawNewBacklinks.map((b) => ({
       ref_domain: b.urlFrom ? hostnameFrom(b.urlFrom) : 'external-site.com',
-      domain_rating: Number(b.domainRatingFrom || 30),
+      domain_rating: Number(b.domainRatingFrom || 0),
       dofollow_links: b.isDofollow ? 1 : 0,
       total_links: 1,
       first_seen: String(b.firstSeen || ''),
@@ -297,7 +297,7 @@ export default function DashboardPage() {
 
   // Extract live recommendations and health grade from rawSummary
   const rawSummaryMap = rawSummary ? (rawSummary as Record<string, unknown>) : undefined;
-  const seoHealthScoreObj = rawSummaryMap?.seoHealthScore;
+  const seoHealthScoreObj = rawSummaryMap?.seoHealthScore || (data?.summary as Record<string, unknown>)?.seoHealthScore;
   const seoHealthScore = seoHealthScoreObj && typeof seoHealthScoreObj === 'object'
     ? (seoHealthScoreObj as Record<string, unknown>)
     : undefined;
@@ -409,36 +409,43 @@ export default function DashboardPage() {
           <section className="py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-6 border-b border-[rgba(255,255,255,0.06)]">
             <KpiCard
               title="SEO Health Score"
-              value={summary?.healthScore ?? 0}
-              subText={summary?.healthScore !== undefined ? `Grade ${healthGrade} — Health Rating (0–100)` : 'Health Rating (0–100)'}
-              hasData={hasSnapshot && summary?.healthScore !== undefined}
+              value={summary?.healthScore !== null && summary?.healthScore !== undefined ? summary.healthScore : '—'}
+              subText={
+                summary?.healthScore !== null && summary?.healthScore !== undefined
+                  ? healthGrade
+                    ? `Grade ${healthGrade} — Health Rating (0–100)`
+                    : 'Health Rating (0–100)'
+                  : 'Data Pending'
+              }
+              hasData={hasSnapshot && summary?.healthScore !== null && summary?.healthScore !== undefined}
               size="hero"
             />
             <KpiCard
               title="Domain Rating"
-              value={summary?.domain_rating ?? 0}
+              value={summary?.domain_rating !== null && summary?.domain_rating !== undefined ? summary.domain_rating : '—'}
               subText={
                 summary?.ahrefs_rank
                   ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}`
-                  : undefined
+                  : 'Ahrefs Rank N/A'
               }
-              hasData={hasSnapshot && summary?.domain_rating !== undefined}
+              hasData={hasSnapshot && summary?.domain_rating !== null && summary?.domain_rating !== undefined}
               size="hero"
             />
             <KpiCard
               title="Organic Traffic"
-              value={summary?.organic_traffic ?? 0}
+              value={summary?.organic_traffic !== null && summary?.organic_traffic !== undefined ? summary.organic_traffic : '—'}
               changePercent={
                 typeof summary?.traffic_delta_percent === 'number'
                   ? summary.traffic_delta_percent
                   : undefined
               }
               subText="Est. monthly visits from search"
-              hasData={hasSnapshot && summary?.organic_traffic !== undefined}
               size="hero"
             />
             <KpiCard
               title="Referring Domains"
+
+
               value={refDomainsCount}
               subText="Unique domains linking to site"
               hasData={hasSnapshot || refDomainsCount > 0}

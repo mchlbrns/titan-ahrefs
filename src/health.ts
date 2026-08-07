@@ -58,9 +58,9 @@ export function calculateSeoHealthScore(input: HealthScoreInput): SeoHealthScore
     domainRatingScore + referringDomainsScore + trafficScore + dofollowScore + serpScore
   );
 
-  // Technical Site Audit Health Score defaults to input or 95 when explicitly passed
-  const siteAuditHealthScore = input.siteAuditHealthScore ?? 95;
+  const siteAuditHealthScore = input.siteAuditHealthScore;
   const score = input.siteAuditHealthScore !== undefined ? input.siteAuditHealthScore : commercialGrowthScore;
+
 
   let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' = 'F';
   const evalScore = input.siteAuditHealthScore !== undefined ? score : score;

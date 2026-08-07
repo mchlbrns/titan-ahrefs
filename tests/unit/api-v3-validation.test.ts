@@ -429,13 +429,21 @@ describe('Ahrefs API v3 Reporting Engine Compliance & Validation Suite', () => {
 
   // Task 12: Partial Failure Resilience
   test('Task 12: Validates partial report generation when an individual domain or endpoint fails', async () => {
-    const client = new AhrefsClient({ mockFallback: true });
+    const client = new AhrefsClient({ mockFallback: false });
     jest.spyOn(client, 'fetchDomainOverview').mockImplementation(async (domain: string) => {
       if (domain === 'failing-domain.com') {
         throw new Error('Network timeout for domain');
       }
-      return client['generateMockDomainOverview'](domain);
+      return {
+        domain, domainRating: 30, urlRating: 15, ahrefsRank: 4000000, organicTraffic: 500,
+        trafficValue: 1000, rankingKeywords: 50, totalBacklinks: 1000, referringDomains: 200,
+        dofollowBacklinks: 800, dofollowRefdomains: 180, nofollowLinks: 200, timestamp: new Date().toISOString()
+      };
     });
+
+
+
+
 
     const reporter = new ReportGenerator(testOutputDir, client);
     const report = await reporter.generateWeeklyReport(['red-engage.com', 'failing-domain.com'], { outputDir: testOutputDir });

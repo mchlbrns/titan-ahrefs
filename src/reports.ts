@@ -211,7 +211,8 @@ export class ReportGenerator {
   ): string {
     const primaryDomain = domains[0] || 'titantreasure.com';
     const mainSummary = summaries[0];
-    const scoreVal = mainSummary?.seoHealthScore?.siteAuditHealthScore ?? mainSummary?.seoHealthScore?.score ?? mainSummary?.healthScore ?? 95;
+    const scoreVal = mainSummary?.seoHealthScore?.siteAuditHealthScore ?? mainSummary?.seoHealthScore?.score ?? mainSummary?.healthScore ?? 0;
+
     const gradeVal = scoreVal >= 90 ? 'A+' : scoreVal >= 80 ? 'A' : 'B';
 
     let body = `Subject: Executive Weekly SEO Briefing — ${primaryDomain} (${dateStr})\n\n`;
@@ -290,7 +291,8 @@ export class ReportGenerator {
   ): string {
     const primaryDomain = domains[0] || 'titantreasure.com';
     const mainSummary = summaries[0];
-    const score = mainSummary?.seoHealthScore?.siteAuditHealthScore ?? mainSummary?.seoHealthScore?.score ?? mainSummary?.healthScore ?? 95;
+    const score = mainSummary?.seoHealthScore?.siteAuditHealthScore ?? mainSummary?.seoHealthScore?.score ?? mainSummary?.healthScore ?? 0;
+
     const grade = score >= 90 ? 'A+' : score >= 80 ? 'A' : 'B';
 
     const keywords = mainSummary?.snapshot?.keywords?.keywords || [];
@@ -596,7 +598,8 @@ export class ReportGenerator {
       main.totalBacklinks,
       main.keywordWins,
       main.keywordLosses,
-      main.seoHealthScore?.siteAuditHealthScore ?? main.seoHealthScore?.score ?? main.healthScore ?? 95,
+      main.seoHealthScore?.siteAuditHealthScore ?? main.seoHealthScore?.score ?? main.healthScore ?? 0,
+
       main.trend?.trendDirection ?? 'STABLE'
     ].join(','));
     lines.push('');
@@ -688,11 +691,9 @@ export class ReportGenerator {
           c.organicTraffic
         ].join(','));
       });
-    } else {
-      lines.push(`${main.domain},"chumbacasino.com",58,1420,18500,450000`);
-      lines.push(`${main.domain},"pulsz.com",52,980,12400,280000`);
-      lines.push(`${main.domain},"luckylandslots.com",49,750,9100,195000`);
     }
+
+
     lines.push('');
 
     // Section 6: Recommendations

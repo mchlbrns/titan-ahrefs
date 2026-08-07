@@ -1,18 +1,30 @@
 import React from 'react';
 
 interface ApiUsagePillProps {
-  monthlyUsed: number;
-  monthlyLimit: number;
-  usagePercent: string | number;
-  resetDate?: string;
+  monthlyUsed: number | null;
+  monthlyLimit: number | null;
+  usagePercent: string | number | null;
+  resetDate?: string | null;
 }
 
 export default function ApiUsagePill({
   monthlyUsed,
   monthlyLimit,
   usagePercent,
-  resetDate = 'Sept 4, 2026',
+  resetDate,
 }: ApiUsagePillProps) {
+  if (monthlyUsed === null || monthlyLimit === null || usagePercent === null) {
+    return (
+      <span
+        title="API telemetry unavailable"
+        className="inline-flex items-center gap-1.5 text-xs text-slate-500 cursor-default"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 shrink-0" />
+        <span>API Offline</span>
+      </span>
+    );
+  }
+
   const pct =
     typeof usagePercent === 'string'
       ? parseFloat(usagePercent.replace('%', ''))
@@ -36,7 +48,7 @@ export default function ApiUsagePill({
   const title = [
     `Ahrefs API usage: ${pct.toFixed(1)}%`,
     `${monthlyUsed.toLocaleString()} / ${monthlyLimit.toLocaleString()} units`,
-    `Resets ${resetDate}`,
+    resetDate ? `Resets ${resetDate}` : '',
     isCritical ? '⚠ 80% cap reached — ingestion halted' : '',
   ]
     .filter(Boolean)

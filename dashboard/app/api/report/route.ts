@@ -4,6 +4,7 @@ import { ReportGenerator } from '../../../src/reports';
 import { SnapshotStore } from '../../../src/snapshots';
 import { ConfigLoader } from '../../../src/config';
 import { Logger } from '../../../src/logger';
+import { calculateSeoHealthScore } from '../../../src/health';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -19,7 +20,6 @@ export async function GET(req: NextRequest) {
 
   try {
     if (format === 'json') {
-      // Parallel execution for single requested domain - fast and zero disk write dependency
       const domainCompetitorsMap: Record<string, string[]> = {
         'heavengirlfriend.com': ['candy.ai', 'crushon.ai', 'spicychat.ai'],
         'hornycompanion.com': ['janitorai.com', 'character.ai', 'dopple.ai'],
@@ -27,27 +27,24 @@ export async function GET(req: NextRequest) {
         'titantreasure.com': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']
       };
 
-      const targetCompetitors = domainCompetitorsMap[requestedDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'];
+      const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];
 
       const [overview, kwData, pgData, blData, compResults, limits] = await Promise.all([
         client.fetchDomainOverview(requestedDomain).catch(() => null),
         client.fetchOrganicKeywords(requestedDomain).catch(() => ({ keywords: [] })),
         client.fetchTopPages(requestedDomain).catch(() => ({ pages: [] })),
         client.fetchAllBacklinks(requestedDomain).catch(() => ({ recentBacklinks: [] })),
-        Promise.all(targetCompetitors.map(c => client.fetchCompetitorOverview(requestedDomain, c).catch(() => client.generateMockCompetitorOverview(requestedDomain, c)))),
-        client.fetchLimitsAndUsage().catch(() => ({ unitsConsumed: 14250, unitsLimit: 500000 }))
+        Promise.all(targetCompetitors.map(c => client.fetchCompetitorOverview(requestedDomain, c).catch(() => null))),
+        client.fetchLimitsAndUsage().catch(() => null)
       ]);
 
       const snapshotFallback = await snapshotStore.getLatestSnapshotForDomain(requestedDomain);
-
-      const mockKwFallback = client.generateMockOrganicKeywords(requestedDomain)?.keywords || [];
-      const mockPgFallback = client.generateMockTopPages(requestedDomain)?.pages || [];
 
       const rawKeywords = (kwData?.keywords && kwData.keywords.length > 0)
         ? kwData.keywords
         : (Array.isArray(snapshotFallback?.keywords)
             ? snapshotFallback.keywords
-            : (snapshotFallback?.keywords as { keywords?: unknown[] })?.keywords || mockKwFallback);
+            : (snapshotFallback?.keywords as { keywords?: unknown[] })?.keywords || []);
 
       const keywordsList = (rawKeywords || []).map((k: Record<string, unknown>) => ({
         keyword: String(k.keyword || ''),
@@ -59,7 +56,7 @@ export async function GET(req: NextRequest) {
         url: String(k.url || ''),
         traffic: Number(k.estimatedTraffic || k.traffic || 0),
         striking_distance: Number(k.position || 0) >= 4 && Number(k.position || 0) <= 20 ? 'YES' : 'NO',
-        serpFeatures: (k.serpFeatures as string[]) || ['Snippet', 'Links'],
+        serpFeatures: (k.serpFeatures as string[]) || [],
         intent: String(k.searchIntent || k.intent || 'Informational')
       }));
 
@@ -67,7 +64,7 @@ export async function GET(req: NextRequest) {
         ? pgData.pages
         : (Array.isArray(snapshotFallback?.topPages)
             ? snapshotFallback.topPages
-            : (snapshotFallback?.topPages as { pages?: unknown[] })?.pages || mockPgFallback);
+            : (snapshotFallback?.topPages as { pages?: unknown[] })?.pages || []);
 
       const pagesList = (rawPages || []).map((p: Record<string, unknown>) => ({
         url: String(p.url || ''),
@@ -84,8 +81,8 @@ export async function GET(req: NextRequest) {
             : (snapshotFallback?.backlinks as { recentBacklinks?: unknown[] })?.recentBacklinks || []);
 
       const backlinksList = (rawBacklinks || []).map((b: Record<string, unknown>) => ({
-        ref_domain: b.urlFrom ? new URL(String(b.urlFrom)).hostname : String(b.ref_domain || 'external-site.com'),
-        domain_rating: Number(b.domainRatingFrom || b.domain_rating || 30),
+        ref_domain: b.urlFrom ? new URL(String(b.urlFrom)).hostname : String(b.ref_domain || ''),
+        domain_rating: Number(b.domainRatingFrom || b.domain_rating || 0),
         dofollow_links: b.isDofollow || b.dofollow_links ? 1 : 0,
         total_links: 1,
         first_seen: String(b.firstSeen || b.first_seen || ''),
@@ -94,28 +91,32 @@ export async function GET(req: NextRequest) {
         status: String(b.status || 'LIVE')
       }));
 
-      const competitorsList = (compResults && compResults.length > 0) ? compResults.map(compData => ({
+      const validCompResults = (compResults || []).filter((c): c is NonNullable<typeof c> => c !== null);
+      const competitorsList = (validCompResults.length > 0) ? validCompResults.map(compData => ({
         competitor_domain: compData.competitorDomain,
         overlap_keywords: compData.sharedKeywords,
-        competitor_keywords: compData.competitorExclusiveKeywords || 310,
+        competitor_keywords: compData.competitorExclusiveKeywords,
         competitor_traffic: compData.organicTraffic,
         competitor_dr: compData.domainRating
       })) : (snapshotFallback?.competitors || []);
 
-      const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? 26;
-      const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? 0;
-      const referringDomains = overview?.referringDomains ?? snapshotFallback?.referringDomains ?? 426;
-      const totalBacklinks = overview?.totalBacklinks ?? snapshotFallback?.totalBacklinks ?? 750;
-      const ahrefsRank = overview?.ahrefsRank ?? 5469562;
+      const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? null;
+      const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? null;
+      const referringDomains = overview?.referringDomains ?? snapshotFallback?.referringDomains ?? null;
+      const totalBacklinks = overview?.totalBacklinks ?? snapshotFallback?.totalBacklinks ?? null;
+      const ahrefsRank = overview?.ahrefsRank ?? null;
 
-      // Site Audit Health Score matching Ahrefs official dashboard (e.g. 95 for red-engage, 94 for heavengirlfriend, 99 for hornycompanion)
-      const targetHealthScore = requestedDomain.includes('red-engage') ? 95 :
-        requestedDomain.includes('heavengirlfriend') ? 94 :
-        requestedDomain.includes('hornycompanion') ? 99 : 95;
+      const computedHealth = (domainRating !== null && referringDomains !== null && totalBacklinks !== null && organicTraffic !== null)
+        ? calculateSeoHealthScore({
+            domainRating,
+            referringDomains,
+            totalBacklinks,
+            dofollowLinks: Math.round(totalBacklinks * 0.78),
+            estimatedTraffic: organicTraffic,
+            top10Count: keywordsList.filter(k => k.position <= 10).length
+          })
+        : null;
 
-      const healthScore = typeof overview?.seoHealthScore === 'number' 
-        ? overview.seoHealthScore 
-        : (overview?.seoHealthScore?.siteAuditHealthScore ?? overview?.seoHealthScore?.score ?? targetHealthScore);
       const resolveRealisticTimestamp = (snapshotTs?: string) => {
         if (snapshotTs && !isNaN(new Date(snapshotTs).getTime())) {
           return snapshotTs;
@@ -145,22 +146,23 @@ export async function GET(req: NextRequest) {
           organic_traffic_prev: 0,
           traffic_delta_percent: 0,
           organic_keywords: keywordsList.length,
-          organic_cost: Math.round(organicTraffic * 1.85),
+          organic_cost: organicTraffic !== null ? Math.round(organicTraffic * 1.85) : null,
           total_backlinks: totalBacklinks,
           ref_domains: referringDomains,
-          dofollow_backlinks: Math.round(totalBacklinks * 0.75),
+          dofollow_backlinks: totalBacklinks !== null ? Math.round(totalBacklinks * 0.75) : null,
           striking_distance_count: keywordsList.filter((k: Record<string, unknown>) => k.striking_distance === 'YES').length,
-          healthScore
+          healthScore: computedHealth?.score ?? null,
+          seoHealthScore: computedHealth
         },
         keywords: keywordsList,
         pages: pagesList,
         backlinks: backlinksList,
         competitors: competitorsList,
-        api_usage: {
-          monthly_used: limits?.unitsConsumed || 14250,
-          monthly_limit: limits?.unitsLimit || 500000,
-          usage_percent: `${(((limits?.unitsConsumed || 14250) / (limits?.unitsLimit || 500000)) * 100).toFixed(2)}%`
-        }
+        api_usage: limits ? {
+          monthly_used: limits.unitsConsumed,
+          monthly_limit: limits.unitsLimit,
+          usage_percent: `${((limits.unitsConsumed / (limits.unitsLimit || 1)) * 100).toFixed(2)}%`
+        } : null
       };
 
       return NextResponse.json(formattedResponse, { status: 200 });
@@ -192,7 +194,6 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Default HTML format (clean document for PDF generation)
     const fullHtml = report.htmlContent || `<html><body><h1>Report Generated</h1></body></html>`;
 
     return new NextResponse(fullHtml, {
@@ -201,43 +202,19 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error) {
-    logger.error('Vercel serverless report generation failed, returning resilient snapshot fallback', { error: (error as Error).message });
-    const fallbackSnap = snapshotStore.getLatestSnapshotForDomain(requestedDomain);
-    const healthScore = requestedDomain.includes('red-engage') ? 95 :
-      requestedDomain.includes('heavengirlfriend') ? 94 :
-      requestedDomain.includes('hornycompanion') ? 99 : 95;
-
+    logger.error('Vercel serverless report generation failed', { error: (error as Error).message });
     return NextResponse.json({
-      status: 'SUCCESS',
+      status: 'ERROR',
+      error: (error as Error).message,
       timestamp: new Date().toISOString(),
       primary_domain: requestedDomain,
-      config: {
-        primary_domain: requestedDomain,
-        target_country: 'us',
-        competitors: ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
-        report_frequency: 'Weekly',
-        comparison_period: 'Previous 7 days'
-      },
-      summary: {
-        domain_rating: fallbackSnap?.domainRating ?? (requestedDomain.includes('red-engage') ? 26 : requestedDomain.includes('heavengirlfriend') ? 21 : requestedDomain.includes('hornycompanion') ? 2 : 30),
-        ahrefs_rank: fallbackSnap?.overview?.ahrefsRank ?? 5469562,
-        organic_traffic: fallbackSnap?.estimatedTraffic ?? (requestedDomain.includes('heavengirlfriend') ? 543 : requestedDomain.includes('hornycompanion') ? 8100 : 0.18),
-        organic_traffic_prev: 0,
-        traffic_delta_percent: 0,
-        organic_keywords: fallbackSnap?.keywords?.keywords?.length ?? 0,
-        organic_cost: 0,
-        total_backlinks: fallbackSnap?.totalBacklinks ?? 500,
-        ref_domains: fallbackSnap?.referringDomains ?? 300,
-        dofollow_backlinks: Math.round((fallbackSnap?.totalBacklinks ?? 500) * 0.75),
-        striking_distance_count: 0,
-        healthScore
-      },
-      keywords: fallbackSnap?.keywords?.keywords || [],
-      pages: fallbackSnap?.topPages?.pages || [],
-      backlinks: fallbackSnap?.backlinks?.recentBacklinks || [],
-      competitors: fallbackSnap?.competitors || [],
-      api_usage: { monthly_used: 14250, monthly_limit: 500000, usage_percent: '2.85%' }
-    }, { status: 200 });
+      summary: null,
+      keywords: [],
+      pages: [],
+      backlinks: [],
+      competitors: [],
+      api_usage: null
+    }, { status: 500 });
   }
 }
 

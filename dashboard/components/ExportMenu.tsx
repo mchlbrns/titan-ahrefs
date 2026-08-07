@@ -65,13 +65,21 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
 
       let startY = 38;
 
+      const healthScoreVal = summary.healthScore !== null && summary.healthScore !== undefined ? `${summary.healthScore}/100` : 'N/A';
+      const drVal = (summary.domain_rating ?? summary.domainRating) !== null && (summary.domain_rating ?? summary.domainRating) !== undefined ? `${summary.domain_rating ?? summary.domainRating}` : 'N/A';
+      const rankSub = (summary.ahrefs_rank ?? summary.ahrefsRank) ? `Ahrefs Rank #${(summary.ahrefs_rank ?? summary.ahrefsRank).toLocaleString()}` : 'Ahrefs Rank N/A';
+      const trafficVal = (summary.organic_traffic ?? summary.organicTraffic) !== null && (summary.organic_traffic ?? summary.organicTraffic) !== undefined ? (summary.organic_traffic ?? summary.organicTraffic).toLocaleString() : 'N/A';
+      const refDomainsVal = (summary.ref_domains ?? summary.referringDomains) !== null && (summary.ref_domains ?? summary.referringDomains) !== undefined ? (summary.ref_domains ?? summary.referringDomains).toLocaleString() : 'N/A';
+      const backlinksSub = (summary.total_backlinks ?? summary.totalBacklinks) !== null && (summary.total_backlinks ?? summary.totalBacklinks) !== undefined ? `${(summary.total_backlinks ?? summary.totalBacklinks).toLocaleString()} Total Links` : 'Links N/A';
+
       // Key Metrics Cards
       const kpis = [
-        { label: 'SEO HEALTH SCORE', val: `${summary.healthScore || 95}/100`, sub: 'Grade A+ — Optimal' },
-        { label: 'DOMAIN RATING (DR)', val: `${summary.domain_rating || summary.domainRating || 30}`, sub: `Ahrefs Rank #${(summary.ahrefs_rank || 4033487).toLocaleString()}` },
-        { label: 'EST. ORGANIC TRAFFIC', val: `${(summary.organic_traffic || summary.organicTraffic || 0).toLocaleString()}`, sub: 'Monthly Visits' },
-        { label: 'REFERRING DOMAINS', val: `${(summary.ref_domains || summary.referringDomains || 475).toLocaleString()}`, sub: `${(summary.total_backlinks || summary.totalBacklinks || 1556).toLocaleString()} Total Links` }
+        { label: 'SEO HEALTH SCORE', val: healthScoreVal, sub: 'Health Rating (0–100)' },
+        { label: 'DOMAIN RATING (DR)', val: drVal, sub: rankSub },
+        { label: 'EST. ORGANIC TRAFFIC', val: trafficVal, sub: 'Monthly Visits' },
+        { label: 'REFERRING DOMAINS', val: refDomainsVal, sub: backlinksSub }
       ];
+
 
       const cardWidth = 43;
       kpis.forEach((kpi, idx) => {
