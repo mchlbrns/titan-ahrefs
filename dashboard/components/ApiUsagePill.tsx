@@ -5,6 +5,7 @@ interface ApiUsagePillProps {
   monthlyLimit: number | null;
   usagePercent: string | number | null;
   resetDate?: string | null;
+  isVerifying?: boolean;
 }
 
 export default function ApiUsagePill({
@@ -12,7 +13,21 @@ export default function ApiUsagePill({
   monthlyLimit,
   usagePercent,
   resetDate,
+  isVerifying = false,
 }: ApiUsagePillProps) {
+  if (isVerifying) {
+    return (
+      <span
+        title="Verifying live API telemetry..."
+        className="inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded cursor-default text-slate-500 bg-slate-900/40 border border-slate-800/50"
+        aria-label="Verifying API status"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-slate-500 animate-pulse shrink-0" />
+        <span>API Syncing...</span>
+      </span>
+    );
+  }
+
   if (monthlyUsed === null || monthlyLimit === null || usagePercent === null) {
     return null; // Hide entirely instead of showing "API Offline"
   }

@@ -174,6 +174,7 @@ export default function DashboardPage() {
     usage_percent: string | number | null;
     resetDate?: string | null;
   } | null>(null);
+  const [isLiveVerified, setIsLiveVerified] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -211,15 +212,41 @@ export default function DashboardPage() {
         if (res.ok) {
           const json = await res.json();
           if (json.unitsLimit !== null && json.unitsLimit !== undefined) {
-            setLiveApiUsage({
+            const freshUsage = {
               monthly_used: json.unitsConsumed ?? 0,
               monthly_limit: json.unitsLimit ?? 400000,
               usage_percent: `${(((json.unitsConsumed ?? 0) / (json.unitsLimit || 1)) * 100).toFixed(2)}%`,
               resetDate: json.resetDate || '2026-09-04',
-            });
+            };
+            setLiveApiUsage(freshUsage);
+            setIsLiveVerified(true);
+
+            // RULE 2: Immediate Cache Normalization on Telemetry Sync
+            if (typeof window !== 'undefined') {
+              const activeDomain = currentDomainRef.current || 'titantreasure.com';
+              const cacheKey = `titan_ahrefs_cache_${activeDomain}`;
+              const cachedStr = localStorage.getItem(cacheKey);
+              if (cachedStr) {
+                try {
+                  const cachedObj = JSON.parse(cachedStr);
+                  if (cachedObj && typeof cachedObj === 'object') {
+                    cachedObj.api_usage = freshUsage;
+                    localStorage.setItem(cacheKey, JSON.stringify(cachedObj));
+                  }
+                } catch { /* ignore */ }
+              }
+            }
+          } else {
+            setIsLiveVerified(true);
           }
+        } else {
+          // RULE 4: Graceful Network Degradation
+          setIsLiveVerified(true);
         }
-      } catch { /* ignore */ }
+      } catch {
+        // RULE 4: Graceful Network Degradation
+        setIsLiveVerified(true);
+      }
     }
 
     loadManagedDomains();
@@ -259,6 +286,16 @@ export default function DashboardPage() {
       const json: ApiResponseData = await res.json();
       if (currentDomainRef.current === domainToFetch) {
         setData(json);
+        if (json.api_usage) {
+          const freshUsage = {
+            monthly_used: Number((json.api_usage as Record<string, unknown>).monthly_used ?? 0),
+            monthly_limit: Number((json.api_usage as Record<string, unknown>).monthly_limit ?? 400000),
+            usage_percent: (json.api_usage as Record<string, unknown>).usage_percent as string ?? '0.00%',
+            resetDate: liveApiUsage?.resetDate || '2026-09-04',
+          };
+          setLiveApiUsage(freshUsage);
+          setIsLiveVerified(true);
+        }
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem(`titan_ahrefs_cache_${domainToFetch}`, JSON.stringify(json));
@@ -459,9 +496,9 @@ export default function DashboardPage() {
     ? keywords.reduce((best, k) => (k.traffic > (best?.traffic ?? 0) ? k : best), keywords[0])
     : null;
 
-  const apiUsedPct = apiUsage.monthly_used !== null && apiUsage.monthly_limit
-    ? (Number(apiUsage.monthly_used) / Number(apiUsage.monthly_limit)) * 100
-    : null;
+  const apiUsedPct = isLiveVerified && (liveApiUsage?.monthly_used != null || apiUsage.monthly_used != null) && (liveApiUsage?.monthly_limit || apiUsage.monthly_limit)
+    ? (Number(liveApiUsage?.monthly_used ?? apiUsage.monthly_used) / Number(liveApiUsage?.monthly_limit ?? apiUsage.monthly_limit)) * 100
+    : 0;
 
   // ─── Tabs config ─────────────────────────────────────────────────────────
 
@@ -478,8 +515,17 @@ export default function DashboardPage() {
 
   const usedPct = liveApiUsage?.monthly_used != null && liveApiUsage?.monthly_limit
     ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
-    : null;
-  const isQuotaExceeded = usedPct !== null && usedPct >= 100;
+    : (apiUsage.monthly_used != null && apiUsage.monthly_limit
+        ? (Number(apiUsage.monthly_used) / Number(apiUsage.monthly_limit)) * 100
+        : null);
+
+  // RULE 1: Quota Lock Strictly Requires Verified Live Data
+  // evaluates to false if isLiveVerified is false. Only true if isLiveVerified === true AND liveApiUsage !== null AND usedPct >= 100
+  const isQuotaExceeded =
+    isLiveVerified &&
+    liveApiUsage !== null &&
+    usedPct !== null &&
+    usedPct >= 100;
   const isDisabled = loading || refreshing || isQuotaExceeded;
   const resetDate = liveApiUsage?.resetDate || '2026-09-04';
 
@@ -543,6 +589,8 @@ export default function DashboardPage() {
                   monthlyUsed={apiUsage.monthly_used}
                   monthlyLimit={apiUsage.monthly_limit}
                   usagePercent={apiUsage.usage_percent}
+                  resetDate={liveApiUsage?.resetDate || '2026-09-04'}
+                  isVerifying={!isLiveVerified}
                 />
               )}
               {!loading && data && (
