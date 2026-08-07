@@ -110,7 +110,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(148, 163, 184); // slate-400
-      doc.text(`Target Domain: ${primaryDomain} | Telemetry: Official Ahrefs API v3`, 14, 22);
+      doc.text(`Domain: ${primaryDomain}`, 14, 22);
       doc.text(`Generated: ${new Date().toISOString().slice(0, 10)}`, 155, 22);
 
       let startY = 38;
@@ -340,14 +340,14 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
         ) : (
           <Download className="h-3.5 w-3.5" />
         )}
-        {isPdfGenerating ? 'Exporting Vector PDF...' : 'Export Report'}
+        {isPdfGenerating ? 'Generating PDF...' : 'Export Report'}
         <ChevronDown className="h-3 w-3 opacity-60" />
       </button>
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
           <div className="px-3 py-1.5 border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-            Direct Export Options
+            Export As
           </div>
 
           <button
@@ -357,7 +357,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
             <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
             <div>
               <div className="font-semibold text-white">Download PDF Report (.pdf)</div>
-              <div className="text-[10px] text-slate-500">Vector PDF file — 100% crisp & filled</div>
+              <div className="text-[10px] text-slate-500">Full SEO report as a PDF file</div>
             </div>
           </button>
 
@@ -368,7 +368,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
             <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />
             <div>
               <div className="font-semibold text-white">Download CSV / Excel (.csv)</div>
-              <div className="text-[10px] text-slate-500">Multi-table telemetry data export</div>
+              <div className="text-[10px] text-slate-500">Spreadsheet-ready data export</div>
             </div>
           </button>
 
@@ -378,14 +378,14 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
           >
             <Mail className="h-4 w-4 text-purple-400 shrink-0" />
             <div>
-              <div className="font-semibold text-white">Humanized Email Briefing</div>
-              <div className="text-[10px] text-slate-500">Executive summary briefing modal</div>
+              <div className="font-semibold text-white">Email Summary</div>
+              <div className="text-[10px] text-slate-500">Copy-ready summary for your team</div>
             </div>
           </button>
         </div>
       )}
 
-      {/* Humanized Email Briefing Modal */}
+      {/* Email Summary Modal */}
       {isEmailModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center z-50 p-4">
           <div className="bg-slate-900 border border-[rgba(255,255,255,0.12)] rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
@@ -397,7 +397,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
                   <Mail className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-white">Executive Weekly Email Briefing</h3>
+                  <h3 className="text-sm font-bold text-white">Weekly SEO Summary</h3>
                   <p className="text-[11px] text-slate-400">{domain}</p>
                 </div>
               </div>
@@ -431,7 +431,7 @@ export default function ExportMenu({ domain }: ExportMenuProps) {
               {loadingEmail ? (
                 <div className="py-16 text-center text-slate-500 text-xs flex flex-col items-center gap-2">
                   <Sparkles className="h-5 w-5 text-purple-400 animate-pulse" />
-                  Generating humanized executive email briefing...
+                  Preparing email summary...
                 </div>
               ) : activeTab === 'rich' ? (
                 <div className="bg-slate-900 border border-[rgba(255,255,255,0.08)] rounded-xl p-6 text-xs text-slate-300 space-y-4 shadow-inner">

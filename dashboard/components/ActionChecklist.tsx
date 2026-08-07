@@ -50,7 +50,7 @@ export default function ActionChecklist({
     liveRecommendations.forEach((rec, idx) => {
       actions.push({
         title: rec,
-        category: 'Ahrefs AI Insight',
+        category: 'Recommendation',
         priority: idx === 0 ? 'high' : idx === 1 ? 'high' : 'medium',
       });
     });
