@@ -112,12 +112,25 @@ function hostnameFrom(url: unknown): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [domainOptions, setDomainOptions] = useState<string[]>([
-    'titantreasure.com',
-    'red-engage.com',
-    'heavengirlfriend.com',
-    'hornycompanion.com',
-  ]);
+  const [domainOptions, setDomainOptions] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('titan_ahrefs_managed_domains');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        } catch {
+          // fallback to default
+        }
+      }
+    }
+    return [
+      'titantreasure.com',
+      'red-engage.com',
+      'heavengirlfriend.com',
+      'hornycompanion.com',
+    ];
+  });
   const [selectedDomain, setSelectedDomain] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('titan_ahrefs_selected_domain') || 'titantreasure.com';
@@ -140,8 +153,19 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDomainsChange = (updatedDomains: string[]) => {
+    setDomainOptions(updatedDomains);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('titan_ahrefs_managed_domains', JSON.stringify(updatedDomains));
+    }
+  };
+
   useEffect(() => {
     async function loadManagedDomains() {
+      if (typeof window !== 'undefined' && localStorage.getItem('titan_ahrefs_managed_domains')) {
+        // User has customized domain options stored in localStorage
+        return;
+      }
       try {
         const res = await fetch('/api/domains');
         if (res.ok) {
@@ -151,7 +175,7 @@ export default function DashboardPage() {
               typeof d === 'string' ? d : d.domain
             );
             if (domainList.length > 0) {
-              setDomainOptions(domainList);
+              handleDomainsChange(domainList);
             }
           }
         }
@@ -161,6 +185,7 @@ export default function DashboardPage() {
     }
     loadManagedDomains();
   }, []);
+
 
   const fetchData = async (domainToFetch: string = selectedDomain) => {
     setLoading(true);
@@ -622,7 +647,7 @@ export default function DashboardPage() {
         onClose={() => setIsConfigOpen(false)}
         currentConfig={config}
         domainOptions={domainOptions}
-        onDomainsChange={(updatedDomains) => setDomainOptions(updatedDomains)}
+        onDomainsChange={handleDomainsChange}
         onSelectDomain={(newDomain) => {
           handleSelectDomain(newDomain);
           fetchData(newDomain);

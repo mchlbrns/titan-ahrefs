@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
 
@@ -9,12 +10,14 @@ interface ManagedDomain {
   description?: string;
 }
 
-let inMemoryDomains: ManagedDomain[] = [
+const DEFAULT_DOMAINS: ManagedDomain[] = [
   { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Primary Platform' },
   { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement Platform' },
   { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion' },
   { domain: 'hornycompanion.com', target_country: 'us', priority: 'high', description: 'Companion Platform' }
 ];
+
+let inMemoryDomains: ManagedDomain[] = [...DEFAULT_DOMAINS];
 
 function getConfigPath(): string | undefined {
   const possiblePaths = [
@@ -52,11 +55,32 @@ function saveDomainsToFile(domains: ManagedDomain[]) {
   }
 }
 
+function getDomainsFromCookie(): ManagedDomain[] | null {
+  try {
+    const cookieStore = cookies();
+    const cookieVal = cookieStore.get('titan_managed_domains')?.value;
+    if (cookieVal) {
+      const parsed = JSON.parse(cookieVal);
+      if (Array.isArray(parsed)) {
+        return parsed.map(d => (typeof d === 'string' ? { domain: d } : d));
+      }
+    }
+  } catch {
+    // cookie parsing error
+  }
+  return null;
+}
+
 export async function GET() {
   try {
+    const cookieDomains = getDomainsFromCookie();
+    if (cookieDomains) {
+      inMemoryDomains = cookieDomains;
+      return NextResponse.json({ managed_domains: inMemoryDomains });
+    }
+
     const fileDomains = loadDomainsFromFile();
     if (fileDomains && fileDomains.length > 0) {
-      // Sync inMemory with file if file exists
       inMemoryDomains = fileDomains;
     }
     return NextResponse.json({ managed_domains: inMemoryDomains });
@@ -87,7 +111,13 @@ export async function POST(req: Request) {
       saveDomainsToFile(inMemoryDomains);
     }
 
-    return NextResponse.json({ success: true, managed_domains: inMemoryDomains });
+    const response = NextResponse.json({ success: true, managed_domains: inMemoryDomains });
+    response.cookies.set('titan_managed_domains', JSON.stringify(inMemoryDomains), {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax'
+    });
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
@@ -106,10 +136,15 @@ export async function DELETE(req: Request) {
     inMemoryDomains = inMemoryDomains.filter(d => d.domain.toLowerCase() !== domainName);
     saveDomainsToFile(inMemoryDomains);
 
-    return NextResponse.json({ success: true, managed_domains: inMemoryDomains });
+    const response = NextResponse.json({ success: true, managed_domains: inMemoryDomains });
+    response.cookies.set('titan_managed_domains', JSON.stringify(inMemoryDomains), {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 365,
+      sameSite: 'lax'
+    });
+    return response;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
