@@ -7,6 +7,7 @@ import { Logger } from '../../../src/logger';
 import { calculateSeoHealthScore } from '../../../src/health';
 
 import { AhrefsCacheManager } from '../../../src/cache';
+import { saveExecutiveReportToSupabase } from '../../../src/supabase';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -222,6 +223,14 @@ export async function GET(req: NextRequest) {
     const reporter = new ReportGenerator(undefined, client, logger);
 
     const report = await reporter.generateWeeklyReport(domains, { enableHtml: true });
+
+    saveExecutiveReportToSupabase({
+      reportTitle: `Ahrefs Executive SEO Briefing (${domains.join(', ')})`,
+      domainsAudited: domains,
+      executiveSummary: report.summaries,
+      markdownContent: report.markdownContent,
+      htmlContent: report.htmlContent
+    }).catch(() => null);
 
     if (format === 'csv') {
       return new NextResponse(report.csvContent || '', {

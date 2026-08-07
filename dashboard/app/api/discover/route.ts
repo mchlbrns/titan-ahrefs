@@ -3,6 +3,7 @@ import { AhrefsClient } from '../../../src/client';
 import { CompetitorAnalyzer } from '../../../src/competitors';
 import { ConfigLoader } from '../../../src/config';
 import { Logger } from '../../../src/logger';
+import { getCompetitorsFromSupabase } from '../../../src/supabase';
 
 export async function GET(req: NextRequest) {
   const logger = new Logger({ context: 'VercelDiscoverRoute' });
@@ -19,9 +20,10 @@ export async function GET(req: NextRequest) {
 
   const competitorRegistry = configLoader.loadCompetitorRegistry();
 
+  const supabaseCompetitors = await getCompetitorsFromSupabase(primaryDomain);
   const competitorList = requestedCompetitor 
     ? [requestedCompetitor]
-    : (competitorRegistry.competitors_by_domain[primaryDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']);
+    : (supabaseCompetitors || competitorRegistry.competitors_by_domain[primaryDomain] || ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']);
 
   try {
     const results = await Promise.all(
