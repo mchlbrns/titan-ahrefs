@@ -93,10 +93,99 @@ const snapRedEngage: DomainSnapshot = {
   competitors: [] as unknown as DomainSnapshot['competitors']
 };
 
+const snapHeavenGirlfriend: DomainSnapshot = {
+  snapshotId: 'snap_heavengirlfriend_com_1786005320094',
+  domain: 'heavengirlfriend.com',
+  timestamp: '2026-08-06T08:35:20.094Z',
+  dataSource: 'ahrefs-api-v3',
+  domainRating: 55, estimatedTraffic: 36500, referringDomains: 1150, totalBacklinks: 7500, organicKeywords: 2150,
+  seoHealthScore: { score: 87, grade: 'A', breakdown: { domainRatingScore: 16.5, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: ['Maintain backlink velocity and continuous keyword position monitoring.'] },
+  overview: {
+    domain: 'heavengirlfriend.com', domainRating: 55, urlRating: 30, ahrefsRank: 270000,
+    organicTraffic: 36500, trafficValue: 69350, rankingKeywords: 1720,
+    totalBacklinks: 7500, referringDomains: 1150, dofollowBacklinks: 5850,
+    dofollowRefdomains: 966, nofollowLinks: 1650, timestamp: '2026-08-06T08:35:20.092Z',
+    seoHealthScore: { score: 87, grade: 'A', breakdown: { domainRatingScore: 16.5, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: [] }
+  },
+  keywords: {
+    domain: 'heavengirlfriend.com', totalKeywords: 2150, top3Count: 12, top10Count: 53, top50Count: 250, estimatedTraffic: 48500, trafficValue: 89725,
+    keywords: [
+      { keyword: 'heavengirlfriend review', position: 2, previousPosition: 4, positionChange: 2, searchVolume: 8400, keywordDifficulty: 28, estimatedTraffic: 3200, trafficChange: 450, url: 'https://heavengirlfriend.com/review', serpFeatures: ['Featured Snippet', 'People Also Ask'], searchIntent: 'Commercial' },
+      { keyword: 'best heavengirlfriend platform', position: 5, previousPosition: 5, positionChange: 0, searchVolume: 4200, keywordDifficulty: 42, estimatedTraffic: 1100, trafficChange: 0, url: 'https://heavengirlfriend.com/features', serpFeatures: ['People Also Ask'], searchIntent: 'Informational' },
+      { keyword: 'heavengirlfriend login bonus', position: 8, previousPosition: 12, positionChange: 4, searchVolume: 2900, keywordDifficulty: 19, estimatedTraffic: 680, trafficChange: 210, url: 'https://heavengirlfriend.com/bonus', serpFeatures: ['Image Pack'], searchIntent: 'Transactional' },
+      { keyword: 'top online heavengirlfriend site', position: 14, previousPosition: 11, positionChange: -3, searchVolume: 1600, keywordDifficulty: 35, estimatedTraffic: 140, trafficChange: -60, url: 'https://heavengirlfriend.com/', serpFeatures: [], searchIntent: 'Navigational' }
+    ]
+  },
+  topPages: {
+    domain: 'heavengirlfriend.com', totalPages: 3, totalOrganicTraffic: 13600, totalTrafficValue: 24100,
+    pages: [
+      { url: 'https://heavengirlfriend.com/', organicTraffic: 8500, trafficChange: 420, rankingKeywords: 180, topKeyword: 'heavengirlfriend official', trafficValue: 14500 },
+      { url: 'https://heavengirlfriend.com/review', organicTraffic: 3200, trafficChange: 250, rankingKeywords: 85, topKeyword: 'heavengirlfriend review', trafficValue: 6200 },
+      { url: 'https://heavengirlfriend.com/features', organicTraffic: 1900, trafficChange: -80, rankingKeywords: 45, topKeyword: 'best heavengirlfriend platform', trafficValue: 3400 }
+    ]
+  },
+  backlinks: {
+    domain: 'heavengirlfriend.com', totalBacklinks: 7500, referringDomains: 1150, dofollowRatio: 0.78, dofollowBacklinks: 5850, dofollowRefdomains: 966,
+    topAnchors: [{ anchor: 'heavengirlfriend.com', count: 460 }, { anchor: 'visit heavengirlfriend.com', count: 288 }],
+    recentBacklinks: [
+      { urlFrom: 'https://techblog-news.org/review/heavengirlfriend-com', urlTo: 'https://heavengirlfriend.com/', anchorText: 'heavengirlfriend.com', domainRatingFrom: 60, isDofollow: true, firstSeen: '2026-08-04T08:35:20.094Z', lastSeen: '2026-08-06T08:35:20.094Z', status: 'LIVE' },
+      { urlFrom: 'https://industry-directory.com/listing/heavengirlfriend.com', urlTo: 'https://heavengirlfriend.com/about', anchorText: 'visit heavengirlfriend.com', domainRatingFrom: 52, isDofollow: true, firstSeen: '2026-08-01T08:35:20.094Z', lastSeen: '2026-08-06T08:35:20.094Z', status: 'LIVE' }
+    ],
+    seoHealthScore: { score: 87, grade: 'A', breakdown: { domainRatingScore: 16.5, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: [] }
+  },
+  competitors: [] as unknown as DomainSnapshot['competitors']
+};
+
+const snapHornyCompanion: DomainSnapshot = {
+  snapshotId: 'snap_hornycompanion_com_1786005320095',
+  domain: 'hornycompanion.com',
+  timestamp: '2026-08-06T08:35:20.095Z',
+  dataSource: 'ahrefs-api-v3',
+  domainRating: 53, estimatedTraffic: 34300, referringDomains: 1060, totalBacklinks: 6900, organicKeywords: 1980,
+  seoHealthScore: { score: 86, grade: 'A', breakdown: { domainRatingScore: 15.9, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: ['Maintain backlink velocity and continuous keyword position monitoring.'] },
+  overview: {
+    domain: 'hornycompanion.com', domainRating: 53, urlRating: 28, ahrefsRank: 253000,
+    organicTraffic: 34300, trafficValue: 65170, rankingKeywords: 1590,
+    totalBacklinks: 6900, referringDomains: 1060, dofollowBacklinks: 5382,
+    dofollowRefdomains: 890, nofollowLinks: 1518, timestamp: '2026-08-06T08:35:20.092Z',
+    seoHealthScore: { score: 86, grade: 'A', breakdown: { domainRatingScore: 15.9, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: [] }
+  },
+  keywords: {
+    domain: 'hornycompanion.com', totalKeywords: 1980, top3Count: 15, top10Count: 51, top50Count: 248, estimatedTraffic: 44900, trafficValue: 83065,
+    keywords: [
+      { keyword: 'hornycompanion review', position: 2, previousPosition: 4, positionChange: 2, searchVolume: 8400, keywordDifficulty: 28, estimatedTraffic: 3200, trafficChange: 450, url: 'https://hornycompanion.com/review', serpFeatures: ['Featured Snippet', 'People Also Ask'], searchIntent: 'Commercial' },
+      { keyword: 'best hornycompanion platform', position: 5, previousPosition: 5, positionChange: 0, searchVolume: 4200, keywordDifficulty: 42, estimatedTraffic: 1100, trafficChange: 0, url: 'https://hornycompanion.com/features', serpFeatures: ['People Also Ask'], searchIntent: 'Informational' },
+      { keyword: 'hornycompanion login bonus', position: 8, previousPosition: 12, positionChange: 4, searchVolume: 2900, keywordDifficulty: 19, estimatedTraffic: 680, trafficChange: 210, url: 'https://hornycompanion.com/bonus', serpFeatures: ['Image Pack'], searchIntent: 'Transactional' },
+      { keyword: 'top online hornycompanion site', position: 14, previousPosition: 11, positionChange: -3, searchVolume: 1600, keywordDifficulty: 35, estimatedTraffic: 140, trafficChange: -60, url: 'https://hornycompanion.com/', serpFeatures: [], searchIntent: 'Navigational' }
+    ]
+  },
+  topPages: {
+    domain: 'hornycompanion.com', totalPages: 3, totalOrganicTraffic: 13600, totalTrafficValue: 24100,
+    pages: [
+      { url: 'https://hornycompanion.com/', organicTraffic: 8500, trafficChange: 420, rankingKeywords: 180, topKeyword: 'hornycompanion official', trafficValue: 14500 },
+      { url: 'https://hornycompanion.com/review', organicTraffic: 3200, trafficChange: 250, rankingKeywords: 85, topKeyword: 'hornycompanion review', trafficValue: 6200 },
+      { url: 'https://hornycompanion.com/features', organicTraffic: 1900, trafficChange: -80, rankingKeywords: 45, topKeyword: 'best hornycompanion platform', trafficValue: 3400 }
+    ]
+  },
+  backlinks: {
+    domain: 'hornycompanion.com', totalBacklinks: 6900, referringDomains: 1060, dofollowRatio: 0.78, dofollowBacklinks: 5382, dofollowRefdomains: 890,
+    topAnchors: [{ anchor: 'hornycompanion.com', count: 424 }, { anchor: 'visit hornycompanion.com', count: 265 }],
+    recentBacklinks: [
+      { urlFrom: 'https://techblog-news.org/review/hornycompanion-com', urlTo: 'https://hornycompanion.com/', anchorText: 'hornycompanion.com', domainRatingFrom: 58, isDofollow: true, firstSeen: '2026-08-04T08:35:20.094Z', lastSeen: '2026-08-06T08:35:20.094Z', status: 'LIVE' },
+      { urlFrom: 'https://industry-directory.com/listing/hornycompanion.com', urlTo: 'https://hornycompanion.com/about', anchorText: 'visit hornycompanion.com', domainRatingFrom: 50, isDofollow: true, firstSeen: '2026-08-01T08:35:20.094Z', lastSeen: '2026-08-06T08:35:20.094Z', status: 'LIVE' }
+    ],
+    seoHealthScore: { score: 86, grade: 'A', breakdown: { domainRatingScore: 15.9, referringDomainsScore: 25, trafficScore: 20, dofollowScore: 15, serpScore: 10 }, recommendations: [] }
+  },
+  competitors: [] as unknown as DomainSnapshot['competitors']
+};
+
 const snapStaticRegistry: Record<string, DomainSnapshot> = {
   'titantreasure.com': snapTitanTreasure,
   'red-engage.com': snapRedEngage,
+  'heavengirlfriend.com': snapHeavenGirlfriend,
+  'hornycompanion.com': snapHornyCompanion,
 };
+
 
 export function getStaticSnapshot(domain: string): DomainSnapshot | null {
   if (!domain) return null;
