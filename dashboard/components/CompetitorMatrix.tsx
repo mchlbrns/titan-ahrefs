@@ -121,7 +121,30 @@ export default function CompetitorMatrix({
         resultCount={sorted.length}
       />
 
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ── Mobile Card List View (< sm) ── */}
+      <div className="space-y-2.5 sm:hidden">
+        {sorted.map((c, idx) => (
+          <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-semibold text-xs text-slate-100 break-all">
+                {c.competitor_domain}
+              </div>
+              <span className="px-2 py-0.5 rounded bg-slate-950 text-cyan-300 font-bold text-xs mono border border-slate-800 shrink-0">
+                DR {c.competitor_dr || '—'}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/50">
+              <span>Kw Overlap: <strong className="text-amber-400 font-semibold">{c.overlap_keywords ? c.overlap_keywords.toLocaleString() : '—'}</strong></span>
+              <span>Their Kws: <strong className="text-slate-200">{c.competitor_keywords ? c.competitor_keywords.toLocaleString() : '—'}</strong></span>
+              <span>Traffic: <strong className="text-cyan-300 font-mono">{c.competitor_traffic ? c.competitor_traffic.toLocaleString() : '—'}</strong></span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Desktop Table View (≥ sm) ── */}
+      <div className="hidden sm:block overflow-x-auto no-scrollbar">
         <table className="w-full text-left text-xs min-w-[550px]">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">

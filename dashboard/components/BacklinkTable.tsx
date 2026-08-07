@@ -138,7 +138,61 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
         resultCount={sortedFiltered.length}
       />
 
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ── Mobile Card List View (< sm) ── */}
+      <div className="space-y-2.5 sm:hidden">
+        {displayRows.map((b, idx) => {
+          const statusUpper = (b.status || '').toUpperCase();
+          return (
+            <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={`https://${b.ref_domain}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-xs text-slate-100 hover:text-cyan-300 break-all"
+                  >
+                    {b.ref_domain}
+                    <ExternalLink className="h-3 w-3 text-slate-500 shrink-0" />
+                  </a>
+                  <div className="text-[10px] text-slate-400 mt-0.5 truncate" title={b.anchor_text || b.ref_domain}>
+                    Anchor: <span className="text-slate-300 font-medium">{b.anchor_text || b.ref_domain}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="px-2 py-0.5 rounded bg-slate-950 text-cyan-300 font-bold text-xs mono border border-slate-800">
+                    DR {b.domain_rating || '—'}
+                  </span>
+                  {statusUpper && statusUpper !== 'ACTIVE' && statusUpper !== 'LIVE' && (
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border ${
+                        statusUpper === 'NEW'
+                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                          : statusUpper === 'LOST'
+                          ? 'bg-rose-500/15 text-rose-400 border-rose-500/40'
+                          : statusUpper === 'BROKEN'
+                          ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+                          : 'bg-slate-500/15 text-slate-400 border-slate-500/40'
+                      }`}
+                    >
+                      {statusUpper}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/50">
+                <span>Dofollow: <strong className="text-slate-200">{b.dofollow_links ? b.dofollow_links.toLocaleString() : '—'}</strong></span>
+                <span>Total: <strong className="text-slate-200">{b.total_links ? b.total_links.toLocaleString() : '—'}</strong></span>
+                <span>First Seen: <strong className="text-slate-400 font-mono">{b.first_seen ? b.first_seen.split('T')[0] : '—'}</strong></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop Table View (≥ sm) ── */}
+      <div className="hidden sm:block overflow-x-auto no-scrollbar">
         <table className="w-full text-left text-xs min-w-[550px]">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">

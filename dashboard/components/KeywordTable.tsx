@@ -149,7 +149,64 @@ export default function KeywordTable({
         resultCount={filteredKeywords.length}
       />
 
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ── Mobile Card List View (< sm) ── */}
+      <div className="space-y-2.5 sm:hidden">
+        {filteredKeywords.length === 0 ? (
+          <p className="py-6 text-center text-xs text-slate-500 italic">No keywords match this filter.</p>
+        ) : (
+          displayRows.map((item, idx) => (
+            <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-xs text-slate-100 break-words leading-snug">
+                    {item.keyword}
+                  </div>
+                  {(item.striking_distance === 'YES' || (item.position >= 4 && item.position <= 20)) && (
+                    <span className="flair-tag flair-high text-[8px] mt-1 inline-block">⚡ Striking Distance</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0 bg-slate-950/80 px-2 py-1 rounded border border-slate-800">
+                  <span className="font-bold text-xs text-cyan-300 mono">#{item.position}</span>
+                  {(item.position_delta || 0) > 0 ? (
+                    <span className="inline-flex items-center text-[10px] text-emerald-400 font-semibold">
+                      <ArrowUp className="h-3 w-3" />+{item.position_delta}
+                    </span>
+                  ) : (item.position_delta || 0) < 0 ? (
+                    <span className="inline-flex items-center text-[10px] text-rose-400 font-semibold">
+                      <ArrowDown className="h-3 w-3" />{item.position_delta}
+                    </span>
+                  ) : (
+                    <span className="text-slate-600 text-[10px]">—</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/50 text-[10px] text-slate-400">
+                <div className="flex items-center gap-3">
+                  <span>Vol: <strong className="text-slate-200">{item.search_volume ? item.search_volume.toLocaleString() : '—'}</strong></span>
+                  <span>KD: <strong className={item.keyword_difficulty > 60 ? 'text-rose-400' : item.keyword_difficulty > 30 ? 'text-amber-400' : 'text-emerald-400'}>{item.keyword_difficulty || '—'}</strong></span>
+                </div>
+                <div>
+                  <span>Traffic: <strong className="text-cyan-300 font-mono">{item.traffic ? item.traffic.toLocaleString() : '—'}</strong></span>
+                </div>
+              </div>
+
+              {item.serpFeatures && item.serpFeatures.length > 0 && (
+                <div className="flex flex-wrap gap-1 pt-1">
+                  {item.serpFeatures.map((f, fIdx) => (
+                    <span key={fIdx} className="px-1.5 py-0.5 text-[8px] font-medium bg-slate-800/80 text-cyan-300 rounded border border-cyan-500/20">
+                      {f}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── Desktop Table View (≥ sm) ── */}
+      <div className="hidden sm:block overflow-x-auto no-scrollbar">
         <table className="w-full text-left text-xs min-w-[620px]">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">

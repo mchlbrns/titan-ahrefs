@@ -127,7 +127,48 @@ export default function PageTable({
         resultCount={sortedPages.length}
       />
 
-      <div className="overflow-x-auto no-scrollbar">
+      {/* ── Mobile Card List View (< sm) ── */}
+      <div className="space-y-2.5 sm:hidden">
+        {displayRows.map((p, idx) => {
+          const shareNum =
+            typeof p.traffic_share === 'number'
+              ? p.traffic_share * 100
+              : parseFloat(String(p.traffic_share || '0')) * 100;
+          const cleanUrl = p.url.replace(/^https?:\/\//, '');
+
+          return (
+            <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <a
+                    href={p.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 font-semibold text-xs text-slate-100 hover:text-cyan-300 break-all"
+                  >
+                    {cleanUrl}
+                    <ExternalLink className="h-3 w-3 text-slate-500 shrink-0" />
+                  </a>
+                  {p.top_keyword && (
+                    <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                      Top Kw: <span className="text-slate-300 font-medium">{p.top_keyword}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-800/50">
+                <span>Organic Traffic: <strong className="text-cyan-300 font-mono text-xs">{p.organic_traffic ? p.organic_traffic.toLocaleString() : '—'}</strong></span>
+                <span>Keywords: <strong className="text-slate-200">{p.organic_keywords ? p.organic_keywords.toLocaleString() : '—'}</strong></span>
+                <span>Share: <strong className="text-slate-300">{isNaN(shareNum) || shareNum === 0 ? '—' : `${shareNum.toFixed(1)}%`}</strong></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ── Desktop Table View (≥ sm) ── */}
+      <div className="hidden sm:block overflow-x-auto no-scrollbar">
         <table className="w-full text-left text-xs min-w-[550px]">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">

@@ -62,24 +62,26 @@ export default function DataCard({
   return (
     <div className={`data-card ${className}`}>
       {/* ── Card header (Reddit "post title" row) ── */}
-      <div className="data-card-header">
-        <span className={accent.pill}>{subreddit}</span>
-        <h2 className="flex-1 text-sm font-semibold text-slate-200 truncate">
-          {displayTitle}
-        </h2>
-        {relTime && (
-          <span className="flex items-center gap-1 text-[10px] text-slate-600 shrink-0 ml-auto">
-            <Clock className="h-2.5 w-2.5" />
-            {relTime}
-          </span>
-        )}
+      <div className="data-card-header flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+          <span className={accent.pill}>{subreddit}</span>
+          <h2 className="text-xs sm:text-sm font-semibold text-slate-200">
+            {displayTitle}
+          </h2>
+          {relTime && (
+            <span className="flex items-center gap-1 text-[10px] text-slate-500 shrink-0 ml-auto sm:ml-0">
+              <Clock className="h-2.5 w-2.5" />
+              {relTime}
+            </span>
+          )}
+        </div>
         {onViewAll && (
           <button
             onClick={onViewAll}
-            className="view-thread-btn ml-3 shrink-0"
+            className="view-thread-btn shrink-0 text-xs py-1 px-2.5 self-start sm:self-auto"
             aria-label={viewAllLabel}
           >
-            {viewAllLabel}
+            <span>{viewAllLabel}</span>
             <ArrowRight className="h-3 w-3" />
           </button>
         )}
