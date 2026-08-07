@@ -15,6 +15,9 @@ import {
   Loader2,
   CheckCircle,
   Calendar,
+  RefreshCw,
+  Lock,
+  AlertTriangle,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -227,16 +230,16 @@ export default function DashboardPage() {
         if (isRefreshAction) {
           if (json.ingestionError) {
             setToast({
-              message: `⚠ Ingestion Halted: ${json.ingestionError}. Displaying latest saved Supabase snapshot.`,
+              message: `API quota exceeded — live data unavailable until ${liveApiUsage?.resetDate || 'the next billing cycle'}. Displaying most recent saved snapshot.`,
               type: 'error'
             });
           } else {
             setToast({
-              message: `⚡ Live Ingestion Completed! Synced to Supabase ahrefs_snapshots (Record ID: ${json.snapshotId || 'synced'} | Source: ${json.dataSource || 'supabase-db'}).`,
+              message: `Data refreshed successfully for ${domainToFetch}. Dashboard is now showing the latest available data.`,
               type: 'success'
             });
           }
-          setTimeout(() => setToast(null), 6500);
+          setTimeout(() => setToast(null), 6000);
         }
       }
     } catch (err: unknown) {
@@ -414,16 +417,29 @@ export default function DashboardPage() {
     <main className="min-h-screen max-w-6xl mx-auto px-6 py-8 space-y-0 relative">
       {/* ── Toast notification banner ───────────────────────────────────── */}
       {toast && (
-        <div className={`mb-6 flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-xs shadow-xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-top-2 ${
+        <div className={`mb-5 flex items-center justify-between gap-4 rounded-xl px-5 py-3.5 shadow-2xl backdrop-blur-md border transition-all animate-in fade-in slide-in-from-top-3 duration-300 ${
           toast.type === 'error'
-            ? 'bg-amber-500/10 border border-amber-500/30 text-amber-300'
-            : 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300'
+            ? 'bg-amber-950/70 border-amber-500/25 text-amber-200'
+            : 'bg-emerald-950/70 border-emerald-500/25 text-emerald-200'
         }`}>
-          <div className="flex items-center gap-2">
-            <CheckCircle className={`h-4 w-4 shrink-0 ${toast.type === 'error' ? 'text-amber-400' : 'text-emerald-400'}`} />
-            <span>{toast.message}</span>
+          <div className="flex items-center gap-3">
+            <div className={`p-1.5 rounded-lg shrink-0 ${
+              toast.type === 'error' ? 'bg-amber-500/15' : 'bg-emerald-500/15'
+            }`}>
+              {toast.type === 'error'
+                ? <AlertTriangle className="h-4 w-4 text-amber-400" />
+                : <CheckCircle className="h-4 w-4 text-emerald-400" />
+              }
+            </div>
+            <div>
+              <p className="font-medium text-xs">{toast.type === 'error' ? 'Update Unavailable' : 'Data Refreshed'}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{toast.message}</p>
+            </div>
           </div>
-          <button onClick={() => setToast(null)} className="text-slate-400 hover:text-white text-sm font-bold">×</button>
+          <button
+            onClick={() => setToast(null)}
+            className="text-slate-500 hover:text-slate-200 transition-colors text-lg leading-none shrink-0"
+          >×</button>
         </div>
       )}
 
@@ -469,23 +485,51 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setIsConfigOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all duration-200"
           >
             <Settings className="h-3.5 w-3.5" /> Configure
           </button>
-          <button
-            onClick={() => fetchData(selectedDomain, true)}
-            disabled={loading || refreshing}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all disabled:opacity-40"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide lucide-refresh-cw h-3.5 w-3.5 ${refreshing || loading ? 'animate-spin' : ''}`}>
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-              <path d="M21 3v5h-5"></path>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-              <path d="M8 16H3v5"></path>
-            </svg>
-            {refreshing ? 'Ingesting...' : 'Refresh'}
-          </button>
+          {(() => {
+            const usedPct = liveApiUsage?.monthly_used != null && liveApiUsage?.monthly_limit
+              ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
+              : null;
+            const isQuotaExceeded = usedPct !== null && usedPct >= 100;
+            const isDisabled = loading || refreshing || isQuotaExceeded;
+            const resetDate = liveApiUsage?.resetDate || '2026-09-04';
+            return (
+              <div className="relative group">
+                <button
+                  onClick={() => !isQuotaExceeded && fetchData(selectedDomain, true)}
+                  disabled={isDisabled}
+                  title={isQuotaExceeded ? `API quota exhausted — live refresh unavailable until ${resetDate}` : 'Pull latest data from Ahrefs'}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-all duration-200 ${
+                    isQuotaExceeded
+                      ? 'bg-rose-950/40 border-rose-500/25 text-rose-400/70 cursor-not-allowed'
+                      : 'text-slate-400 border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] cursor-pointer'
+                  } disabled:opacity-60`}
+                >
+                  {isQuotaExceeded ? (
+                    <>
+                      <Lock className="h-3.5 w-3.5" />
+                      <span>Refresh Locked</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                      <span>{refreshing ? 'Updating...' : 'Refresh'}</span>
+                    </>
+                  )}
+                </button>
+                {isQuotaExceeded && (
+                  <div className="absolute right-0 top-full mt-2 z-50 hidden group-hover:flex w-56 flex-col gap-1 rounded-xl border border-rose-500/20 bg-slate-900/95 backdrop-blur-xl px-3.5 py-3 shadow-2xl text-[11px] pointer-events-none">
+                    <p className="font-semibold text-rose-300">Quota Exhausted</p>
+                    <p className="text-slate-400 leading-relaxed">Live data ingestion is locked until the API quota resets.</p>
+                    <p className="text-slate-500 mt-0.5">Resets on <span className="text-purple-300 font-medium">{resetDate}</span></p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <ExportMenu domain={selectedDomain} />
         </div>
       </header>
