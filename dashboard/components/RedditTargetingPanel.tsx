@@ -1,33 +1,39 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { TrendingUp, AlertTriangle, Lock, ArrowUpRight, Link, Globe } from 'lucide-react';
+import {
+  TrendingUp,
+  AlertTriangle,
+  Lock,
+  ArrowUpRight,
+  Link,
+  Globe,
+  Search,
+  Layers,
+  Send,
+  CheckCircle2,
+  CheckSquare,
+  Square
+} from 'lucide-react';
 
-interface RedditThread {
+export interface TargetThread {
+  id: string;
   url: string;
-  topKeyword: string;
-  topKeywordVolume: number;
-  organicTraffic: number;
-  urlRating: number;
-  rankingKeywords: number;
-  traffic?: number;
-  keywordsCount?: number;
-}
-
-interface RedditKeyword {
-  keyword: string;
-  position: number;
+  title: string;
+  subreddit: string;
+  targetKeyword: string;
   searchVolume: number;
+  estTraffic: number;
   keywordDifficulty: number;
-  estimatedTraffic: number;
-  searchIntent: string;
-  volume?: number;
-  traffic?: number;
+  urlRating: number;
+  scrapeStatus: 'Unscraped' | 'Queued' | 'Scraped';
 }
 
 interface RedditTargetingPanelProps {
   selectedDomain?: string;
 }
+
+type SearchMode = 'keyword' | 'subreddit' | 'combined';
 
 const DOMAIN_PRESETS: Record<string, { defaultSub: string; presets: string[]; label: string }> = {
   'heavengirlfriend.com': {
@@ -63,82 +69,142 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   const activeDomain = selectedDomain || 'red-engage.com';
   const domainConfig = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
 
-  const [subreddit, setSubreddit] = useState(domainConfig.defaultSub);
-  const [input, setInput] = useState(domainConfig.defaultSub);
-  const [threads, setThreads] = useState<RedditThread[]>([]);
-  const [keywords, setKeywords] = useState<RedditKeyword[]>([]);
-  const [loadingThreads, setLoadingThreads] = useState(true);
-  const [loadingKeywords, setLoadingKeywords] = useState(true);
-  const [isMockThreads, setIsMockThreads] = useState(false);
-  const [isMockKeywords, setIsMockKeywords] = useState(false);
+  const [mode, setMode] = useState<SearchMode>('subreddit');
+  const [subredditInput, setSubredditInput] = useState(domainConfig.defaultSub);
+  const [keywordInput, setKeywordInput] = useState('AI automation');
+  const [minVolumeInput, setMinVolumeInput] = useState('500');
 
-  // Sync subreddit presets when selected domain changes
+  const [threads, setThreads] = useState<TargetThread[]>([]);
+  const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [isMockData, setIsMockData] = useState(false);
+  const [pushingIds, setPushingIds] = useState<Set<string>>(new Set());
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Sync inputs on domain change
   useEffect(() => {
     const config = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
-    setSubreddit(config.defaultSub);
-    setInput(config.defaultSub);
+    setSubredditInput(config.defaultSub);
   }, [activeDomain]);
 
-  const fetchThreads = useCallback(async () => {
-    setLoadingThreads(true);
+  const fetchTargetThreads = useCallback(async () => {
+    setLoading(true);
+    setSelectedThreadIds(new Set());
     try {
-      const res = await fetch(
-        `/api/reddit/threads?subreddit=${encodeURIComponent(subreddit)}&minVolume=1000&limit=50`,
-        { cache: 'no-store' }
-      );
+      const queryParams = new URLSearchParams({
+        mode,
+        subreddit: subredditInput,
+        keyword: keywordInput,
+        minVolume: minVolumeInput,
+        limit: '50'
+      });
+      const res = await fetch(`/api/reddit-targeting/search?${queryParams.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       setThreads(Array.isArray(json.threads) ? json.threads : []);
-      setIsMockThreads(Boolean(json.isMockData));
+      setIsMockData(Boolean(json.isMockData));
     } catch {
       setThreads([]);
-      setIsMockThreads(true);
+      setIsMockData(true);
     } finally {
-      setLoadingThreads(false);
+      setLoading(false);
     }
-  }, [subreddit]);
-
-  const fetchKeywords = useCallback(async () => {
-    setLoadingKeywords(true);
-    try {
-      const res = await fetch(
-        `/api/reddit/keywords?subreddit=${encodeURIComponent(subreddit)}&minVolume=500&maxPosition=20&limit=100`,
-        { cache: 'no-store' }
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setKeywords(Array.isArray(json.keywords) ? json.keywords : []);
-      setIsMockKeywords(Boolean(json.isMockData));
-    } catch {
-      setKeywords([]);
-      setIsMockKeywords(true);
-    } finally {
-      setLoadingKeywords(false);
-    }
-  }, [subreddit]);
+  }, [mode, subredditInput, keywordInput, minVolumeInput]);
 
   useEffect(() => {
-    void fetchThreads();
-    void fetchKeywords();
-  }, [fetchThreads, fetchKeywords]);
+    void fetchTargetThreads();
+  }, [fetchTargetThreads]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const clean = input.trim().replace(/^r\//, '').replace(/\s+/g, '').toLowerCase();
-    if (!clean) return;
-    setSubreddit(clean);
+    void fetchTargetThreads();
   };
 
-  const threadVol = (t: RedditThread) => Number(t.topKeywordVolume) || 0;
-  const threadTraffic = (t: RedditThread) => Number(t.organicTraffic || t.traffic) || 0;
-  const kwVol = (k: RedditKeyword) => Number(k.searchVolume ?? k.volume) || 0;
-  const kwTraffic = (k: RedditKeyword) => Number(k.estimatedTraffic ?? k.traffic) || 0;
+  const handleToggleSelectAll = () => {
+    if (selectedThreadIds.size === threads.length) {
+      setSelectedThreadIds(new Set());
+    } else {
+      setSelectedThreadIds(new Set(threads.map(t => t.id)));
+    }
+  };
 
-  const totalThreadTraffic = threads.reduce((acc, t) => acc + threadTraffic(t), 0);
-  const topKeyword = keywords.length > 0 ? keywords[0] : null;
+  const handleToggleSelectRow = (id: string) => {
+    setSelectedThreadIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const pushThreadsToScraper = async (threadsToPush: TargetThread[]) => {
+    if (threadsToPush.length === 0) return;
+
+    const idsToPush = new Set(threadsToPush.map(t => t.id));
+    setPushingIds(prev => new Set([...Array.from(prev), ...Array.from(idsToPush)]));
+
+    // Optimistic UI update
+    setThreads(prev =>
+      prev.map(t => (idsToPush.has(t.id) ? { ...t, scrapeStatus: 'Queued' } : t))
+    );
+
+    try {
+      const payload = {
+        event: 'reddit_scrape_requested',
+        threads: threadsToPush.map(t => ({
+          thread_url: t.url,
+          target_keyword: t.targetKeyword,
+          search_volume: t.searchVolume,
+          est_traffic: t.estTraffic
+        })),
+        requested_at: new Date().toISOString()
+      };
+
+      const res = await fetch('/api/reddit-targeting/scrape-queue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setToastMessage(
+          threadsToPush.length === 1
+            ? 'Thread pushed to scraping queue successfully.'
+            : `${threadsToPush.length} threads pushed to scraping queue successfully.`
+        );
+      } else {
+        setToastMessage('Queued locally (API status pending).');
+      }
+    } catch {
+      setToastMessage('Queued locally.');
+    } finally {
+      setPushingIds(prev => {
+        const next = new Set(prev);
+        idsToPush.forEach(id => next.delete(id));
+        return next;
+      });
+      setSelectedThreadIds(prev => {
+        const next = new Set(prev);
+        idsToPush.forEach(id => next.delete(id));
+        return next;
+      });
+      setTimeout(() => setToastMessage(null), 4000);
+    }
+  };
+
+  const totalEstTraffic = threads.reduce((acc, t) => acc + (t.estTraffic || 0), 0);
+  const totalVolume = threads.reduce((acc, t) => acc + (t.searchVolume || 0), 0);
 
   return (
     <div className="space-y-4">
+      {/* ── Toast Notification Banner ── */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-cyan-500 text-slate-950 font-bold px-4 py-3 shadow-2xl shadow-cyan-500/30 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <span className="text-xs">{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── Domain Context Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-cyan-500/20 bg-gradient-to-r from-cyan-950/30 via-slate-900/60 to-slate-900/40 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -156,204 +222,295 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
           </div>
         </div>
         <div className="text-xs text-slate-400 sm:text-right">
-          Analyzing Reddit organic opportunities for <strong className="text-cyan-300">{activeDomain}</strong>
+          Discovering high-traffic Reddit SERP threads for <strong className="text-cyan-300">{activeDomain}</strong>
         </div>
       </div>
 
-      {/* ── Subreddit search & presets ── */}
-      <div className="space-y-2">
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3 px-1">
-          <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
-            <div className="flex-1">
-              <label htmlFor="subreddit-input" className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Target Subreddit for {activeDomain}
+      {/* ── Search Mode Controls (Modes A, B, C) ── */}
+      <div className="data-card p-4 space-y-4">
+        {/* Mode Tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mr-2">Search Mode:</span>
+          <button
+            onClick={() => setMode('subreddit')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              mode === 'subreddit'
+                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Layers className="h-3.5 w-3.5 inline mr-1.5" />
+            Mode B (Subreddit-First)
+          </button>
+          <button
+            onClick={() => setMode('keyword')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              mode === 'keyword'
+                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Search className="h-3.5 w-3.5 inline mr-1.5" />
+            Mode A (Keyword-First)
+          </button>
+          <button
+            onClick={() => setMode('combined')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              mode === 'combined'
+                ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Mode C (Combined)
+          </button>
+        </div>
+
+        {/* Inputs Form */}
+        <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(mode === 'subreddit' || mode === 'combined') && (
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                Subreddit Name
               </label>
-              <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 focus-within:border-cyan-500/40 transition-colors">
-                <span className="text-cyan-400 font-bold text-sm shrink-0">r/</span>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2">
+                <span className="text-cyan-400 font-bold text-sm">r/</span>
                 <input
-                  id="subreddit-input"
                   type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  value={subredditInput}
+                  onChange={(e) => setSubredditInput(e.target.value)}
                   placeholder={domainConfig.defaultSub}
-                  className="w-full bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-600"
+                  className="w-full bg-transparent text-xs text-slate-100 outline-none placeholder:text-slate-600"
                 />
               </div>
             </div>
+          )}
+
+          {(mode === 'keyword' || mode === 'combined') && (
+            <div>
+              <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                Target Keyword
+              </label>
+              <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2">
+                <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <input
+                  type="text"
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  placeholder="e.g. AI automation"
+                  className="w-full bg-transparent text-xs text-slate-100 outline-none placeholder:text-slate-600"
+                />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+              Min Search Volume
+            </label>
+            <input
+              type="number"
+              value={minVolumeInput}
+              onChange={(e) => setMinVolumeInput(e.target.value)}
+              placeholder="500"
+              className="w-full rounded-lg border border-slate-800 bg-slate-900/70 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-500/40"
+            />
+          </div>
+
+          <div className="sm:col-span-3 flex justify-between items-center gap-2 pt-1">
+            {mode === 'subreddit' && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-semibold uppercase text-slate-500">Presets:</span>
+                {domainConfig.presets.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { setSubredditInput(s); }}
+                    className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-all ${
+                      s.toLowerCase() === subredditInput.toLowerCase()
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    r/{s}
+                  </button>
+                ))}
+              </div>
+            )}
             <button
               type="submit"
-              className="self-end inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-all whitespace-nowrap"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-lg px-5 py-2 text-xs font-semibold bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/20 transition-all"
             >
-              <TrendingUp className="h-3.5 w-3.5" /> Analyze Subreddit
+              <TrendingUp className="h-3.5 w-3.5" /> Execute Target Search
             </button>
-          </form>
-        </div>
-
-        {/* ── Niche Presets ── */}
-        <div className="flex items-center gap-2 flex-wrap px-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Niche Suggestions:</span>
-          {domainConfig.presets.map((s) => (
-            <button
-              key={s}
-              onClick={() => { setInput(s); setSubreddit(s); }}
-              className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
-                s.toLowerCase() === subreddit.toLowerCase()
-                  ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm shadow-cyan-500/10'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-600'
-              }`}
-            >
-              r/{s}
-            </button>
-          ))}
-        </div>
+          </div>
+        </form>
       </div>
 
-      {/* ── Quota warning ── */}
-      {(isMockThreads || isMockKeywords) && (
+      {/* ── Quota Fallback Warning ── */}
+      {isMockData && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <p>
-            <strong>Quota Fallback Active.</strong> Ahrefs API limit reached. Showing tailored niche sample targeting data for{' '}
-            <span className="font-semibold text-slate-100">r/{subreddit}</span> aligned with{' '}
-            <span className="font-semibold text-cyan-300">{activeDomain}</span>. Live stream will re-engage upon key refresh.
+            <strong>Quota Fallback Active.</strong> Ahrefs API quota is currently locked. Displaying seeded target opportunities for{' '}
+            <span className="font-semibold text-slate-100">{mode === 'keyword' ? keywordInput : `r/${subredditInput}`}</span> aligned with{' '}
+            <span className="font-semibold text-cyan-300">{activeDomain}</span>.
           </p>
         </div>
       )}
 
-      {/* ── KPI mini-strip ── */}
+      {/* ── KPI Summary Strip ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-lg border border-[#1f2430] bg-slate-900/50 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Threads</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Discovered Threads</p>
           <p className="text-lg font-bold text-slate-100 mono mt-0.5">{threads.length}</p>
         </div>
         <div className="rounded-lg border border-[#1f2430] bg-slate-900/50 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Target Keywords</p>
-          <p className="text-lg font-bold text-slate-100 mono mt-0.5">{keywords.length}</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Selected Threads</p>
+          <p className="text-lg font-bold text-cyan-400 mono mt-0.5">{selectedThreadIds.size}</p>
         </div>
         <div className="rounded-lg border border-[#1f2430] bg-slate-900/50 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Est. Thread Traffic</p>
-          <p className="text-lg font-bold text-slate-100 mono mt-0.5">{totalThreadTraffic.toLocaleString()}</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Est. Total Traffic</p>
+          <p className="text-lg font-bold text-slate-100 mono mt-0.5">{totalEstTraffic.toLocaleString()}</p>
         </div>
         <div className="rounded-lg border border-[#1f2430] bg-slate-900/50 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Top KW Volume</p>
-          <p className={`text-lg font-bold mono mt-0.5 ${topKeyword ? volumeColor(kwVol(topKeyword)) : 'text-slate-600'}`}>
-            {topKeyword ? kwVol(topKeyword).toLocaleString() : '—'}
-          </p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total Target Volume</p>
+          <p className="text-lg font-bold text-slate-100 mono mt-0.5">{totalVolume.toLocaleString()}</p>
         </div>
       </div>
 
-      {/* ── Threads card ── */}
+      {/* ── Target Opportunities Data Grid ── */}
       <div className="data-card">
         <div className="data-card-header flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
-            <span className="subreddit-pill">r/{subreddit}</span>
-            <h3 className="text-xs sm:text-sm font-semibold text-slate-200">Top Ranking Threads on Google</h3>
+            <span className="subreddit-pill">Target Opportunities Grid</span>
+            <h3 className="text-xs sm:text-sm font-semibold text-slate-200">Google SERP Reddit Thread Targets</h3>
           </div>
-          {isMockThreads && (
-            <span className="flex items-center gap-1 text-[10px] text-amber-400/80">
-              <Lock className="h-3 w-3" /> sample mode
-            </span>
+
+          {/* Bulk Action Bar */}
+          {selectedThreadIds.size > 0 && (
+            <button
+              onClick={() => {
+                const selectedThreads = threads.filter(t => selectedThreadIds.has(t.id));
+                void pushThreadsToScraper(selectedThreads);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition-all"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Bulk Push to Scraper ({selectedThreadIds.size})
+            </button>
           )}
         </div>
+
         <div className="data-card-body">
-          {loadingThreads ? (
-            <p className="text-xs text-slate-500 italic py-4">Analyzing r/{subreddit} threads...</p>
+          {loading ? (
+            <p className="text-xs text-slate-500 italic py-6">Searching Reddit SERP targets...</p>
           ) : threads.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-4">No threads returned for r/{subreddit}.</p>
-          ) : (
-            <div className="space-y-2">
-              {threads.map((t, idx) => (
-                <a
-                  key={idx}
-                  href={t.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-start justify-between gap-3 p-3 rounded-lg border border-slate-800/70 bg-slate-900/40 hover:bg-slate-900/70 hover:border-cyan-500/30 transition-all group"
-                >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-slate-600">{String(idx + 1).padStart(2, '0')}</span>
-                      <p className="text-xs font-semibold text-slate-200 truncate group-hover:text-cyan-300 transition-colors">
-                        {t.topKeyword}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[10px] text-slate-500">
-                      <Link className="h-3 w-3 shrink-0" />
-                      <span className="truncate max-w-[280px]">{t.url.replace('https://reddit.com', 'reddit')}</span>
-                      <span className="text-slate-600">·</span>
-                      <span>UR <strong className={t.urlRating >= 20 ? 'text-cyan-300' : 'text-slate-300'}>{t.urlRating}</strong></span>
-                      <span className="text-slate-600">·</span>
-                      <span>ranks {t.rankingKeywords || t.keywordsCount || 0} kws</span>
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className={`text-xs font-bold mono ${volumeColor(threadVol(t))}`}>
-                      {threadVol(t) ? threadVol(t).toLocaleString() : '—'}
-                    </p>
-                    <p className="text-[10px] text-slate-500 mt-1">{threadTraffic(t) ? threadTraffic(t).toLocaleString() : ''} trf</p>
-                  </div>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-600 group-hover:text-cyan-400 transition-colors shrink-0 self-center" />
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── Keywords card ── */}
-      <div className="data-card">
-        <div className="data-card-header flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2">
-            <span className="subreddit-pill violet">r/{subreddit}</span>
-            <h3 className="text-xs sm:text-sm font-semibold text-slate-200">Target Keywords (Positions 1–20)</h3>
-          </div>
-          {isMockKeywords && (
-            <span className="flex items-center gap-1 text-[10px] text-amber-400/80">
-              <Lock className="h-3 w-3" /> sample mode
-            </span>
-          )}
-        </div>
-        <div className="data-card-body">
-          {loadingKeywords ? (
-            <p className="text-xs text-slate-500 italic py-4">Fetching target keywords…</p>
-          ) : keywords.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-4">No keywords for r/{subreddit}.</p>
+            <p className="text-xs text-slate-500 italic py-6">No threads returned for query.</p>
           ) : (
             <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left text-xs min-w-[560px]">
+              <table className="w-full text-left text-xs min-w-[760px]">
                 <thead>
-                  <tr className="border-b border-[rgba(255,255,255,0.06)]">
-                    <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Keyword</th>
-                    <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Pos</th>
-                    <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Volume</th>
-                    <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">KD</th>
-                    <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Intent</th>
-                    <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">Traffic</th>
+                  <tr className="border-b border-[rgba(255,255,255,0.06)] text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="pb-2.5 pl-3 pr-2 w-10">
+                      <button onClick={handleToggleSelectAll} className="text-slate-400 hover:text-slate-200">
+                        {selectedThreadIds.size === threads.length ? (
+                          <CheckSquare className="h-4 w-4 text-cyan-400" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    </th>
+                    <th className="pb-2.5 pr-4">Reddit Thread Title & URL</th>
+                    <th className="pb-2.5 px-3">Target Keyword</th>
+                    <th className="pb-2.5 px-3">Search Volume</th>
+                    <th className="pb-2.5 px-3">Est. Google Traffic</th>
+                    <th className="pb-2.5 px-3">KD</th>
+                    <th className="pb-2.5 px-3">Scrape Status</th>
+                    <th className="pb-2.5 pl-3 pr-3 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {keywords.map((k, idx) => (
-                    <tr key={idx} className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors">
-                      <td className="py-2 pr-4">
-                        <div className="font-medium text-slate-200">{k.keyword}</div>
-                      </td>
-                      <td className="py-2 px-4 font-bold text-cyan-300 mono">#{k.position}</td>
-                      <td className={`py-2 px-4 mono ${volumeColor(kwVol(k))}`}>
-                        {kwVol(k).toLocaleString()}
-                      </td>
-                      <td className="py-2 px-4">
-                        <span className={`text-xs font-semibold ${kdColor(k.keywordDifficulty)}`}>{k.keywordDifficulty || '—'}</span>
-                      </td>
-                      <td className="py-2 px-4">
-                        <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-800/80 text-indigo-300 rounded border border-indigo-500/20">
-                          {k.searchIntent || 'Mixed'}
-                        </span>
-                      </td>
-                      <td className="py-2 pl-4 text-right text-slate-300 font-medium mono">
-                        {kwTraffic(k).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
+                  {threads.map((t) => {
+                    const isSelected = selectedThreadIds.has(t.id);
+                    const isPushing = pushingIds.has(t.id);
+
+                    return (
+                      <tr
+                        key={t.id}
+                        className={`border-b border-[rgba(255,255,255,0.03)] transition-colors ${
+                          isSelected ? 'bg-cyan-500/10' : 'hover:bg-[rgba(255,255,255,0.02)]'
+                        }`}
+                      >
+                        <td className="py-3 pl-3 pr-2">
+                          <button onClick={() => handleToggleSelectRow(t.id)} className="text-slate-400 hover:text-slate-200">
+                            {isSelected ? (
+                              <CheckSquare className="h-4 w-4 text-cyan-400" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
+                        </td>
+                        <td className="py-3 pr-4 max-w-[280px]">
+                          <p className="font-semibold text-slate-200 truncate" title={t.title}>
+                            {t.title}
+                          </p>
+                          <a
+                            href={t.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[10px] text-cyan-400 hover:underline truncate max-w-full mt-0.5"
+                          >
+                            <Link className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{t.url.replace('https://www.reddit.com', 'reddit')}</span>
+                            <ArrowUpRight className="h-2.5 w-2.5 shrink-0" />
+                          </a>
+                        </td>
+                        <td className="py-3 px-3 font-medium text-slate-200">
+                          {t.targetKeyword}
+                        </td>
+                        <td className={`py-3 px-3 mono font-bold ${volumeColor(t.searchVolume)}`}>
+                          {t.searchVolume ? t.searchVolume.toLocaleString() : '—'}
+                        </td>
+                        <td className="py-3 px-3 mono text-slate-300">
+                          {t.estTraffic ? t.estTraffic.toLocaleString() : '—'}
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className={`font-semibold ${kdColor(t.keywordDifficulty)}`}>
+                            {t.keywordDifficulty || '—'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {t.scrapeStatus === 'Queued' ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 rounded border border-amber-500/30">
+                              Queued
+                            </span>
+                          ) : t.scrapeStatus === 'Scraped' ? (
+                            <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 rounded border border-emerald-500/30">
+                              Scraped
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 text-[10px] font-medium bg-slate-800 text-slate-400 rounded border border-slate-700">
+                              Unscraped
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 pl-3 pr-3 text-right">
+                          <button
+                            disabled={isPushing || t.scrapeStatus === 'Queued'}
+                            onClick={() => void pushThreadsToScraper([t])}
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all ${
+                              t.scrapeStatus === 'Queued'
+                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                                : 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25'
+                            }`}
+                          >
+                            <Send className="h-3 w-3" />
+                            {t.scrapeStatus === 'Queued' ? 'Queued' : 'Push to Scraper'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

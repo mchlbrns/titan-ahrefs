@@ -27,6 +27,7 @@ interface ExportMenuProps {
   pages?: any[];
   backlinks?: any[];
   competitors?: any[];
+  redditThreads?: any[];
   liveRecommendations?: string[];
   healthScore?: number;
   healthGrade?: string;
@@ -67,6 +68,7 @@ export default function ExportMenu({
   pages = [],
   backlinks = [],
   competitors = [],
+  redditThreads = [],
   liveRecommendations = [],
   healthScore,
   healthGrade,
@@ -381,6 +383,29 @@ export default function ExportMenu({
           bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
           margin: { left: 14, right: 14 }
         });
+      } else if (activeTab === 'reddit') {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(15, 23, 42);
+        doc.text('Reddit Thread Target Opportunities (Google SERP)', 14, startY);
+        startY += 3;
+
+        autoTable(doc, {
+          startY,
+          head: [['Thread Title / URL', 'Target Keyword', 'Search Volume', 'Est. Traffic', 'KD', 'Scrape Status']],
+          body: (redditThreads || []).map((t: any) => [
+            t.title || t.url || 'Reddit Thread',
+            t.targetKeyword || t.topKeyword || '—',
+            (t.searchVolume || t.topKeywordVolume || 0).toLocaleString(),
+            (t.estTraffic || t.organicTraffic || t.traffic || 0).toLocaleString(),
+            t.keywordDifficulty || 0,
+            t.scrapeStatus || 'Unscraped'
+          ]),
+          theme: 'grid',
+          headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+          bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+          margin: { left: 14, right: 14 }
+        });
       }
 
       doc.save(`Titan_Ahrefs_${reportTitle.replace(/\s+/g, '_')}_${primaryDomain.replace(/\./g, '_')}.pdf`);
@@ -457,6 +482,19 @@ export default function ExportMenu({
         rec
       ]);
       downloadCsv(`titan-ahrefs-insights-${primaryDomain}.csv`, headers, rows);
+    } else if (activeTab === 'reddit') {
+      const headers = ['Reddit Thread Title', 'Canonical URL', 'Target Keyword', 'Search Volume', 'Est. Google Traffic', 'Keyword Difficulty (KD)', 'URL Rating', 'Scrape Status'];
+      const rows = (redditThreads || []).map((t: any) => [
+        t.title || t.topKeyword || 'Reddit Thread',
+        t.url || '',
+        t.targetKeyword || t.topKeyword || '',
+        t.searchVolume || t.topKeywordVolume || 0,
+        t.estTraffic || t.organicTraffic || t.traffic || 0,
+        t.keywordDifficulty || 0,
+        t.urlRating || 0,
+        t.scrapeStatus || 'Unscraped'
+      ]);
+      downloadCsv(`titan-ahrefs-reddit-targets-${primaryDomain}.csv`, headers, rows);
     }
   };
 

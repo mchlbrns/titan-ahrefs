@@ -665,6 +665,7 @@ export default function DashboardPage() {
               pages={pages}
               backlinks={backlinks}
               competitors={competitors}
+              redditThreads={data?.reddit_threads || []}
               liveRecommendations={liveRecommendations}
               healthScore={summary?.healthScore}
               healthGrade={healthGrade}
