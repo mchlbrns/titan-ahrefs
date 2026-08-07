@@ -32,17 +32,29 @@ export async function GET(req: NextRequest) {
 
       const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];
 
-      // Step 1: Check Supabase Cache State (7-Day Weekly TTL)
-      const cacheState = await cacheManager.getCacheState(requestedDomain);
+      const forceRefresh = searchParams.get('refresh') === 'true' || searchParams.get('force') === 'true';
 
-      // Step 2: Handle Stale-While-Revalidate (SWR) Background Refresh
-      if (cacheState.snapshot && cacheState.isStale) {
+      // Step 1: Check Supabase Cache State (7-Day Weekly TTL)
+      let cacheState = await cacheManager.getCacheState(requestedDomain);
+
+      // Step 2: Handle Force Refresh (Triggered by UI Refresh Button)
+      if (forceRefresh) {
+        try {
+          const freshSnapshot = await snapshotStore.createSnapshot(requestedDomain, targetCompetitors, { force: true });
+          if (freshSnapshot) {
+            cacheState = { snapshot: freshSnapshot, isStale: false, isMissing: false };
+          }
+        } catch (err) {
+          logger.warn(`Forced live ingestion fallback for ${requestedDomain}: ${(err as Error).message}`);
+        }
+      } else if (cacheState.snapshot && cacheState.isStale) {
+        // Handle Stale-While-Revalidate (SWR) Background Refresh
         cacheManager.triggerBackgroundRevalidate(requestedDomain, async () => {
           return snapshotStore.createSnapshot(requestedDomain, targetCompetitors).catch(() => null);
         });
       }
 
-      // Step 3: Fetch Live API data ONLY if cache is completely missing
+      // Step 3: Fetch Live API data ONLY if cache is completely missing and not already force-refreshed
       let overview = null;
       let kwData: { keywords?: unknown[] } | null = null;
       let pgData: { pages?: unknown[] } | null = null;
@@ -50,7 +62,7 @@ export async function GET(req: NextRequest) {
       let compResults: unknown[] = [];
       let limits = null;
 
-      if (cacheState.isMissing) {
+      if (cacheState.isMissing && !forceRefresh) {
         [overview, kwData, pgData, blData, compResults, limits] = await Promise.all([
           client.fetchDomainOverview(requestedDomain).catch(() => null),
           client.fetchOrganicKeywords(requestedDomain).catch(() => ({ keywords: [] })),

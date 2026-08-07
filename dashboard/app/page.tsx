@@ -136,6 +136,7 @@ export default function DashboardPage() {
   });
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
@@ -184,11 +185,16 @@ export default function DashboardPage() {
   }, []);
 
 
-  const fetchData = async (domainToFetch: string = selectedDomain) => {
-    setLoading(true);
+  const fetchData = async (domainToFetch: string = selectedDomain, isRefreshAction: boolean = false) => {
+    if (isRefreshAction) {
+      setRefreshing(true);
+    } else if (!data) {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const apiUrl = `/api/report?format=json&domain=${encodeURIComponent(domainToFetch)}`;
+      const refreshQuery = isRefreshAction ? '&refresh=true' : '';
+      const apiUrl = `/api/report?format=json&domain=${encodeURIComponent(domainToFetch)}${refreshQuery}`;
       const res = await fetch(apiUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to load live domain data`);
       const json: ApiResponseData = await res.json();
@@ -204,6 +210,7 @@ export default function DashboardPage() {
     } finally {
       if (currentDomainRef.current === domainToFetch) {
         setLoading(false);
+        setRefreshing(false);
       }
     }
   };
@@ -401,17 +408,17 @@ export default function DashboardPage() {
             <Settings className="h-3.5 w-3.5" /> Configure
           </button>
           <button
-            onClick={() => fetchData(selectedDomain)}
-            disabled={loading}
+            onClick={() => fetchData(selectedDomain, true)}
+            disabled={loading || refreshing}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all disabled:opacity-40"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide lucide-refresh-cw h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`lucide lucide-refresh-cw h-3.5 w-3.5 ${refreshing || loading ? 'animate-spin' : ''}`}>
               <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
               <path d="M21 3v5h-5"></path>
               <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
               <path d="M8 16H3v5"></path>
             </svg>
-            Refresh
+            {refreshing ? 'Ingesting...' : 'Refresh'}
           </button>
           <ExportMenu domain={selectedDomain} />
         </div>
