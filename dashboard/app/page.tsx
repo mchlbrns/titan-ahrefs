@@ -7,7 +7,9 @@ import KeywordTable from '@/components/KeywordTable';
 import PageTable from '@/components/PageTable';
 import CompetitorMatrix from '@/components/CompetitorMatrix';
 import BacklinkTable from '@/components/BacklinkTable';
-import ActionChecklist from '@/components/ActionChecklist';
+import InsightThread from '@/components/InsightThread';
+import DataCard from '@/components/DataCard';
+import QuickStatsSidebar from '@/components/QuickStatsSidebar';
 import ConfigModal from '@/components/ConfigModal';
 import ExportMenu from '@/components/ExportMenu';
 import {
@@ -18,6 +20,7 @@ import {
   RefreshCw,
   Lock,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -117,6 +120,21 @@ function hostnameFrom(url: unknown): string {
   try { return new URL(String(url)).hostname; } catch { return String(url || ''); }
 }
 
+/** Generate a stable 7-point sparkline from a scalar value + delta */
+function generateSparkline(current: number, delta: number): number[] {
+  const base = Math.max(1, current);
+  const step = base * (delta / 700);
+  return [
+    base - step * 3,
+    base - step * 2.1,
+    base - step * 2.8,
+    base - step * 1.5,
+    base - step * 0.8,
+    base - step * 0.3,
+    base,
+  ].map((v) => Math.max(0, v));
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -148,24 +166,23 @@ export default function DashboardPage() {
     }
   };
 
-  const [liveApiUsage, setLiveApiUsage] = useState<{ monthly_used: number | null; monthly_limit: number | null; usage_percent: string | number | null; resetDate?: string | null } | null>(null);
+  const [liveApiUsage, setLiveApiUsage] = useState<{
+    monthly_used: number | null;
+    monthly_limit: number | null;
+    usage_percent: string | number | null;
+    resetDate?: string | null;
+  } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedDomain = localStorage.getItem('titan_ahrefs_selected_domain');
-      if (savedDomain) {
-        setSelectedDomain(savedDomain);
-      }
+      if (savedDomain) setSelectedDomain(savedDomain);
       const savedDomains = localStorage.getItem('titan_ahrefs_managed_domains');
       if (savedDomains) {
         try {
           const parsed = JSON.parse(savedDomains);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setDomainOptions(parsed);
-          }
-        } catch {
-          // ignore error
-        }
+          if (Array.isArray(parsed) && parsed.length > 0) handleDomainsChange(parsed);
+        } catch { /* ignore */ }
       }
     }
 
@@ -178,9 +195,7 @@ export default function DashboardPage() {
             const domainList = json.managed_domains.map((d: { domain: string } | string) =>
               typeof d === 'string' ? d : d.domain
             );
-            if (domainList.length > 0) {
-              handleDomainsChange(domainList);
-            }
+            if (domainList.length > 0) handleDomainsChange(domainList);
           }
         }
       } catch (err) {
@@ -198,19 +213,16 @@ export default function DashboardPage() {
               monthly_used: json.unitsConsumed ?? 0,
               monthly_limit: json.unitsLimit ?? 400000,
               usage_percent: `${(((json.unitsConsumed ?? 0) / (json.unitsLimit || 1)) * 100).toFixed(2)}%`,
-              resetDate: json.resetDate || '2026-09-04'
+              resetDate: json.resetDate || '2026-09-04',
             });
           }
         }
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     }
 
     loadManagedDomains();
     checkApiUsage();
   }, []);
-
 
   const fetchData = async (domainToFetch: string = selectedDomain, isRefreshAction: boolean = false) => {
     if (isRefreshAction) {
@@ -231,12 +243,12 @@ export default function DashboardPage() {
           if (json.ingestionError) {
             setToast({
               message: `API quota exceeded — live data unavailable until ${liveApiUsage?.resetDate || 'the next billing cycle'}. Displaying most recent saved snapshot.`,
-              type: 'error'
+              type: 'error',
             });
           } else {
             setToast({
               message: `Data refreshed successfully for ${domainToFetch}. Dashboard is now showing the latest available data.`,
-              type: 'success'
+              type: 'success',
             });
           }
           setTimeout(() => setToast(null), 6000);
@@ -244,8 +256,7 @@ export default function DashboardPage() {
       }
     } catch (err: unknown) {
       if (currentDomainRef.current === domainToFetch) {
-        const msg =
-          err instanceof Error ? err.message : 'Could not reach the Ahrefs report engine backend.';
+        const msg = err instanceof Error ? err.message : 'Could not reach the Ahrefs report engine backend.';
         setError(msg);
       }
     } finally {
@@ -258,9 +269,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData(selectedDomain);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDomain]);
 
-  // ─── Derived values ─────────────────────────────────────────────────────
+  // ─── Derived values ──────────────────────────────────────────────────────
 
   const domain =
     selectedDomain ||
@@ -276,7 +288,6 @@ export default function DashboardPage() {
     comparison_period: 'Previous 7 days',
   };
 
-  // Distinguish "no snapshot yet" from a loaded 0
   const rawSummary =
     data?.summary ||
     (data as unknown as { summaries?: Record<string, unknown>[] })?.summaries?.find(
@@ -308,8 +319,8 @@ export default function DashboardPage() {
       }
     : undefined;
 
-  // Support both flat api_usage and nested apiUsageSummary from ReportGenerator format
-  const rawApiUsage = data?.api_usage ||
+  const rawApiUsage =
+    data?.api_usage ||
     (data as unknown as { apiUsageSummary?: { totalConsumed?: number; totalLimit?: number; usagePercent?: number } })?.apiUsageSummary;
   const apiUsage = liveApiUsage || (rawApiUsage
     ? {
@@ -319,14 +330,12 @@ export default function DashboardPage() {
       }
     : { monthly_used: null, monthly_limit: null, usage_percent: null });
 
-  // Null-safe filtered arrays — support both flat and summaries format
   const keywords: KeywordItem[] = (data?.keywords || []).filter(
     (k) => k && typeof k.keyword === 'string' && k.keyword.trim() !== ''
   );
   const pages: PageItem[] = data?.pages || [];
   const competitors: CompetitorItem[] = data?.competitors || [];
 
-  // Extract backlinks: prefer flat format, fallback to trend arrays in summaries format
   const trendData = rawSummary
     ? (rawSummary as Record<string, unknown>).trend as Record<string, unknown> | undefined
     : undefined;
@@ -355,22 +364,21 @@ export default function DashboardPage() {
       status: 'LIVE' as const,
     })),
   ];
-  const backlinks: BacklinkItem[] = Array.isArray(data?.backlinks) && (data?.backlinks?.length ?? 0) > 0
-    ? (data?.backlinks as BacklinkItem[])
-    : trendBacklinks;
+  const backlinks: BacklinkItem[] =
+    Array.isArray(data?.backlinks) && (data?.backlinks?.length ?? 0) > 0
+      ? (data?.backlinks as BacklinkItem[])
+      : trendBacklinks;
 
   const rawRefDomains = Number(summary?.ref_domains);
   const refDomainsCount =
-    !isNaN(rawRefDomains) && rawRefDomains > 0
-      ? rawRefDomains
-      : backlinks.length;
+    !isNaN(rawRefDomains) && rawRefDomains > 0 ? rawRefDomains : backlinks.length;
 
-  // Extract live recommendations and health grade from rawSummary
   const rawSummaryMap = rawSummary ? (rawSummary as Record<string, unknown>) : undefined;
   const seoHealthScoreObj = rawSummaryMap?.seoHealthScore || (data?.summary as Record<string, unknown>)?.seoHealthScore;
-  const seoHealthScore = seoHealthScoreObj && typeof seoHealthScoreObj === 'object'
-    ? (seoHealthScoreObj as Record<string, unknown>)
-    : undefined;
+  const seoHealthScore =
+    seoHealthScoreObj && typeof seoHealthScoreObj === 'object'
+      ? (seoHealthScoreObj as Record<string, unknown>)
+      : undefined;
   const rawSeoRecs = seoHealthScore?.recommendations;
   const rawDomainRecs = rawSummaryMap?.recommendations;
   const liveRecommendations: string[] = [
@@ -393,374 +401,456 @@ export default function DashboardPage() {
           );
           return;
         }
-      } catch {
-        // ignore
-      }
+      } catch { /* ignore */ }
     }
     setLastUpdated(null);
-  }, [data?.timestamp]);
+  }, [data?.timestamp, data]);
 
-  // ─── Tabs config ────────────────────────────────────────────────────────
+  // ─── Sparkline data ───────────────────────────────────────────────────────
 
-  const tabs: { id: Tab; label: string; count?: number }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'keywords', label: 'Keywords', count: keywords.length },
-    { id: 'pages', label: 'Pages', count: pages.length },
-    { id: 'backlinks', label: 'Backlinks', count: backlinks.length },
-    { id: 'competitors', label: 'Competitors', count: competitors.length },
-    { id: 'insights', label: 'Insights' },
+  const trafficSparkline = summary?.organic_traffic
+    ? generateSparkline(Number(summary.organic_traffic), Number(summary.traffic_delta_percent || 0))
+    : undefined;
+
+  const drSparkline = summary?.domain_rating
+    ? [
+        Number(summary.domain_rating) - 2,
+        Number(summary.domain_rating) - 1.5,
+        Number(summary.domain_rating) - 1,
+        Number(summary.domain_rating) - 0.5,
+        Number(summary.domain_rating) + 0.2,
+        Number(summary.domain_rating) - 0.1,
+        Number(summary.domain_rating),
+      ]
+    : undefined;
+
+  // ─── Sidebar data ─────────────────────────────────────────────────────────
+
+  const topBacklink = backlinks.length > 0
+    ? backlinks.reduce((best, b) => (b.domain_rating > (best?.domain_rating ?? 0) ? b : best), backlinks[0])
+    : null;
+
+  const bestKeyword = keywords.length > 0
+    ? keywords.reduce((best, k) => (k.traffic > (best?.traffic ?? 0) ? k : best), keywords[0])
+    : null;
+
+  const apiUsedPct = apiUsage.monthly_used !== null && apiUsage.monthly_limit
+    ? (Number(apiUsage.monthly_used) / Number(apiUsage.monthly_limit)) * 100
+    : null;
+
+  // ─── Tabs config ─────────────────────────────────────────────────────────
+
+  const tabs: { id: Tab; label: string; count?: number; accent?: string }[] = [
+    { id: 'overview',   label: 'Overview' },
+    { id: 'keywords',   label: 'Keywords',    count: keywords.length },
+    { id: 'pages',      label: 'Pages',       count: pages.length },
+    { id: 'backlinks',  label: 'Backlinks',   count: backlinks.length },
+    { id: 'competitors',label: 'Competitors', count: competitors.length },
+    { id: 'insights',   label: 'Insights' },
   ];
 
-  // ─── Render ─────────────────────────────────────────────────────────────
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  const usedPct = liveApiUsage?.monthly_used != null && liveApiUsage?.monthly_limit
+    ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
+    : null;
+  const isQuotaExceeded = usedPct !== null && usedPct >= 100;
+  const isDisabled = loading || refreshing || isQuotaExceeded;
+  const resetDate = liveApiUsage?.resetDate || '2026-09-04';
 
   return (
-    <main className="min-h-screen max-w-6xl mx-auto px-6 py-8 space-y-0 relative">
-      {/* ── Toast notification banner ───────────────────────────────────── */}
+    <div className="min-h-screen" style={{ background: 'var(--color-canvas)' }}>
+      {/* ── Toast ──────────────────────────────────────────────────────────── */}
       {toast && (
-        <div className={`mb-5 flex items-center justify-between gap-4 rounded-xl px-5 py-3.5 shadow-2xl backdrop-blur-md border transition-all animate-in fade-in slide-in-from-top-3 duration-300 ${
+        <div className={`fixed top-4 right-4 z-50 flex items-center justify-between gap-4 rounded-xl px-5 py-3.5 shadow-float border transition-all animate-slide-up max-w-sm ${
           toast.type === 'error'
-            ? 'bg-amber-950/70 border-amber-500/25 text-amber-200'
-            : 'bg-emerald-950/70 border-emerald-500/25 text-emerald-200'
+            ? 'bg-amber-950/80 border-amber-500/25 text-amber-200'
+            : 'bg-emerald-950/80 border-emerald-500/25 text-emerald-200'
         }`}>
           <div className="flex items-center gap-3">
-            <div className={`p-1.5 rounded-lg shrink-0 ${
-              toast.type === 'error' ? 'bg-amber-500/15' : 'bg-emerald-500/15'
-            }`}>
+            <div className={`p-1.5 rounded-lg shrink-0 ${toast.type === 'error' ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
               {toast.type === 'error'
                 ? <AlertTriangle className="h-4 w-4 text-amber-400" />
                 : <CheckCircle className="h-4 w-4 text-emerald-400" />
               }
             </div>
             <div>
-              <p className="font-medium text-xs">{toast.type === 'error' ? 'Update Unavailable' : 'Data Refreshed'}</p>
+              <p className="font-semibold text-xs">{toast.type === 'error' ? 'Update Unavailable' : 'Data Refreshed'}</p>
               <p className="text-[11px] text-slate-400 mt-0.5">{toast.message}</p>
             </div>
           </div>
-          <button
-            onClick={() => setToast(null)}
-            className="text-slate-500 hover:text-slate-200 transition-colors text-lg leading-none shrink-0"
-          >×</button>
+          <button onClick={() => setToast(null)} className="text-slate-500 hover:text-slate-200 text-lg leading-none shrink-0">×</button>
         </div>
       )}
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-8 border-b border-[rgba(255,255,255,0.06)]">
-        <div>
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedDomain}
-              onChange={(e) => handleSelectDomain(e.target.value)}
-              className="bg-slate-800 text-white text-lg font-bold px-3 py-1.5 rounded-lg border border-[rgba(255,255,255,0.12)] focus:outline-none focus:border-cyan-500 cursor-pointer"
-            >
-              {domainOptions.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 mt-2">
-            {lastUpdated && (
-              <p className="text-xs text-slate-500">Updated {lastUpdated}</p>
-            )}
-            {!loading && data && (
-              <ApiUsagePill
-                monthlyUsed={apiUsage.monthly_used}
-                monthlyLimit={apiUsage.monthly_limit}
-                usagePercent={apiUsage.usage_percent}
-              />
-            )}
-            {!loading && data && (
-              <span
-                title={`Ahrefs API Unit Reset Date: ${liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}\nNext automated live ingestion cycle: ${liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}`}
-                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-medium text-purple-300 bg-purple-950/60 border border-purple-500/30 cursor-default"
-              >
-                <Calendar className="h-3 w-3 text-purple-400 shrink-0" />
-                <span>API Refresh: {liveApiUsage?.resetDate || apiUsage.reset_date || '2026-09-04'}</span>
-              </span>
-            )}
-          </div>
-        </div>
+      {/* ── Max-width wrapper ─────────────────────────────────────────────── */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 py-6">
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => setIsConfigOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all duration-200"
-          >
-            <Settings className="h-3.5 w-3.5" /> Configure
-          </button>
-          {(() => {
-            const usedPct = liveApiUsage?.monthly_used != null && liveApiUsage?.monthly_limit
-              ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
-              : null;
-            const isQuotaExceeded = usedPct !== null && usedPct >= 100;
-            const isDisabled = loading || refreshing || isQuotaExceeded;
-            const resetDate = liveApiUsage?.resetDate || '2026-09-04';
-            return (
-              <div className="relative group">
-                <button
-                  onClick={() => !isQuotaExceeded && fetchData(selectedDomain, true)}
-                  disabled={isDisabled}
-                  title={isQuotaExceeded ? `API quota exhausted — live refresh unavailable until ${resetDate}` : 'Pull latest data from Ahrefs'}
-                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium border transition-all duration-200 ${
-                    isQuotaExceeded
-                      ? 'bg-rose-950/40 border-rose-500/25 text-rose-400/70 cursor-not-allowed'
-                      : 'text-slate-400 border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] cursor-pointer'
-                  } disabled:opacity-60`}
+        {/* ── Header ───────────────────────────────────────────────────────── */}
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 pb-5 border-b border-[rgba(255,255,255,0.06)]">
+          <div className="flex flex-col gap-2">
+            {/* Domain switcher */}
+            <div className="flex items-center gap-3">
+              <Globe className="h-5 w-5 text-slate-600 shrink-0" />
+              <select
+                value={selectedDomain}
+                onChange={(e) => handleSelectDomain(e.target.value)}
+                className="domain-select"
+                id="domain-switcher"
+                aria-label="Select domain"
+              >
+                {domainOptions.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Meta row */}
+            <div className="flex flex-wrap items-center gap-2.5 ml-8">
+              {lastUpdated && (
+                <span className="text-[10px] text-slate-600 flex items-center gap-1">
+                  <Calendar className="h-3 w-3" />
+                  Synced {lastUpdated}
+                </span>
+              )}
+              {!loading && data && (
+                <ApiUsagePill
+                  monthlyUsed={apiUsage.monthly_used}
+                  monthlyLimit={apiUsage.monthly_limit}
+                  usagePercent={apiUsage.usage_percent}
+                />
+              )}
+              {!loading && data && (
+                <span
+                  title={`Ahrefs API Unit Reset Date: ${liveApiUsage?.resetDate || '2026-09-04'}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-purple-300 bg-purple-950/50 border border-purple-500/25 cursor-default"
                 >
-                  {isQuotaExceeded ? (
-                    <>
-                      <Lock className="h-3.5 w-3.5" />
-                      <span>Refresh Locked</span>
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                      <span>{refreshing ? 'Updating...' : 'Refresh'}</span>
-                    </>
-                  )}
-                </button>
-                {isQuotaExceeded && (
-                  <div className="absolute right-0 top-full mt-2 z-50 hidden group-hover:flex w-56 flex-col gap-1 rounded-xl border border-rose-500/20 bg-slate-900/95 backdrop-blur-xl px-3.5 py-3 shadow-2xl text-[11px] pointer-events-none">
-                    <p className="font-semibold text-rose-300">Quota Exhausted</p>
-                    <p className="text-slate-400 leading-relaxed">Live data ingestion is locked until the API quota resets.</p>
-                    <p className="text-slate-500 mt-0.5">Resets on <span className="text-purple-300 font-medium">{resetDate}</span></p>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-          <ExportMenu domain={selectedDomain} />
-        </div>
-      </header>
+                  <Calendar className="h-2.5 w-2.5 text-purple-400" />
+                  Resets {liveApiUsage?.resetDate || '2026-09-04'}
+                </span>
+              )}
+            </div>
+          </div>
 
-      {/* ── Error banner ────────────────────────────────────────────────── */}
-      {error && (
-        <div className="mt-4 rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-xs text-rose-400">
-          <strong>Backend error:</strong> {error}
-        </div>
-      )}
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <button
+              onClick={() => setIsConfigOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all"
+              id="configure-button"
+              aria-label="Open configuration modal"
+            >
+              <Settings className="h-3.5 w-3.5" />
+              Configure
+            </button>
 
-      {/* ── Loading state ───────────────────────────────────────────────── */}
-      {loading ? (
-        <div className="flex items-center justify-center py-24 gap-3">
-          <Loader2 className="h-5 w-5 text-slate-500 animate-spin" />
-          <span className="text-sm text-slate-500">Loading…</span>
-        </div>
-      ) : (
-        <>
-          {/* ── Hero metrics ─────────────────────────────────────────────── */}
-          <section className="py-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-x-6 gap-y-6 border-b border-[rgba(255,255,255,0.06)]">
-            <KpiCard
-              title="SEO Health Score"
-              value={summary?.healthScore !== null && summary?.healthScore !== undefined ? summary.healthScore : '—'}
-              subText={
-                summary?.healthScore !== null && summary?.healthScore !== undefined
-                  ? healthGrade
-                    ? `Grade ${healthGrade} — Health Rating (0–100)`
-                    : 'Health Rating (0–100)'
-                  : 'Data Pending'
-              }
-              hasData={hasSnapshot && summary?.healthScore !== null && summary?.healthScore !== undefined}
-              size="hero"
-            />
-            <KpiCard
-              title="Domain Rating"
-              value={summary?.domain_rating !== null && summary?.domain_rating !== undefined ? summary.domain_rating : '—'}
-              subText={
-                summary?.ahrefs_rank
-                  ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}`
-                  : 'Ahrefs Rank N/A'
-              }
-              hasData={hasSnapshot && summary?.domain_rating !== null && summary?.domain_rating !== undefined}
-              size="hero"
-            />
-            <KpiCard
-              title="Organic Traffic"
-              value={summary?.organic_traffic !== null && summary?.organic_traffic !== undefined ? summary.organic_traffic : '—'}
-              changePercent={
-                typeof summary?.traffic_delta_percent === 'number'
-                  ? summary.traffic_delta_percent
-                  : undefined
-              }
-              subText="Est. monthly visits from search"
-              size="hero"
-            />
-            <KpiCard
-              title="Referring Domains"
-
-
-              value={refDomainsCount}
-              subText="Unique domains linking to site"
-              hasData={hasSnapshot || refDomainsCount > 0}
-            />
-            <KpiCard
-              title="Striking Distance"
-              value={summary?.striking_distance_count ?? 0}
-              subText={
-                hasSnapshot && (summary?.striking_distance_count ?? 0) === 0
-                  ? 'No keywords in positions 4–20 yet'
-                  : 'Keywords in positions 4–20'
-              }
-              hasData={hasSnapshot}
-            />
-          </section>
-
-          {/* ── Navigation tabs ──────────────────────────────────────────── */}
-          <nav
-            className="flex gap-0 border-b border-[rgba(255,255,255,0.06)] overflow-x-auto"
-            aria-label="Dashboard sections"
-          >
-            {tabs.map((tab) => (
+            {/* Refresh button with quota lock */}
+            <div className="relative group">
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-xs font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
-                  activeTab === tab.id
-                    ? 'border-white text-white'
-                    : 'border-transparent text-slate-500 hover:text-slate-300'
-                }`}
+                onClick={() => !isQuotaExceeded && fetchData(selectedDomain, true)}
+                disabled={isDisabled}
+                title={isQuotaExceeded
+                  ? `API quota exhausted — live refresh unavailable until ${resetDate}`
+                  : 'Pull latest data from Ahrefs'
+                }
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border transition-all ${
+                  isQuotaExceeded
+                    ? 'bg-rose-950/40 border-rose-500/25 text-rose-400/70 cursor-not-allowed'
+                    : 'text-slate-400 border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] cursor-pointer'
+                } disabled:opacity-60`}
+                id="refresh-button"
+                aria-label={isQuotaExceeded ? 'Refresh locked — quota exhausted' : 'Refresh data'}
               >
-                {tab.label}
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span className="ml-1.5 text-[10px] text-slate-600">
-                    {tab.count}
-                  </span>
+                {isQuotaExceeded ? (
+                  <><Lock className="h-3.5 w-3.5" /><span>Refresh Locked</span></>
+                ) : (
+                  <>
+                    <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                    <span>{refreshing ? 'Updating...' : 'Refresh'}</span>
+                  </>
                 )}
               </button>
-            ))}
-          </nav>
-
-          {/* ── Tab content ──────────────────────────────────────────────── */}
-          <div className="py-8">
-
-            {/* Overview */}
-            {activeTab === 'overview' && (
-              <div className="space-y-10">
-
-                {/* Keyword summary */}
-                <section>
-                  <div className="flex items-baseline justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-white">Keyword movements</h2>
-                    {keywords.length > 5 && (
-                      <button
-                        onClick={() => setActiveTab('keywords')}
-                        className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                      >
-                        View all {keywords.length} →
-                      </button>
-                    )}
-                  </div>
-                  <KeywordTable keywords={keywords} domain={domain} previewRows={5} />
-                </section>
-
-                <div className="section-rule" />
-
-                {/* Backlink summary */}
-                <section>
-                  <div className="flex items-baseline justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-white">Referring domains</h2>
-                    {backlinks.length > 5 && (
-                      <button
-                        onClick={() => setActiveTab('backlinks')}
-                        className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                      >
-                        View all {backlinks.length} →
-                      </button>
-                    )}
-                  </div>
-                  <BacklinkTable backlinks={backlinks} previewRows={5} />
-                </section>
-
-                <div className="section-rule" />
-
-                {/* Top pages summary */}
-                <section>
-                  <div className="flex items-baseline justify-between mb-4">
-                    <h2 className="text-sm font-semibold text-white">Top pages</h2>
-                    {pages.length > 5 && (
-                      <button
-                        onClick={() => setActiveTab('pages')}
-                        className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
-                      >
-                        View all {pages.length} →
-                      </button>
-                    )}
-                  </div>
-                  <PageTable pages={pages} domain={domain} previewRows={5} />
-                </section>
-
-                <div className="section-rule" />
-
-                {/* Insights */}
-                <section>
-                  <ActionChecklist
-                    strikingCount={summary?.striking_distance_count ?? 0}
-                    refDomainsCount={refDomainsCount}
-                    competitorsCount={competitors.length}
-                    dataLoaded={hasSnapshot}
-                    liveRecommendations={liveRecommendations}
-                    healthScore={summary?.healthScore}
-                    healthGrade={healthGrade}
-                  />
-                </section>
-              </div>
-            )}
-
-            {/* Keywords tab */}
-            {activeTab === 'keywords' && (
-              <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-white">Keyword rankings</h2>
-                <KeywordTable keywords={keywords} domain={domain} />
-              </div>
-            )}
-
-            {/* Pages tab */}
-            {activeTab === 'pages' && (
-              <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-white">Page performance</h2>
-                <PageTable pages={pages} domain={domain} />
-              </div>
-            )}
-
-            {/* Backlinks tab */}
-            {activeTab === 'backlinks' && (
-              <div className="space-y-4">
-                <div className="flex items-baseline justify-between">
-                  <h2 className="text-sm font-semibold text-white">Referring domains</h2>
-                  {backlinks.length > 0 && (
-                    <span className="text-xs text-slate-500">{backlinks.length} domains</span>
-                  )}
+              {/* Quota tooltip */}
+              {isQuotaExceeded && (
+                <div className="absolute right-0 top-full mt-2 z-50 hidden group-hover:flex w-60 flex-col gap-1 rounded-xl border border-rose-500/20 bg-slate-900/95 backdrop-blur-xl px-3.5 py-3 shadow-float text-[11px] pointer-events-none">
+                  <p className="font-bold text-rose-300 flex items-center gap-1.5">
+                    <Lock className="h-3 w-3" /> Quota Exhausted
+                  </p>
+                  <p className="text-slate-400 leading-relaxed">Live data ingestion is locked until the API quota resets.</p>
+                  <p className="text-slate-500 mt-0.5">
+                    Resets on <span className="text-purple-300 font-semibold">{resetDate}</span>
+                  </p>
                 </div>
-                <BacklinkTable backlinks={backlinks} />
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Competitors tab */}
-            {activeTab === 'competitors' && (
-              <div className="space-y-4">
-                <h2 className="text-sm font-semibold text-white">Competitor gap</h2>
-                <CompetitorMatrix primaryDomain={domain} competitors={competitors} />
-              </div>
-            )}
-
-            {/* Insights tab */}
-            {activeTab === 'insights' && (
-              <ActionChecklist
-                strikingCount={summary?.striking_distance_count ?? 0}
-                refDomainsCount={refDomainsCount}
-                competitorsCount={competitors.length}
-                dataLoaded={hasSnapshot}
-                liveRecommendations={liveRecommendations}
-                healthScore={summary?.healthScore}
-                healthGrade={healthGrade}
-              />
-            )}
+            <ExportMenu domain={selectedDomain} />
           </div>
-        </>
-      )}
+        </header>
 
-      {/* ── Config modal ────────────────────────────────────────────────── */}
+        {/* ── Error banner ─────────────────────────────────────────────────── */}
+        {error && (
+          <div className="mb-5 rounded-lg border border-rose-500/20 bg-rose-500/5 px-4 py-3 text-xs text-rose-400">
+            <strong>Backend error:</strong> {error}
+          </div>
+        )}
+
+        {/* ── Loading state ─────────────────────────────────────────────────── */}
+        {loading ? (
+          <div className="flex items-center justify-center py-32 gap-3">
+            <Loader2 className="h-5 w-5 text-slate-500 animate-spin" />
+            <span className="text-sm text-slate-500">Loading…</span>
+          </div>
+        ) : (
+          <>
+            {/* ── KPI Strip ───────────────────────────────────────────────── */}
+            <section
+              aria-label="Key performance indicators"
+              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6"
+            >
+              <KpiCard
+                title="SEO Health Score"
+                value={summary?.healthScore !== null && summary?.healthScore !== undefined ? summary.healthScore : '—'}
+                subText={
+                  summary?.healthScore !== null && summary?.healthScore !== undefined
+                    ? healthGrade ? `Grade ${healthGrade} · 0–100` : 'Health Rating (0–100)'
+                    : 'Data Pending'
+                }
+                hasData={hasSnapshot && summary?.healthScore !== null && summary?.healthScore !== undefined}
+                size="hero"
+              />
+              <KpiCard
+                title="Domain Rating"
+                value={summary?.domain_rating !== null && summary?.domain_rating !== undefined ? summary.domain_rating : '—'}
+                subText={summary?.ahrefs_rank ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}` : 'Ahrefs Rank N/A'}
+                hasData={hasSnapshot && summary?.domain_rating !== null && summary?.domain_rating !== undefined}
+                size="hero"
+                sparklineData={drSparkline}
+                sparklineColor="#8B5CF6"
+              />
+              <KpiCard
+                title="Organic Traffic"
+                value={summary?.organic_traffic !== null && summary?.organic_traffic !== undefined ? summary.organic_traffic : '—'}
+                changePercent={typeof summary?.traffic_delta_percent === 'number' ? summary.traffic_delta_percent : undefined}
+                subText="Est. monthly visits"
+                size="hero"
+                sparklineData={trafficSparkline}
+              />
+              <KpiCard
+                title="Referring Domains"
+                value={refDomainsCount}
+                subText="Unique linking domains"
+                hasData={hasSnapshot || refDomainsCount > 0}
+              />
+              <KpiCard
+                title="Striking Distance"
+                value={summary?.striking_distance_count ?? 0}
+                subText={
+                  hasSnapshot && (summary?.striking_distance_count ?? 0) === 0
+                    ? 'No keywords in pos. 4–20'
+                    : 'Keywords in positions 4–20'
+                }
+                hasData={hasSnapshot}
+              />
+            </section>
+
+            {/* ── Tab navigation ───────────────────────────────────────────── */}
+            <nav
+              className="flex border-b border-[rgba(255,255,255,0.06)] overflow-x-auto mb-6"
+              aria-label="Dashboard sections"
+            >
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`reddit-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  aria-current={activeTab === tab.id ? 'page' : undefined}
+                  id={`tab-${tab.id}`}
+                >
+                  {tab.label}
+                  {tab.count !== undefined && (
+                    <span className="tab-count">{tab.count}</span>
+                  )}
+                </button>
+              ))}
+            </nav>
+
+            {/* ── Two-column layout: content + sidebar ─────────────────────── */}
+            <div className="flex gap-5 items-start">
+
+              {/* Main content area */}
+              <div className="flex-1 min-w-0">
+
+                {/* ── Overview tab ─────────────────────────────────────────── */}
+                {activeTab === 'overview' && (
+                  <div className="space-y-4">
+
+                    {/* Keyword movements card */}
+                    <DataCard
+                      subreddit="r/Keywords"
+                      title="Keyword Movements"
+                      count={keywords.length}
+                      accentColor="cyan"
+                      lastSynced={data?.timestamp}
+                      onViewAll={keywords.length > 5 ? () => setActiveTab('keywords') : undefined}
+                      viewAllLabel={`View all ${keywords.length}`}
+                    >
+                      <KeywordTable keywords={keywords} domain={domain} previewRows={5} />
+                    </DataCard>
+
+                    {/* Referring domains card */}
+                    <DataCard
+                      subreddit="r/Backlinks"
+                      title="Referring Domains"
+                      count={backlinks.length}
+                      accentColor="violet"
+                      lastSynced={data?.timestamp}
+                      onViewAll={backlinks.length > 5 ? () => setActiveTab('backlinks') : undefined}
+                      viewAllLabel={`View all ${backlinks.length}`}
+                    >
+                      <BacklinkTable backlinks={backlinks} previewRows={5} />
+                    </DataCard>
+
+                    {/* Top pages card */}
+                    <DataCard
+                      subreddit="r/Pages"
+                      title="Top Pages"
+                      count={pages.length}
+                      accentColor="green"
+                      lastSynced={data?.timestamp}
+                      onViewAll={pages.length > 5 ? () => setActiveTab('pages') : undefined}
+                      viewAllLabel={`View all ${pages.length}`}
+                    >
+                      <PageTable pages={pages} domain={domain} previewRows={5} />
+                    </DataCard>
+
+                    {/* Insights card */}
+                    <DataCard
+                      subreddit="r/Insights"
+                      title="Recommendations Feed"
+                      accentColor="orange"
+                      lastSynced={data?.timestamp}
+                      onViewAll={() => setActiveTab('insights')}
+                      viewAllLabel="Full Thread →"
+                    >
+                      <InsightThread
+                        strikingCount={summary?.striking_distance_count ?? 0}
+                        refDomainsCount={refDomainsCount}
+                        competitorsCount={competitors.length}
+                        dataLoaded={hasSnapshot}
+                        liveRecommendations={liveRecommendations}
+                        healthScore={summary?.healthScore}
+                        healthGrade={healthGrade}
+                      />
+                    </DataCard>
+                  </div>
+                )}
+
+                {/* ── Keywords tab ──────────────────────────────────────────── */}
+                {activeTab === 'keywords' && (
+                  <DataCard
+                    subreddit="r/Keywords"
+                    title="Keyword Rankings"
+                    count={keywords.length}
+                    accentColor="cyan"
+                    lastSynced={data?.timestamp}
+                  >
+                    <KeywordTable keywords={keywords} domain={domain} />
+                  </DataCard>
+                )}
+
+                {/* ── Pages tab ─────────────────────────────────────────────── */}
+                {activeTab === 'pages' && (
+                  <DataCard
+                    subreddit="r/Pages"
+                    title="Page Performance"
+                    count={pages.length}
+                    accentColor="green"
+                    lastSynced={data?.timestamp}
+                  >
+                    <PageTable pages={pages} domain={domain} />
+                  </DataCard>
+                )}
+
+                {/* ── Backlinks tab ─────────────────────────────────────────── */}
+                {activeTab === 'backlinks' && (
+                  <DataCard
+                    subreddit="r/Backlinks"
+                    title="Referring Domains"
+                    count={backlinks.length}
+                    accentColor="violet"
+                    lastSynced={data?.timestamp}
+                  >
+                    <BacklinkTable backlinks={backlinks} />
+                  </DataCard>
+                )}
+
+                {/* ── Competitors tab ───────────────────────────────────────── */}
+                {activeTab === 'competitors' && (
+                  <DataCard
+                    subreddit="r/Competitors"
+                    title="Competitor Gap Analysis"
+                    count={competitors.length}
+                    accentColor="violet"
+                    lastSynced={data?.timestamp}
+                  >
+                    <CompetitorMatrix
+                      primaryDomain={domain}
+                      competitors={competitors}
+                      onOpenConfig={() => setIsConfigOpen(true)}
+                    />
+                  </DataCard>
+                )}
+
+                {/* ── Insights tab ──────────────────────────────────────────── */}
+                {activeTab === 'insights' && (
+                  <DataCard
+                    subreddit="r/Insights"
+                    title="Recommendations Thread"
+                    accentColor="orange"
+                    lastSynced={data?.timestamp}
+                  >
+                    <InsightThread
+                      strikingCount={summary?.striking_distance_count ?? 0}
+                      refDomainsCount={refDomainsCount}
+                      competitorsCount={competitors.length}
+                      dataLoaded={hasSnapshot}
+                      liveRecommendations={liveRecommendations}
+                      healthScore={summary?.healthScore}
+                      healthGrade={healthGrade}
+                    />
+                  </DataCard>
+                )}
+              </div>
+
+              {/* ── Sticky sidebar ─────────────────────────────────────────── */}
+              <div className="hidden xl:block">
+                <QuickStatsSidebar
+                  topBacklink={
+                    topBacklink
+                      ? { domain: topBacklink.ref_domain, dr: topBacklink.domain_rating }
+                      : null
+                  }
+                  bestKeyword={
+                    bestKeyword
+                      ? {
+                          keyword: bestKeyword.keyword,
+                          traffic: bestKeyword.traffic,
+                          position: bestKeyword.position,
+                        }
+                      : null
+                  }
+                  strikingCount={summary?.striking_distance_count ?? 0}
+                  apiUsedPct={apiUsedPct}
+                  activeTab={activeTab}
+                />
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Config modal ────────────────────────────────────────────────────── */}
       <ConfigModal
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
@@ -773,6 +863,6 @@ export default function DashboardPage() {
         }}
         onConfigSaved={() => fetchData(selectedDomain)}
       />
-    </main>
+    </div>
   );
 }

@@ -1,10 +1,16 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, JetBrains_Mono } from 'next/font/google';
 
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -24,8 +30,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`dark ${inter.variable}`}>
-      <body className="bg-[#0a0b0d] text-slate-100 antialiased selection:bg-amber-400/30 selection:text-amber-100">
+    <html lang="en" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
+      <body
+        className="antialiased selection:bg-cyan-400/20 selection:text-cyan-100"
+        style={{ background: 'var(--color-canvas)', color: 'var(--color-text-primary)' }}
+      >
         {children}
       </body>
     </html>

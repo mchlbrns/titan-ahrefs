@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ArrowUp, ArrowDown, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { ArrowUp, ArrowDown, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
+import SortFilterBar from './SortFilterBar';
 
 interface KeywordItem {
   keyword: string;
@@ -22,91 +23,129 @@ interface KeywordTableProps {
   previewRows?: number;
 }
 
+type SortKey = 'keyword' | 'position' | 'position_delta' | 'search_volume' | 'keyword_difficulty' | 'traffic';
+type SortDir = 'asc' | 'desc';
+type FilterMode = 'all' | 'striking' | 'gains' | 'drops';
+
+function SortableHeader({
+  label,
+  sortKey,
+  activeSortKey,
+  activeSortDir,
+  onSort,
+  className = '',
+}: {
+  label: string;
+  sortKey: SortKey;
+  activeSortKey: SortKey;
+  activeSortDir: SortDir;
+  onSort: (k: SortKey) => void;
+  className?: string;
+}) {
+  const isActive = activeSortKey === sortKey;
+  return (
+    <th
+      className={`pb-2 text-[10px] font-semibold uppercase tracking-wider cursor-pointer select-none sortable-th transition-colors ${
+        isActive ? 'text-[#00D2FF]' : 'text-slate-600'
+      } ${className}`}
+      onClick={() => onSort(sortKey)}
+      aria-sort={isActive ? (activeSortDir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {isActive
+          ? activeSortDir === 'asc'
+            ? <ChevronUp className="h-3 w-3" />
+            : <ChevronDown className="h-3 w-3" />
+          : <ChevronsUpDown className="h-3 w-3 opacity-30" />
+        }
+      </span>
+    </th>
+  );
+}
+
 export default function KeywordTable({
   keywords,
   domain = 'titantreasure.com',
   previewRows,
 }: KeywordTableProps) {
-  const [filter, setFilter] = useState<'all' | 'striking' | 'gains' | 'drops'>('all');
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [sortKey, setSortKey] = useState<SortKey>('traffic');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [expanded, setExpanded] = useState(!previewRows);
 
-  // Null guard — filter out malformed rows
   const safe = keywords.filter(
     (k) => k && typeof k.keyword === 'string' && k.keyword.trim() !== ''
   );
 
-  const filteredKeywords = safe.filter((k) => {
-    if (filter === 'striking') {
-      return k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20);
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('desc');
     }
-    if (filter === 'gains') return (k.position_delta || 0) > 0;
-    if (filter === 'drops') return (k.position_delta || 0) < 0;
-    return true;
-  });
+  };
 
-  const displayRows =
-    previewRows && !expanded
-      ? filteredKeywords.slice(0, previewRows)
-      : filteredKeywords;
+  const filteredKeywords = useMemo(() => {
+    let result = safe.filter((k) => {
+      if (filterMode === 'striking') return k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20);
+      if (filterMode === 'gains') return (k.position_delta || 0) > 0;
+      if (filterMode === 'drops') return (k.position_delta || 0) < 0;
+      return true;
+    });
 
-  const filterOptions: { key: typeof filter; label: string }[] = [
-    { key: 'all', label: `All (${safe.length})` },
-    {
-      key: 'striking',
-      label: `Striking distance (${safe.filter((k) => k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20)).length})`,
-    },
-    {
-      key: 'gains',
-      label: `Gains (${safe.filter((k) => (k.position_delta || 0) > 0).length})`,
-    },
-    {
-      key: 'drops',
-      label: `Drops (${safe.filter((k) => (k.position_delta || 0) < 0).length})`,
-    },
+    result = [...result].sort((a, b) => {
+      let av = 0, bv = 0;
+      if (sortKey === 'keyword') return sortDir === 'asc' ? a.keyword.localeCompare(b.keyword) : b.keyword.localeCompare(a.keyword);
+      av = a[sortKey] ?? 0;
+      bv = b[sortKey] ?? 0;
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+
+    return result;
+  }, [safe, filterMode, sortKey, sortDir]);
+
+  const displayRows = previewRows && !expanded
+    ? filteredKeywords.slice(0, previewRows)
+    : filteredKeywords;
+
+  const sortOptions = [
+    { key: 'all',      label: `All (${safe.length})`,                                                                    icon: 'hot' as const },
+    { key: 'striking', label: `Striking (${safe.filter((k) => k.striking_distance === 'YES' || (k.position >= 4 && k.position <= 20)).length})`, icon: 'top' as const },
+    { key: 'gains',    label: `Gains (${safe.filter((k) => (k.position_delta || 0) > 0).length})`,                       icon: 'new' as const },
+    { key: 'drops',    label: `Drops (${safe.filter((k) => (k.position_delta || 0) < 0).length})`,                       icon: 'default' as const },
   ];
 
   if (safe.length === 0) {
     return (
-      <div className="space-y-3">
-        <p className="text-xs text-slate-600 italic">
-          No keyword ranking data yet for {domain}. Data populates after the first ingestion run.
-        </p>
-      </div>
+      <p className="text-xs text-slate-600 italic py-4">
+        No keyword ranking data yet for {domain}. Data populates after the first ingestion run.
+      </p>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Filter row */}
-      <div className="flex flex-wrap gap-2">
-        {filterOptions.map((opt) => (
-          <button
-            key={opt.key}
-            onClick={() => setFilter(opt.key)}
-            className={`text-xs px-3 py-1.5 rounded-md font-medium transition-colors ${
-              filter === opt.key
-                ? 'bg-surface-raised text-white border border-border-strong'
-                : 'text-slate-500 hover:text-slate-300'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-2">
+      <SortFilterBar
+        options={sortOptions}
+        activeSort={filterMode}
+        onSort={(k) => setFilterMode(k as FilterMode)}
+        resultCount={filteredKeywords.length}
+      />
 
-      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.06)]">
-              <th className="pb-2 pr-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Keyword</th>
-              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Position</th>
-              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Change</th>
-              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">SERP Features</th>
+              <SortableHeader label="Keyword"  sortKey="keyword"           activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="pr-4" />
+              <SortableHeader label="Position" sortKey="position"          activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="px-4" />
+              <SortableHeader label="Change"   sortKey="position_delta"    activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="px-4" />
+              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">SERP</th>
               <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Intent</th>
-              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">Volume</th>
-              <th className="pb-2 px-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600">KD</th>
-              <th className="pb-2 pl-4 text-[10px] font-semibold uppercase tracking-wider text-slate-600 text-right">Traffic</th>
+              <SortableHeader label="Volume"   sortKey="search_volume"     activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="px-4" />
+              <SortableHeader label="KD"       sortKey="keyword_difficulty" activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="px-4" />
+              <SortableHeader label="Traffic"  sortKey="traffic"           activeSortKey={sortKey} activeSortDir={sortDir} onSort={handleSort} className="pl-4 text-right" />
             </tr>
           </thead>
           <tbody>
@@ -122,16 +161,16 @@ export default function KeywordTable({
                   key={idx}
                   className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
                 >
-                  <td className="py-2.5 pr-4">
-                    <div className="font-medium text-slate-200">{item.keyword}</div>
+                  <td className="py-2 pr-4">
+                    <div className="font-medium text-slate-200 text-xs">{item.keyword}</div>
                     {(item.striking_distance === 'YES' || (item.position >= 4 && item.position <= 20)) && (
-                      <span className="text-[10px] text-amber-500 font-medium">Striking distance</span>
+                      <span className="flair-tag flair-high text-[8px] mt-0.5">⚡ Striking</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-4 font-semibold text-white">
+                  <td className="py-2 px-4 font-bold text-white mono">
                     #{item.position}
                   </td>
-                  <td className="py-2.5 px-4">
+                  <td className="py-2 px-4">
                     {(item.position_delta || 0) > 0 ? (
                       <span className="inline-flex items-center gap-0.5 text-emerald-400 font-semibold">
                         <ArrowUp className="h-3 w-3" />+{item.position_delta}
@@ -141,10 +180,10 @@ export default function KeywordTable({
                         <ArrowDown className="h-3 w-3" />{item.position_delta}
                       </span>
                     ) : (
-                      <span className="text-slate-600">—</span>
+                      <span className="text-slate-700">—</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-4">
+                  <td className="py-2 px-4">
                     {item.serpFeatures && item.serpFeatures.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
                         {item.serpFeatures.map((f, fIdx) => (
@@ -154,18 +193,18 @@ export default function KeywordTable({
                         ))}
                       </div>
                     ) : (
-                      <span className="text-slate-600 text-[10px]">Snippet, Links</span>
+                      <span className="text-slate-700 text-[10px]">Snippet</span>
                     )}
                   </td>
-                  <td className="py-2.5 px-4">
-                    <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-800 text-indigo-300 rounded border border-indigo-500/20">
-                      {item.intent || 'Informational'}
+                  <td className="py-2 px-4">
+                    <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-slate-800/80 text-indigo-300 rounded border border-indigo-500/20">
+                      {item.intent || 'Info'}
                     </span>
                   </td>
-                  <td className="py-2.5 px-4 text-slate-400">
+                  <td className="py-2 px-4 text-slate-400">
                     {item.search_volume ? item.search_volume.toLocaleString() : '—'}
                   </td>
-                  <td className="py-2.5 px-4">
+                  <td className="py-2 px-4">
                     <span
                       className={`text-xs font-semibold ${
                         item.keyword_difficulty > 60
@@ -178,7 +217,7 @@ export default function KeywordTable({
                       {item.keyword_difficulty || '—'}
                     </span>
                   </td>
-                  <td className="py-2.5 pl-4 text-slate-300 text-right">
+                  <td className="py-2 pl-4 text-slate-300 text-right font-medium mono">
                     {item.traffic ? item.traffic.toLocaleString() : '—'}
                   </td>
                 </tr>
@@ -192,18 +231,12 @@ export default function KeywordTable({
       {previewRows && filteredKeywords.length > previewRows && (
         <button
           onClick={() => setExpanded((e) => !e)}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mt-1"
         >
           {expanded ? (
-            <>
-              <ChevronUp className="h-3.5 w-3.5" />
-              Show fewer
-            </>
+            <><ChevronUp className="h-3.5 w-3.5" />Show fewer</>
           ) : (
-            <>
-              <ChevronDown className="h-3.5 w-3.5" />
-              View all {filteredKeywords.length} keywords
-            </>
+            <><ChevronDown className="h-3.5 w-3.5" />View all {filteredKeywords.length} keywords</>
           )}
         </button>
       )}
