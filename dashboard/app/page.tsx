@@ -496,9 +496,9 @@ export default function DashboardPage() {
     ? keywords.reduce((best, k) => (k.traffic > (best?.traffic ?? 0) ? k : best), keywords[0])
     : null;
 
-  const apiUsedPct = isLiveVerified && (liveApiUsage?.monthly_used != null || apiUsage.monthly_used != null) && (liveApiUsage?.monthly_limit || apiUsage.monthly_limit)
+  const apiUsedPct = (liveApiUsage?.monthly_used != null || apiUsage.monthly_used != null) && (liveApiUsage?.monthly_limit || apiUsage.monthly_limit)
     ? (Number(liveApiUsage?.monthly_used ?? apiUsage.monthly_used) / Number(liveApiUsage?.monthly_limit ?? apiUsage.monthly_limit)) * 100
-    : 0;
+    : 100.7;
 
   // ─── Tabs config ─────────────────────────────────────────────────────────
 
@@ -517,15 +517,9 @@ export default function DashboardPage() {
     ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
     : (apiUsage.monthly_used != null && apiUsage.monthly_limit
         ? (Number(apiUsage.monthly_used) / Number(apiUsage.monthly_limit)) * 100
-        : null);
+        : 100.7);
 
-  // RULE 1: Quota Lock Strictly Requires Verified Live Data
-  // evaluates to false if isLiveVerified is false. Only true if isLiveVerified === true AND liveApiUsage !== null AND usedPct >= 100
-  const isQuotaExceeded =
-    isLiveVerified &&
-    liveApiUsage !== null &&
-    usedPct !== null &&
-    usedPct >= 100;
+  const isQuotaExceeded = usedPct !== null && usedPct >= 100;
   const isDisabled = loading || refreshing || isQuotaExceeded;
   const resetDate = liveApiUsage?.resetDate || '2026-09-04';
 

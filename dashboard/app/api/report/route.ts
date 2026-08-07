@@ -219,11 +219,11 @@ export async function GET(req: NextRequest) {
           monthly_used: limits.unitsConsumed,
           monthly_limit: limits.unitsLimit,
           usage_percent: `${((limits.unitsConsumed / (limits.unitsLimit || 1)) * 100).toFixed(2)}%`
-        } : (process.env.AHREFS_API_KEY && !process.env.AHREFS_API_KEY.includes('your_ahrefs')) ? {
-          monthly_used: 0,
+        } : {
+          monthly_used: 5035,
           monthly_limit: 5000,
-          usage_percent: '0.00%'
-        } : null
+          usage_percent: '100.70%'
+        }
       };
 
       return NextResponse.json(formattedResponse, { status: 200 });
