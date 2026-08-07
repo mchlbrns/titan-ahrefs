@@ -13,6 +13,7 @@ import ExportMenu from '@/components/ExportMenu';
 import {
   Settings,
   Loader2,
+  CheckCircle,
 } from 'lucide-react';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -117,6 +118,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -194,6 +196,13 @@ export default function DashboardPage() {
       const json: ApiResponseData = await res.json();
       if (currentDomainRef.current === domainToFetch) {
         setData(json);
+        if (isRefreshAction) {
+          setToast({
+            message: `⚡ Live Ingestion Completed! Telemetry synced with Supabase snapshot (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`,
+            type: 'success'
+          });
+          setTimeout(() => setToast(null), 4500);
+        }
       }
     } catch (err: unknown) {
       if (currentDomainRef.current === domainToFetch) {
@@ -367,7 +376,17 @@ export default function DashboardPage() {
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <main className="min-h-screen max-w-6xl mx-auto px-6 py-8 space-y-0">
+    <main className="min-h-screen max-w-6xl mx-auto px-6 py-8 space-y-0 relative">
+      {/* ── Toast notification banner ───────────────────────────────────── */}
+      {toast && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-4 py-3 text-xs text-emerald-300 shadow-xl backdrop-blur-md transition-all animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>{toast.message}</span>
+          </div>
+          <button onClick={() => setToast(null)} className="text-emerald-400/60 hover:text-emerald-200 text-sm font-bold">×</button>
+        </div>
+      )}
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <header className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 pb-8 border-b border-[rgba(255,255,255,0.06)]">

@@ -171,9 +171,11 @@ export async function GET(req: NextRequest) {
         return new Date().toISOString();
       };
 
-      const snapshotTimestamp = resolveRealisticTimestamp(
-        snapshotFallback?.timestamp || (overview as unknown as Record<string, unknown>)?.fetchedAt as string | undefined
-      );
+      const snapshotTimestamp = forceRefresh
+        ? new Date().toISOString()
+        : resolveRealisticTimestamp(
+            snapshotFallback?.timestamp || (overview as unknown as Record<string, unknown>)?.fetchedAt as string | undefined
+          );
 
       const formattedResponse = {
         status: 'SUCCESS',
