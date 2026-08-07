@@ -124,3 +124,57 @@ export async function getLatestSnapshotFromSupabase(domain: string): Promise<Dom
   }
 }
 
+export async function getManagedDomainsFromSupabase(): Promise<{ domain: string; target_country?: string; priority?: string; description?: string }[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client
+      .from('managed_domains')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error || !data || data.length === 0) return null;
+    return data.map(row => ({
+      domain: row.domain,
+      target_country: row.target_country || 'us',
+      priority: row.priority || 'high',
+      description: row.description || 'Managed Domain'
+    }));
+  } catch {
+    return null;
+  }
+}
+
+export async function addManagedDomainToSupabase(domainObj: { domain: string; target_country?: string; priority?: string; description?: string }): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('managed_domains').upsert({
+      domain: domainObj.domain.toLowerCase().trim(),
+      target_country: domainObj.target_country || 'us',
+      priority: domainObj.priority || 'high',
+      description: domainObj.description || 'Added via Dashboard UI',
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'domain' });
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function deleteManagedDomainFromSupabase(domain: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client
+      .from('managed_domains')
+      .delete()
+      .eq('domain', domain.toLowerCase().trim());
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+

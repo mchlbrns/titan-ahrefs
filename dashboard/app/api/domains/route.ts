@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import fs from 'fs';
 import path from 'path';
+import {
+  getManagedDomainsFromSupabase,
+  addManagedDomainToSupabase,
+  deleteManagedDomainFromSupabase
+} from '../../../src/supabase';
 
 interface ManagedDomain {
   domain: string;
@@ -71,6 +76,12 @@ function getDomainsFromCookie(): ManagedDomain[] | null {
 
 export async function GET() {
   try {
+    const supabaseDomains = await getManagedDomainsFromSupabase();
+    if (supabaseDomains && supabaseDomains.length > 0) {
+      inMemoryDomains = supabaseDomains;
+      return NextResponse.json({ managed_domains: inMemoryDomains });
+    }
+
     const cookieDomains = getDomainsFromCookie();
     if (cookieDomains) {
       inMemoryDomains = cookieDomains;
@@ -97,17 +108,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Domain name is required' }, { status: 400 });
     }
 
+    const newDomainObj: ManagedDomain = {
+      domain: domainName,
+      target_country: body.target_country || 'us',
+      priority: body.priority || 'medium',
+      description: body.description || 'Added via Dashboard UI'
+    };
+
     const existing = inMemoryDomains.find(d => d.domain.toLowerCase() === domainName);
     if (!existing) {
-      const newDomainObj: ManagedDomain = {
-        domain: domainName,
-        target_country: body.target_country || 'us',
-        priority: body.priority || 'medium',
-        description: body.description || 'Added via Dashboard UI'
-      };
       inMemoryDomains.push(newDomainObj);
       saveDomainsToFile(inMemoryDomains);
     }
+
+    await addManagedDomainToSupabase(newDomainObj);
 
     const response = NextResponse.json({ success: true, managed_domains: inMemoryDomains });
     response.cookies.set('titan_managed_domains', JSON.stringify(inMemoryDomains), {
@@ -133,6 +147,7 @@ export async function DELETE(req: Request) {
 
     inMemoryDomains = inMemoryDomains.filter(d => d.domain.toLowerCase() !== domainName);
     saveDomainsToFile(inMemoryDomains);
+    await deleteManagedDomainFromSupabase(domainName);
 
     const response = NextResponse.json({ success: true, managed_domains: inMemoryDomains });
     response.cookies.set('titan_managed_domains', JSON.stringify(inMemoryDomains), {
