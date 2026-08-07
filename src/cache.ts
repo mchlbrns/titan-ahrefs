@@ -1,6 +1,8 @@
 import { Logger } from './logger';
 import { DomainSnapshot } from './types';
 import { getLatestSnapshotFromSupabase, saveSnapshotToSupabase } from './supabase';
+import { SnapshotStore } from './snapshots';
+import { getStaticSnapshot } from './snapshot-registry';
 
 export interface CacheState {
   snapshot: DomainSnapshot | null;
@@ -32,9 +34,10 @@ export class RequestDeduplicator {
   }
 }
 
-import { SnapshotStore } from './snapshots';
 
 export class AhrefsCacheManager {
+
+
   private logger: Logger;
   private backgroundRevalidations = new Set<string>();
 
@@ -50,8 +53,10 @@ export class AhrefsCacheManager {
       let snapshot = await getLatestSnapshotFromSupabase(domain);
       if (!snapshot) {
         const snapshotStore = new SnapshotStore(undefined, undefined, this.logger);
-        snapshot = await snapshotStore.getLatestSnapshotForDomain(domain) || null;
+        snapshot = (await snapshotStore.getLatestSnapshotForDomain(domain)) || getStaticSnapshot(domain);
       }
+
+
 
       if (!snapshot || !snapshot.timestamp) {
         return { snapshot: null, isStale: true, isMissing: true, ageMs: Infinity };

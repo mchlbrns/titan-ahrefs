@@ -16,6 +16,8 @@ import { SnapshotError } from './errors';
 import * as os from 'os';
 
 import { saveSnapshotToSupabase, getLatestSnapshotFromSupabase } from './supabase';
+import { getStaticSnapshot } from './snapshot-registry';
+
 
 export class SnapshotStore {
   private client: AhrefsClient;
@@ -146,6 +148,8 @@ export class SnapshotStore {
 
 
   public async getLatestSnapshotForDomain(domain: string): Promise<DomainSnapshot | undefined> {
+
+
     const snapshots = this.getSnapshotsForDomain(domain);
     if (snapshots.length > 0) {
       return snapshots[0];
@@ -155,7 +159,12 @@ export class SnapshotStore {
     const remoteSnapshot = await getLatestSnapshotFromSupabase(domain);
     if (remoteSnapshot) return remoteSnapshot;
 
+    // Static bundled snapshot fallback for Vercel Serverless
+    const staticSnapshot = getStaticSnapshot(domain);
+    if (staticSnapshot) return staticSnapshot;
+
     return undefined;
   }
+
 }
 
