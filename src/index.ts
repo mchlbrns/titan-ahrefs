@@ -160,6 +160,43 @@ async function main() {
       break;
     }
 
+    case 'reddit:threads': {
+      const subreddit = process.argv[3];
+      if (!subreddit) {
+        console.log(`\n⚠️ Usage: reddit:threads <subreddit> [minVolume] [limit]`);
+        console.log(`   Example: npm run reddit:threads hiking 1000 50`);
+        break;
+      }
+      const minVolume = parseInt(process.argv[4] || '0', 10);
+      const limit = parseInt(process.argv[5] || '100', 10);
+      const rep = await client.fetchRedditThreads(subreddit, { minVolume, limit });
+      console.log(`\n🔴 Reddit Threads: r/${subreddit} (${rep.target})`);
+      console.log(`   - Total Threads: ${rep.totalThreads} | Total Est. Traffic: ${rep.totalTraffic.toLocaleString()}`);
+      for (const t of rep.threads) {
+        console.log(`     * ${t.url}\n       Top KW: "${t.topKeyword}" (Vol ${t.topKeywordVolume.toLocaleString()}, UR ${t.urlRating}) | Traffic ${t.organicTraffic.toLocaleString()} | Ranks ${t.rankingKeywords} keywords`);
+      }
+      break;
+    }
+
+    case 'reddit:keywords': {
+      const subreddit = process.argv[3];
+      if (!subreddit) {
+        console.log(`\n⚠️ Usage: reddit:keywords <subreddit> [minVolume] [maxPosition] [limit]`);
+        console.log(`   Example: npm run reddit:keywords hiking 500 10 200`);
+        break;
+      }
+      const minVolume = parseInt(process.argv[4] || '0', 10);
+      const maxPosition = parseInt(process.argv[5] || '20', 10);
+      const limit = parseInt(process.argv[6] || '100', 10);
+      const rep = await client.fetchRedditKeywords(subreddit, { minVolume, maxPosition, limit });
+      console.log(`\n🔴 Reddit Target Keywords: r/${subreddit} (${rep.target})`);
+      console.log(`   - Total Keywords: ${rep.totalKeywords} | Top 3: ${rep.top3Count} | Top 10: ${rep.top10Count}`);
+      for (const k of rep.keywords) {
+        console.log(`     * "${k.keyword}": Pos #${k.position} | Vol: ${k.searchVolume.toLocaleString()} | KD: ${k.keywordDifficulty} | Intent: ${k.searchIntent}`);
+      }
+      break;
+    }
+
     case 'report:weekly': {
       const reporter = new ReportGenerator(undefined, client, logger);
       const report = await reporter.generateWeeklyReport(domains, {
@@ -172,7 +209,7 @@ async function main() {
 
     default: {
       console.log(`Unknown command: ${command}`);
-      console.log(`Available commands: usage:check, audit:domains, fetch:keywords, fetch:toppages, fetch:backlinks, analyze:competitors, snapshot:create, report:weekly`);
+      console.log(`Available commands: usage:check, audit:domains, fetch:keywords, fetch:toppages, fetch:backlinks, analyze:competitors, snapshot:create, reddit:threads, reddit:keywords, report:weekly`);
     }
   }
 }

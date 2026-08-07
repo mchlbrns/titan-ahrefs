@@ -153,7 +153,7 @@ export interface DomainSnapshot {
   domain: string;
   timestamp: string;
   /** Provenance guard: reports must never mistake test fixtures for Ahrefs output. */
-  dataSource?: 'ahrefs-api-v3' | 'mock';
+  dataSource?: 'ahrefs-api-v3' | 'mock' | 'supabase-db-snapshot';
   overview: DomainOverviewMetrics;
   keywords: DomainKeywordReport;
   topPages: TopPagesReport;
@@ -234,4 +234,38 @@ export interface ReportOptions {
   enableHtml?: boolean;
   enableCsv?: boolean;
   includeHistoricalTrends?: boolean;
+}
+
+// Task 10: Reddit Thread Targeting (Site Explorer against reddit.com subreddits)
+export interface RedditThreadItem {
+  url: string;
+  topKeyword: string;
+  topKeywordVolume: number;
+  organicTraffic: number;
+  urlRating: number;
+  rankingKeywords: number;
+}
+
+export interface RedditThreadReport {
+  target: string;
+  totalThreads: number;
+  totalTraffic: number;
+  threads: RedditThreadItem[];
+}
+
+export interface RedditKeywordItem {
+  keyword: string;
+  position: number;
+  searchVolume: number;
+  keywordDifficulty: number;
+  estimatedTraffic: number;
+  searchIntent: OrganicKeywordItem['searchIntent'];
+}
+
+export interface RedditKeywordReport {
+  target: string;
+  totalKeywords: number;
+  top3Count: number;
+  top10Count: number;
+  keywords: RedditKeywordItem[];
 }

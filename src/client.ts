@@ -7,7 +7,11 @@ import {
   CompetitorMetrics,
   BacklinkItem,
   BacklinkAuditReport,
-  ApiUsageLimits
+  ApiUsageLimits,
+  RedditThreadItem,
+  RedditThreadReport,
+  RedditKeywordItem,
+  RedditKeywordReport
 } from './types';
 import { calculateSeoHealthScore } from './health';
 import { Logger } from './logger';
@@ -521,6 +525,143 @@ export class AhrefsClient {
         seoHealthScore: undefined
       };
 
+    }
+  }
+
+  // Task 10a: Reddit Thread Targeting (top-pages against a reddit.com subreddit)
+  public async fetchRedditThreads(subreddit: string, options: { minVolume?: number; limit?: number } = {}): Promise<RedditThreadReport> {
+    const target = `reddit.com/r/${subreddit.replace(/^\/+|\/+$/g, '')}`;
+    const endpoint = '/site-explorer/top-pages';
+    const limit = options.limit ?? 100;
+    const minVolume = options.minVolume ?? 0;
+
+    this.logger.info(`Fetching Reddit threads for ${target} [LIVE API]`);
+    try {
+      const report = await withRetry(async (attempt) => {
+        const queryParams = new URLSearchParams({
+          target,
+          mode: 'url',
+          country: 'us',
+          date: this.currentDate(),
+          select: 'url,top_keyword,top_keyword_volume,sum_traffic,ur,keywords',
+          order_by: 'top_keyword_volume:desc',
+          limit: String(limit)
+        });
+        if (minVolume > 0) {
+          queryParams.set('where', JSON.stringify({ "top_keyword_volume": { "is": [">=", String(minVolume)] } }));
+        }
+        const url = `${this.baseUrl}${endpoint}?${queryParams.toString()}`;
+        this.logger.debug(`API request attempt ${attempt} for ${endpoint}`, { url });
+
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!res.ok) {
+          throw new AhrefsApiError(`Ahrefs API HTTP error ${res.status}: ${res.statusText}`, res.status, url);
+        }
+
+        const unitsConsumed = this.extractUnitsFromResponse(res, 50);
+        this.usageMonitor.recordApiCall(endpoint, unitsConsumed, true);
+
+        const data = await res.json() as { pages?: Record<string, unknown>[] };
+        const rawPages = data.pages || [];
+
+        const threads: RedditThreadItem[] = rawPages.filter(item => item && typeof item.url === 'string').map(item => ({
+          url: String(item.url || `https://${target}/`),
+          topKeyword: String(item.top_keyword || ''),
+          topKeywordVolume: this.numberField(item, 'top_keyword_volume'),
+          organicTraffic: this.numberField(item, 'sum_traffic'),
+          urlRating: this.numberField(item, 'ur'),
+          rankingKeywords: this.numberField(item, 'keywords')
+        }));
+
+        const totalTraffic = threads.reduce((acc, t) => acc + t.organicTraffic, 0);
+        return { target, totalThreads: threads.length, totalTraffic, threads };
+      }, { maxRetries: this.maxRetries, initialDelayMs: this.retryDelayMs, logger: this.logger });
+
+      return report;
+    } catch (err) {
+      this.logger.warn(`API request failed for ${target} reddit threads. Returning empty report. Reason: ${(err as Error).message}`);
+      this.usageMonitor.recordApiCall(endpoint, 0, false);
+      return { target, totalThreads: 0, totalTraffic: 0, threads: [] };
+    }
+  }
+
+  // Task 10b: Reddit Keyword Targeting (organic-keywords for a reddit.com subreddit)
+  public async fetchRedditKeywords(subreddit: string, options: { minVolume?: number; minPosition?: number; maxPosition?: number; limit?: number } = {}): Promise<RedditKeywordReport> {
+    const target = `reddit.com/r/${subreddit.replace(/^\/+|\/+$/g, '')}`;
+    const endpoint = '/site-explorer/organic-keywords';
+    const limit = options.limit ?? 100;
+    const minVolume = options.minVolume ?? 0;
+    const minPosition = options.minPosition ?? 1;
+    const maxPosition = options.maxPosition ?? 20;
+
+    this.logger.info(`Fetching Reddit target keywords for ${target} [LIVE API]`);
+
+    const andFilters: Record<string, { is: string[] }>[] = [];
+    if (minVolume > 0) andFilters.push({ volume: { is: [">=", String(minVolume)] } });
+    if (minPosition > 1) andFilters.push({ best_position: { is: [">=", String(minPosition)] } });
+    andFilters.push({ best_position: { is: ["<=", String(maxPosition)] } });
+
+    try {
+      const report = await withRetry(async (attempt) => {
+        const queryParams = new URLSearchParams({
+          target,
+          mode: 'url',
+          country: 'us',
+          date: this.currentDate(),
+          date_compared: new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10),
+          select: 'keyword,best_position,volume,keyword_difficulty,sum_traffic,is_informational,is_transactional,is_commercial,is_navigational',
+          order_by: 'volume:desc',
+          limit: String(limit)
+        });
+        queryParams.set('where', JSON.stringify({ and: andFilters }));
+        const url = `${this.baseUrl}${endpoint}?${queryParams.toString()}`;
+        this.logger.debug(`API request attempt ${attempt} for ${endpoint}`, { url });
+
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Accept': 'application/json'
+          }
+        });
+
+        if (!res.ok) {
+          throw new AhrefsApiError(`Ahrefs API HTTP error ${res.status}: ${res.statusText}`, res.status, url);
+        }
+
+        const unitsConsumed = this.extractUnitsFromResponse(res, 5);
+        this.usageMonitor.recordApiCall(endpoint, unitsConsumed, true);
+
+        const data = await res.json() as { keywords?: Record<string, unknown>[] };
+        const rawKeywords = data.keywords || [];
+
+        const keywords: RedditKeywordItem[] = rawKeywords.filter(item => item && typeof item.keyword === 'string').map(item => {
+          const searchIntent = (item.is_transactional ? 'Transactional' : item.is_commercial ? 'Commercial' : item.is_informational ? 'Informational' : item.is_navigational ? 'Navigational' : 'Mixed') as OrganicKeywordItem['searchIntent'];
+          return {
+            keyword: String(item.keyword || ''),
+            position: this.numberField(item, 'best_position'),
+            searchVolume: this.numberField(item, 'volume'),
+            keywordDifficulty: this.numberField(item, 'keyword_difficulty'),
+            estimatedTraffic: this.numberField(item, 'sum_traffic'),
+            searchIntent
+          };
+        });
+
+        const top3 = keywords.filter(k => k.position <= 3).length;
+        const top10 = keywords.filter(k => k.position <= 10).length;
+        return { target, totalKeywords: keywords.length, top3Count: top3, top10Count: top10, keywords };
+      }, { maxRetries: this.maxRetries, initialDelayMs: this.retryDelayMs, logger: this.logger });
+
+      return report;
+    } catch (err) {
+      this.logger.warn(`API request failed for ${target} reddit keywords. Returning empty report. Reason: ${(err as Error).message}`);
+      this.usageMonitor.recordApiCall(endpoint, 0, false);
+      return { target, totalKeywords: 0, top3Count: 0, top10Count: 0, keywords: [] };
     }
   }
 }

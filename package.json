@@ -14,6 +14,8 @@
     "fetch:toppages": "tsx src/index.ts fetch:toppages",
     "fetch:backlinks": "tsx src/index.ts fetch:backlinks",
     "analyze:competitors": "tsx src/index.ts analyze:competitors",
+    "reddit:threads": "tsx src/index.ts reddit:threads",
+    "reddit:keywords": "tsx src/index.ts reddit:keywords",
     "snapshot:create": "tsx src/index.ts snapshot:create",
     "report:weekly": "tsx src/index.ts report:weekly",
     "typecheck": "tsc --noEmit",
@@ -53,7 +55,7 @@
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.1.2",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3"
+    "tsx": "^4.23.11",
+    "typescript": "^5.9.3"
   }
 }

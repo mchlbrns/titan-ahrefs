@@ -69,4 +69,75 @@ describe('AhrefsClient Unit Tests', () => {
     const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false, maxRetries: 0 });
     await expect(client.fetchDomainRating('red-engage.com')).rejects.toThrow('Ahrefs API HTTP error 500');
   });
+
+  test('fetchRedditThreads parses live API top-pages response', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers(),
+      json: async () => ({
+        pages: [
+          { url: 'https://reddit.com/r/hiking/comments/abc', top_keyword: 'best hiking boots', top_keyword_volume: 24000, sum_traffic: 1200, ur: 30, keywords: 40 },
+          { url: 'https://reddit.com/r/hiking/comments/def', top_keyword: 'what to bring on a day hike', top_keyword_volume: 9000, sum_traffic: 800, ur: 22, keywords: 30 }
+        ]
+      })
+    });
+    global.fetch = mockFetch;
+
+    const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false });
+    const res = await client.fetchRedditThreads('hiking', { minVolume: 1000 });
+
+    expect(res.target).toBe('reddit.com/r/hiking');
+    expect(res.totalThreads).toBe(2);
+    expect(res.threads[0].topKeywordVolume).toBe(24000);
+    expect(res.threads[0].urlRating).toBe(30);
+    expect(res.totalTraffic).toBe(2000);
+    expect(mockFetch.mock.calls[0][0]).toContain('/site-explorer/top-pages');
+  });
+
+  test('fetchRedditThreads fails closed returning empty report on API error', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({ ok: false, status: 429, statusText: 'Too Many Requests' });
+    global.fetch = mockFetch;
+
+    const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false, maxRetries: 0 });
+    const res = await client.fetchRedditThreads('hiking');
+
+    expect(res.totalThreads).toBe(0);
+    expect(res.threads).toEqual([]);
+  });
+
+  test('fetchRedditKeywords parses live organic-keywords response and derives intent', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers(),
+      json: async () => ({
+        keywords: [
+          { keyword: 'best hiking boots', best_position: 4, volume: 24000, keyword_difficulty: 38, sum_traffic: 1200, is_transactional: true, is_commercial: false, is_informational: false, is_navigational: false },
+          { keyword: 'hike length calculator', best_position: 9, volume: 9000, keyword_difficulty: 15, sum_traffic: 500, is_transactional: false, is_commercial: false, is_informational: true, is_navigational: false }
+        ]
+      })
+    });
+    global.fetch = mockFetch;
+
+    const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false });
+    const res = await client.fetchRedditKeywords('hiking', { minVolume: 500, maxPosition: 12 });
+
+    expect(res.target).toBe('reddit.com/r/hiking');
+    expect(res.totalKeywords).toBe(2);
+    expect(res.top3Count).toBe(0);
+    expect(res.top10Count).toBe(2);
+    expect(res.keywords[0].searchIntent).toBe('Transactional');
+    expect(res.keywords[1].searchIntent).toBe('Informational');
+    expect(mockFetch.mock.calls[0][0]).toContain('/site-explorer/organic-keywords');
+  });
+
+  test('fetchRedditKeywords fails closed returning empty report on API error', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({ ok: false, status: 402, statusText: 'Payment Required' });
+    global.fetch = mockFetch;
+
+    const client = new AhrefsClient({ apiKey: 'real_api_key', mockFallback: false, maxRetries: 0 });
+    const res = await client.fetchRedditKeywords('hiking');
+
+    expect(res.totalKeywords).toBe(0);
+    expect(res.keywords).toEqual([]);
+  });
 });
