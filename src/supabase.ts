@@ -178,3 +178,55 @@ export async function deleteManagedDomainFromSupabase(domain: string): Promise<b
   }
 }
 
+export async function getCompetitorsFromSupabase(primaryDomain: string): Promise<string[] | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client
+      .from('competitor_registry')
+      .select('competitor_domain')
+      .eq('primary_domain', primaryDomain.toLowerCase().trim());
+
+    if (error || !data || data.length === 0) return null;
+    return data.map(row => row.competitor_domain);
+  } catch {
+    return null;
+  }
+}
+
+export async function logApiUsageToSupabase(log: { endpoint: string; unitsConsumed: number; unitsLimit?: number; unitsRemaining?: number; apiKeyStatus?: string }): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('api_usage_logs').insert({
+      endpoint: log.endpoint,
+      units_consumed: log.unitsConsumed,
+      units_limit: log.unitsLimit ?? 5000,
+      units_remaining: log.unitsRemaining ?? 5000,
+      api_key_status: log.apiKeyStatus || 'ACTIVE',
+      created_at: new Date().toISOString()
+    });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function saveExecutiveReportToSupabase(report: { reportTitle?: string; domainsAudited: string[]; executiveSummary: unknown; markdownContent: string; htmlContent?: string }): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('executive_reports').insert({
+      report_title: report.reportTitle || 'Ahrefs Weekly Executive SEO Briefing',
+      domains_audited: report.domainsAudited,
+      executive_summary: report.executiveSummary,
+      markdown_content: report.markdownContent,
+      html_content: report.htmlContent || null,
+      created_at: new Date().toISOString()
+    });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+

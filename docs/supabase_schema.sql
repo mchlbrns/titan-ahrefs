@@ -1,5 +1,5 @@
 -- ==============================================================================
--- Titan Ahrefs — Supabase Database Migration Schema
+-- Titan Ahrefs — Full Production Supabase Database Migration Schema
 -- Run this script in the Supabase SQL Editor (https://app.supabase.com)
 -- ==============================================================================
 
@@ -15,25 +15,13 @@ CREATE TABLE IF NOT EXISTS public.managed_domains (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS)
 ALTER TABLE public.managed_domains ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if re-running script to avoid policy collision errors
 DROP POLICY IF EXISTS "Allow public select on managed_domains" ON public.managed_domains;
 DROP POLICY IF EXISTS "Allow public all on managed_domains" ON public.managed_domains;
-DROP POLICY IF EXISTS "Allow public insert/update/delete on managed_domains" ON public.managed_domains;
 
--- Create RLS Policies for Anon / Public access
-CREATE POLICY "Allow public select on managed_domains" 
-  ON public.managed_domains FOR SELECT 
-  USING (true);
+CREATE POLICY "Allow public select on managed_domains" ON public.managed_domains FOR SELECT USING (true);
+CREATE POLICY "Allow public all on managed_domains" ON public.managed_domains FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow public all on managed_domains" 
-  ON public.managed_domains FOR ALL 
-  USING (true)
-  WITH CHECK (true);
-
--- Seed initial default domains
 INSERT INTO public.managed_domains (domain, target_country, priority, description)
 VALUES 
   ('titantreasure.com', 'us', 'high', 'Primary Platform'),
@@ -61,21 +49,86 @@ CREATE TABLE IF NOT EXISTS public.ahrefs_snapshots (
   CONSTRAINT unique_domain_timestamp UNIQUE (domain, timestamp)
 );
 
--- Enable RLS for Snapshots Table
 ALTER TABLE public.ahrefs_snapshots ENABLE ROW LEVEL SECURITY;
-
--- Drop existing policies if re-running script
 DROP POLICY IF EXISTS "Allow public select on ahrefs_snapshots" ON public.ahrefs_snapshots;
 DROP POLICY IF EXISTS "Allow public all on ahrefs_snapshots" ON public.ahrefs_snapshots;
-DROP POLICY IF EXISTS "Allow public insert/update on ahrefs_snapshots" ON public.ahrefs_snapshots;
 
-CREATE POLICY "Allow public select on ahrefs_snapshots" 
-  ON public.ahrefs_snapshots FOR SELECT 
-  USING (true);
+CREATE POLICY "Allow public select on ahrefs_snapshots" ON public.ahrefs_snapshots FOR SELECT USING (true);
+CREATE POLICY "Allow public all on ahrefs_snapshots" ON public.ahrefs_snapshots FOR ALL USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow public all on ahrefs_snapshots" 
-  ON public.ahrefs_snapshots FOR ALL 
-  USING (true)
-  WITH CHECK (true);
+
+-- 3. Create Competitor Registry Table (Target vs Competitor Benchmarking)
+CREATE TABLE IF NOT EXISTS public.competitor_registry (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  primary_domain TEXT NOT NULL,
+  competitor_domain TEXT NOT NULL,
+  target_country TEXT DEFAULT 'us',
+  notes TEXT DEFAULT 'Tracked Organic Competitor',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT unique_primary_competitor UNIQUE (primary_domain, competitor_domain)
+);
+
+ALTER TABLE public.competitor_registry ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select on competitor_registry" ON public.competitor_registry;
+DROP POLICY IF EXISTS "Allow public all on competitor_registry" ON public.competitor_registry;
+
+CREATE POLICY "Allow public select on competitor_registry" ON public.competitor_registry FOR SELECT USING (true);
+CREATE POLICY "Allow public all on competitor_registry" ON public.competitor_registry FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO public.competitor_registry (primary_domain, competitor_domain, notes)
+VALUES
+  ('titantreasure.com', 'chumbacasino.com', 'Primary Social Casino Competitor'),
+  ('titantreasure.com', 'pulsz.com', 'Secondary Sweepstakes Competitor'),
+  ('titantreasure.com', 'luckylandslots.com', 'Sweepstakes Slots Competitor'),
+  ('red-engage.com', 'singlegrain.com', 'SEO Agency Competitor'),
+  ('red-engage.com', 'growthrocks.com', 'Growth Marketing Competitor'),
+  ('red-engage.com', 'disruptiveadvertising.com', 'PPC & Growth Competitor')
+ON CONFLICT (primary_domain, competitor_domain) DO NOTHING;
+
+
+-- 4. Create API Usage Logs Table (Ahrefs API Quota & Unit Consumption Monitoring)
+CREATE TABLE IF NOT EXISTS public.api_usage_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  endpoint TEXT NOT NULL,
+  units_consumed INTEGER DEFAULT 0,
+  units_limit INTEGER DEFAULT 5000,
+  units_remaining INTEGER DEFAULT 5000,
+  api_key_status TEXT DEFAULT 'ACTIVE',
+  reset_date TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.api_usage_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select on api_usage_logs" ON public.api_usage_logs;
+DROP POLICY IF EXISTS "Allow public all on api_usage_logs" ON public.api_usage_logs;
+
+CREATE POLICY "Allow public select on api_usage_logs" ON public.api_usage_logs FOR SELECT USING (true);
+CREATE POLICY "Allow public all on api_usage_logs" ON public.api_usage_logs FOR ALL USING (true) WITH CHECK (true);
+
+INSERT INTO public.api_usage_logs (endpoint, units_consumed, units_limit, units_remaining, api_key_status, reset_date)
+VALUES 
+  ('/subscription-info/limits-and-usage', 0, 5000, 5000, 'ACTIVE', NOW() + INTERVAL '30 days')
+ON CONFLICT DO NOTHING;
+
+
+-- 5. Create Executive Reports Table (Saved Weekly Reports & Pedro Briefings)
+CREATE TABLE IF NOT EXISTS public.executive_reports (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  report_title TEXT DEFAULT 'Ahrefs Weekly Executive SEO Briefing',
+  generated_at TIMESTAMPTZ DEFAULT NOW(),
+  domains_audited JSONB,
+  executive_summary JSONB,
+  markdown_content TEXT,
+  html_content TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.executive_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select on executive_reports" ON public.executive_reports;
+DROP POLICY IF EXISTS "Allow public all on executive_reports" ON public.executive_reports;
+
+CREATE POLICY "Allow public select on executive_reports" ON public.executive_reports FOR SELECT USING (true);
+CREATE POLICY "Allow public all on executive_reports" ON public.executive_reports FOR ALL USING (true) WITH CHECK (true);
 
 COMMIT;
