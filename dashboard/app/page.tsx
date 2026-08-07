@@ -174,7 +174,7 @@ export default function DashboardPage() {
     usage_percent: string | number | null;
     resetDate?: string | null;
   } | null>(null);
-  const [isLiveVerified, setIsLiveVerified] = useState<boolean>(false);
+  const [isQuotaVerified, setIsQuotaVerified] = useState<boolean>(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -219,9 +219,9 @@ export default function DashboardPage() {
               resetDate: json.resetDate || '2026-09-04',
             };
             setLiveApiUsage(freshUsage);
-            setIsLiveVerified(true);
+            setIsQuotaVerified(true);
 
-            // RULE 2: Immediate Cache Normalization on Telemetry Sync
+            // Imperative Cache Overwrite: Update cache with verified live telemetry
             if (typeof window !== 'undefined') {
               const activeDomain = currentDomainRef.current || 'titantreasure.com';
               const cacheKey = `titan_ahrefs_cache_${activeDomain}`;
@@ -237,15 +237,13 @@ export default function DashboardPage() {
               }
             }
           } else {
-            setIsLiveVerified(true);
+            setIsQuotaVerified(true);
           }
         } else {
-          // RULE 4: Graceful Network Degradation
-          setIsLiveVerified(true);
+          setIsQuotaVerified(true);
         }
       } catch {
-        // RULE 4: Graceful Network Degradation
-        setIsLiveVerified(true);
+        setIsQuotaVerified(true);
       }
     }
 
@@ -496,9 +494,9 @@ export default function DashboardPage() {
     ? keywords.reduce((best, k) => (k.traffic > (best?.traffic ?? 0) ? k : best), keywords[0])
     : null;
 
-  const apiUsedPct = (liveApiUsage?.monthly_used != null || apiUsage.monthly_used != null) && (liveApiUsage?.monthly_limit || apiUsage.monthly_limit)
+  const apiUsedPct = isQuotaVerified && (liveApiUsage?.monthly_used != null || apiUsage.monthly_used != null) && (liveApiUsage?.monthly_limit || apiUsage.monthly_limit)
     ? (Number(liveApiUsage?.monthly_used ?? apiUsage.monthly_used) / Number(liveApiUsage?.monthly_limit ?? apiUsage.monthly_limit)) * 100
-    : 100.7;
+    : 0;
 
   // ─── Tabs config ─────────────────────────────────────────────────────────
 
@@ -517,9 +515,14 @@ export default function DashboardPage() {
     ? (liveApiUsage.monthly_used / liveApiUsage.monthly_limit) * 100
     : (apiUsage.monthly_used != null && apiUsage.monthly_limit
         ? (Number(apiUsage.monthly_used) / Number(apiUsage.monthly_limit)) * 100
-        : 100.7);
+        : null);
 
-  const isQuotaExceeded = usedPct !== null && usedPct >= 100;
+  // Authorization State: locked/unlocked is strictly gated by live verification (isQuotaVerified)
+  const isQuotaExceeded =
+    isQuotaVerified &&
+    usedPct !== null &&
+    usedPct >= 100;
+
   const isDisabled = loading || refreshing || isQuotaExceeded;
   const resetDate = liveApiUsage?.resetDate || '2026-09-04';
 
@@ -584,7 +587,7 @@ export default function DashboardPage() {
                   monthlyLimit={apiUsage.monthly_limit}
                   usagePercent={apiUsage.usage_percent}
                   resetDate={liveApiUsage?.resetDate || '2026-09-04'}
-                  isVerifying={!isLiveVerified}
+                  isVerifying={!isQuotaVerified}
                 />
               )}
               {!loading && data && (
