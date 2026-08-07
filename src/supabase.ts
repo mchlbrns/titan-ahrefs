@@ -74,7 +74,11 @@ export async function getLatestSnapshotFromSupabase(domain: string): Promise<Dom
       .limit(1)
       .single();
 
+    if (error || !data) return null;
+
+
     return {
+
       snapshotId: `snap_${data.domain.replace(/\./g, '_')}_${new Date(data.timestamp).getTime()}`,
       domain: data.domain,
       timestamp: data.timestamp,

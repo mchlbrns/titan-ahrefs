@@ -100,11 +100,12 @@ export async function GET(req: NextRequest) {
         competitor_dr: compData.domainRating
       })) : (snapshotFallback?.competitors || []);
 
-      const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? null;
-      const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? null;
-      const referringDomains = overview?.referringDomains ?? snapshotFallback?.referringDomains ?? null;
-      const totalBacklinks = overview?.totalBacklinks ?? snapshotFallback?.totalBacklinks ?? null;
-      const ahrefsRank = overview?.ahrefsRank ?? null;
+      const domainRating = overview?.domainRating ?? snapshotFallback?.domainRating ?? snapshotFallback?.overview?.domainRating ?? null;
+      const organicTraffic = overview?.organicTraffic ?? snapshotFallback?.estimatedTraffic ?? snapshotFallback?.overview?.organicTraffic ?? null;
+      const referringDomains = overview?.referringDomains ?? snapshotFallback?.referringDomains ?? snapshotFallback?.overview?.referringDomains ?? null;
+      const totalBacklinks = overview?.totalBacklinks ?? snapshotFallback?.totalBacklinks ?? snapshotFallback?.overview?.totalBacklinks ?? null;
+      const ahrefsRank = overview?.ahrefsRank ?? snapshotFallback?.overview?.ahrefsRank ?? null;
+
 
       const computedHealth = (domainRating !== null && referringDomains !== null && totalBacklinks !== null && organicTraffic !== null)
         ? calculateSeoHealthScore({
