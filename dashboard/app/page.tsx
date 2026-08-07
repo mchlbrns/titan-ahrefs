@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   Globe,
 } from 'lucide-react';
+import DomainFavicon from '../components/DomainFavicon';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -493,7 +494,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-2">
             {/* Domain switcher */}
             <div className="flex items-center gap-2.5">
-              <Globe className="h-5 w-5 text-slate-500 shrink-0" />
+              <DomainFavicon domain={selectedDomain} className="h-5 w-5 shrink-0" />
               <select
                 value={selectedDomain}
                 onChange={(e) => handleSelectDomain(e.target.value)}

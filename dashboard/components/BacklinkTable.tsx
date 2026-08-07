@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ExternalLink, ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import SortFilterBar from './SortFilterBar';
+import DomainFavicon from './DomainFavicon';
 
 interface BacklinkItem {
   ref_domain: string;
@@ -152,7 +153,8 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 font-semibold text-xs text-slate-100 hover:text-cyan-300 break-all"
                   >
-                    {b.ref_domain}
+                    <DomainFavicon domain={b.ref_domain} className="h-3.5 w-3.5 shrink-0" />
+                    <span>{b.ref_domain}</span>
                     <ExternalLink className="h-3 w-3 text-slate-500 shrink-0" />
                   </a>
                   <div className="text-[10px] text-slate-400 mt-0.5 truncate" title={b.anchor_text || b.ref_domain}>
@@ -218,9 +220,10 @@ export default function BacklinkTable({ backlinks, previewRows }: BacklinkTableP
                       href={`https://${b.ref_domain}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-slate-200 hover:text-white transition-colors"
+                      className="inline-flex items-center gap-1.5 text-slate-200 hover:text-white transition-colors"
                     >
-                      {b.ref_domain}
+                      <DomainFavicon domain={b.ref_domain} className="h-3.5 w-3.5 shrink-0" />
+                      <span>{b.ref_domain}</span>
                       <ExternalLink className="h-2.5 w-2.5 text-slate-600 shrink-0" />
                     </a>
                     {statusUpper && statusUpper !== 'ACTIVE' && statusUpper !== 'LIVE' && (

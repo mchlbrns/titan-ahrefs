@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import SortFilterBar from './SortFilterBar';
 import CompetitorEmptyState from './CompetitorEmptyState';
+import DomainFavicon from './DomainFavicon';
 
 interface CompetitorItem {
   competitor_domain: string;
@@ -126,8 +127,9 @@ export default function CompetitorMatrix({
         {sorted.map((c, idx) => (
           <div key={idx} className="p-3 rounded-lg bg-slate-900/70 border border-slate-800/80 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold text-xs text-slate-100 break-all">
-                {c.competitor_domain}
+              <div className="flex items-center gap-1.5 font-semibold text-xs text-slate-100 break-all min-w-0">
+                <DomainFavicon domain={c.competitor_domain} className="h-4 w-4 shrink-0" />
+                <span>{c.competitor_domain}</span>
               </div>
               <span className="px-2 py-0.5 rounded bg-slate-950 text-cyan-300 font-bold text-xs mono border border-slate-800 shrink-0">
                 DR {c.competitor_dr || '—'}
@@ -162,7 +164,10 @@ export default function CompetitorMatrix({
                 className="border-b border-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.02)] transition-colors"
               >
                 <td className="py-2 pr-4 font-medium text-slate-200">
-                  {c.competitor_domain}
+                  <div className="inline-flex items-center gap-1.5">
+                    <DomainFavicon domain={c.competitor_domain} className="h-4 w-4 shrink-0" />
+                    <span>{c.competitor_domain}</span>
+                  </div>
                 </td>
                 <td className="py-2 px-4 font-bold text-white mono">
                   {c.competitor_dr || '—'}
