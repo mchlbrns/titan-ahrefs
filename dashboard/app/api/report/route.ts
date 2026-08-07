@@ -173,7 +173,7 @@ export async function GET(req: NextRequest) {
         return new Date().toISOString();
       };
 
-      const snapshotTimestamp = forceRefresh
+      const snapshotTimestamp = (forceRefresh && !ingestionError)
         ? new Date().toISOString()
         : resolveRealisticTimestamp(
             snapshotFallback?.timestamp || (overview as unknown as Record<string, unknown>)?.fetchedAt as string | undefined

@@ -86,12 +86,13 @@ export async function getLatestSnapshotFromSupabase(domain: string): Promise<Dom
     if (error || !data) return null;
 
 
-    return {
+    const dbTimestamp = data.updated_at || data.created_at || data.timestamp;
 
-      snapshotId: `snap_${data.domain.replace(/\./g, '_')}_${new Date(data.timestamp).getTime()}`,
+    return {
+      snapshotId: `snap_${data.domain.replace(/\./g, '_')}_${new Date(dbTimestamp).getTime()}`,
       domain: data.domain,
-      timestamp: data.timestamp,
-      dataSource: 'ahrefs-api-v3',
+      timestamp: dbTimestamp,
+      dataSource: 'supabase-db-snapshot',
       overview: {
         domain: data.domain,
         domainRating: data.domain_rating,
@@ -105,7 +106,7 @@ export async function getLatestSnapshotFromSupabase(domain: string): Promise<Dom
         dofollowBacklinks: Math.round(data.total_backlinks * 0.78),
         dofollowRefdomains: Math.round(data.referring_domains * 0.84),
         nofollowLinks: 0,
-        timestamp: data.timestamp,
+        timestamp: dbTimestamp,
         seoHealthScore: data.seo_health_score
       },
       domainRating: data.domain_rating,
