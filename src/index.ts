@@ -43,8 +43,31 @@ async function main() {
     }
 
     case 'audit:domains': {
+      const store = new SnapshotStore(undefined, client, logger);
       for (const domain of domains) {
-        const overview = await client.fetchDomainOverview(domain);
+        let overview;
+        try {
+          overview = await client.fetchDomainOverview(domain);
+        } catch (err) {
+          logger.warn(`Live domain audit failed for ${domain}: ${(err as Error).message}. Falling back to cached snapshot overview.`);
+          const snapshot = await store.getLatestSnapshotForDomain(domain);
+          overview = snapshot?.overview || {
+            domain,
+            domainRating: snapshot?.domainRating || 0,
+            urlRating: 0,
+            ahrefsRank: 0,
+            organicTraffic: snapshot?.estimatedTraffic || 0,
+            trafficValue: 0,
+            rankingKeywords: snapshot?.organicKeywords || 0,
+            totalBacklinks: snapshot?.totalBacklinks || 0,
+            referringDomains: snapshot?.referringDomains || 0,
+            dofollowBacklinks: 0,
+            dofollowRefdomains: 0,
+            nofollowLinks: 0,
+            timestamp: new Date().toISOString(),
+            seoHealthScore: snapshot?.seoHealthScore
+          };
+        }
         console.log(`\n🔹 Domain Overview: ${overview.domain}`);
         console.log(`   - Domain Rating (DR): ${overview.domainRating}`);
         console.log(`   - Ahrefs Rank: #${overview.ahrefsRank.toLocaleString()}`);
@@ -58,6 +81,7 @@ async function main() {
       }
       break;
     }
+
 
     case 'fetch:keywords': {
       const tracker = new KeywordTracker(client, logger);
