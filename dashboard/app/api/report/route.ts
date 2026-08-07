@@ -158,6 +158,11 @@ export async function GET(req: NextRequest) {
           })
         : null;
 
+      const finalSeoHealthScore = snapshotFallback?.seoHealthScore || snapshotFallback?.overview?.seoHealthScore || computedHealth;
+      const finalHealthScore = (typeof finalSeoHealthScore === 'object' && finalSeoHealthScore !== null)
+        ? ((finalSeoHealthScore as Record<string, unknown>).score ?? computedHealth?.score ?? null)
+        : (typeof finalSeoHealthScore === 'number' ? finalSeoHealthScore : (computedHealth?.score ?? null));
+
       const resolveRealisticTimestamp = (snapshotTs?: string) => {
         if (snapshotTs && !isNaN(new Date(snapshotTs).getTime())) {
           return snapshotTs;
@@ -192,8 +197,8 @@ export async function GET(req: NextRequest) {
           ref_domains: referringDomains,
           dofollow_backlinks: totalBacklinks !== null ? Math.round(totalBacklinks * 0.75) : null,
           striking_distance_count: keywordsList.filter((k: Record<string, unknown>) => k.striking_distance === 'YES').length,
-          healthScore: computedHealth?.score ?? null,
-          seoHealthScore: computedHealth
+          healthScore: finalHealthScore,
+          seoHealthScore: finalSeoHealthScore
         },
         keywords: keywordsList,
         pages: pagesList,
