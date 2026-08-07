@@ -113,17 +113,12 @@ export class SnapshotStore {
         seoHealthScore: healthScore
       };
 
-      const filePath = path.join(this.storageDir, `${snapshot.snapshotId}.json`);
-      try {
-        fs.writeFileSync(filePath, JSON.stringify(snapshot, null, 2), 'utf-8');
-      } catch {
-        // Disk write fallback
-      }
+      const filePath = saveSnapshotLocally(snapshot, this.storageDir);
 
       // Persist authentic snapshot to Supabase
       saveSnapshotToSupabase(snapshot).catch(() => null);
 
-      this.logger.info(`Snapshot persisted for ${domain}`, { snapshotId: snapshot.snapshotId, filePath });
+      this.logger.info(`Snapshot persisted locally and to Supabase for ${domain}`, { snapshotId: snapshot.snapshotId, filePath });
       return snapshot;
     } catch (err) {
       this.logger.warn(`Live Ahrefs fetch failed for ${domain}: ${(err as Error).message}. Attempting fallback to latest cached snapshot.`);
@@ -136,6 +131,8 @@ export class SnapshotStore {
       throw new SnapshotError(`Snapshot creation failed for ${domain}`, domain, { cause: (err as Error).message });
     }
   }
+
+
 
 
   public getSnapshotsForDomain(domain: string): DomainSnapshot[] {
@@ -191,6 +188,41 @@ export class SnapshotStore {
 
     return undefined;
   }
+}
 
+/**
+ * Persists snapshot to local disk workspace (snapshots/local) with timestamped and latest pointers.
+ */
+export function saveSnapshotLocally(snapshot: DomainSnapshot, targetDir?: string): string | null {
+  const localLogger = new Logger({ context: 'SnapshotLocalStore' });
+  const domainClean = snapshot.domain.replace(/\./g, '_');
+  const primaryDir = targetDir || (process.env.VERCEL ? path.join(os.tmpdir(), 'snapshots') : path.join(__dirname, '../snapshots/local'));
+  const fallbackDir = path.join(process.cwd(), 'snapshots/local');
+
+  const dirsToSave = Array.from(new Set([primaryDir, fallbackDir])).filter(Boolean);
+
+  let savedFilePath: string | null = null;
+  for (const dir of dirsToSave) {
+    try {
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // 1. Timestamped filename (e.g. snap_titantreasure_com_1786005366000.json)
+      const timestampFile = path.join(dir, `${snapshot.snapshotId}.json`);
+      fs.writeFileSync(timestampFile, JSON.stringify(snapshot, null, 2), 'utf-8');
+
+      // 2. Latest pointer filename (e.g. snap_titantreasure_com_latest.json)
+      const latestFile = path.join(dir, `snap_${domainClean}_latest.json`);
+      fs.writeFileSync(latestFile, JSON.stringify(snapshot, null, 2), 'utf-8');
+
+      if (!savedFilePath) savedFilePath = timestampFile;
+      localLogger.info(`Saved local snapshot for ${snapshot.domain} to ${timestampFile} and ${latestFile}`);
+    } catch (err) {
+      localLogger.warn(`Could not save snapshot locally to ${dir} for ${snapshot.domain}`, { error: (err as Error).message });
+    }
+  }
+
+  return savedFilePath;
 }
 

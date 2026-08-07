@@ -28,6 +28,14 @@ export function getSupabaseClient(): SupabaseClient | null {
 }
 
 export async function saveSnapshotToSupabase(snapshot: DomainSnapshot): Promise<boolean> {
+  // Always save snapshot to local workspace directory as well
+  try {
+    const { saveSnapshotLocally } = require('./snapshots');
+    saveSnapshotLocally(snapshot);
+  } catch {
+    // ignore local save error
+  }
+
   const client = getSupabaseClient();
   if (!client) return false;
 
@@ -53,13 +61,14 @@ export async function saveSnapshotToSupabase(snapshot: DomainSnapshot): Promise<
       return false;
     }
 
-    logger.info(`Saved live snapshot to Supabase for ${snapshot.domain}`);
+    logger.info(`Saved live snapshot to Supabase and local workspace for ${snapshot.domain}`);
     return true;
   } catch (err) {
     logger.warn(`Error saving snapshot to Supabase for ${snapshot.domain}`, { error: (err as Error).message });
     return false;
   }
 }
+
 
 export async function getLatestSnapshotFromSupabase(domain: string): Promise<DomainSnapshot | null> {
   const client = getSupabaseClient();
