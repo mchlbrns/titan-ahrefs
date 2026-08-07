@@ -126,8 +126,6 @@ export default function DashboardPage() {
     return [
       'titantreasure.com',
       'red-engage.com',
-      'heavengirlfriend.com',
-      'hornycompanion.com',
     ];
   });
   const [selectedDomain, setSelectedDomain] = useState<string>(() => {
