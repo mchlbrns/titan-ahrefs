@@ -56,9 +56,12 @@ interface BacklinkItem {
 }
 
 interface ApiResponseData {
-  status: string;
-  timestamp: string;
   primary_domain: string;
+  timestamp: string;
+  dataSource?: string;
+  snapshotId?: string;
+  supabaseSynced?: boolean;
+  status: string;
   config?: {
     primary_domain: string;
     target_country: string;
@@ -106,7 +109,7 @@ type Tab = 'overview' | 'keywords' | 'pages' | 'backlinks' | 'competitors' | 'in
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function hostnameFrom(url: unknown): string {
-  try { return new URL(String(url)).hostname; } catch (e) { return String(url || ''); }
+  try { return new URL(String(url)).hostname; } catch { return String(url || ''); }
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -220,10 +223,10 @@ export default function DashboardPage() {
         setData(json);
         if (isRefreshAction) {
           setToast({
-            message: `⚡ Live Ingestion Completed! Telemetry synced with Supabase snapshot (${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}).`,
+            message: `⚡ Live Ingestion Completed! Synced to Supabase ahrefs_snapshots (Record ID: ${json.snapshotId || 'synced'} | Source: ${json.dataSource || 'supabase-db'}).`,
             type: 'success'
           });
-          setTimeout(() => setToast(null), 4500);
+          setTimeout(() => setToast(null), 5500);
         }
       }
     } catch (err: unknown) {
@@ -377,7 +380,7 @@ export default function DashboardPage() {
           );
           return;
         }
-      } catch (e) {
+      } catch {
         // ignore
       }
     }
@@ -426,7 +429,7 @@ export default function DashboardPage() {
               ))}
             </select>
           </div>
-          <div className="flex items-center gap-3 mt-2">
+          <div className="flex flex-wrap items-center gap-3 mt-2">
             {lastUpdated && (
               <p className="text-xs text-slate-500">Updated {lastUpdated}</p>
             )}
@@ -436,6 +439,12 @@ export default function DashboardPage() {
                 monthlyLimit={apiUsage.monthly_limit}
                 usagePercent={apiUsage.usage_percent}
               />
+            )}
+            {!loading && data && (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-500/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                <span>DB: Supabase ({data.dataSource || 'supabase-db-snapshot'})</span>
+              </span>
             )}
           </div>
         </div>

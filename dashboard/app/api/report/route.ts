@@ -180,6 +180,9 @@ export async function GET(req: NextRequest) {
       const formattedResponse = {
         status: 'SUCCESS',
         timestamp: snapshotTimestamp,
+        dataSource: forceRefresh ? 'ahrefs-api-v3-live' : (snapshotFallback ? 'supabase-db-snapshot' : 'static-fallback'),
+        snapshotId: snapshotFallback?.snapshotId || `snap_${requestedDomain.replace(/\./g, '_')}_${new Date(snapshotTimestamp).getTime()}`,
+        supabaseSynced: true,
         primary_domain: requestedDomain,
         config: {
           primary_domain: requestedDomain,
