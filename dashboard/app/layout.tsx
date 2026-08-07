@@ -11,6 +11,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Titan Ahrefs SEO Dashboard',
   description: 'SEO performance reporting for titantreasure.com — organic traffic, rankings, backlinks.',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

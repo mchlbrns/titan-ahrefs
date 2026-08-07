@@ -111,35 +111,15 @@ function hostnameFrom(url: unknown): string {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [domainOptions, setDomainOptions] = useState<string[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('titan_ahrefs_managed_domains');
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        } catch {
-          // fallback to default
-        }
-      }
-    }
-    return [
-      'titantreasure.com',
-      'red-engage.com',
-    ];
-  });
-  const [selectedDomain, setSelectedDomain] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('titan_ahrefs_selected_domain') || 'titantreasure.com';
-    }
-    return 'titantreasure.com';
-  });
+  const [domainOptions, setDomainOptions] = useState<string[]>(['titantreasure.com', 'red-engage.com']);
+  const [selectedDomain, setSelectedDomain] = useState<string>('titantreasure.com');
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const currentDomainRef = React.useRef<string>(selectedDomain);
   currentDomainRef.current = selectedDomain;
@@ -159,11 +139,25 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    async function loadManagedDomains() {
-      if (typeof window !== 'undefined' && localStorage.getItem('titan_ahrefs_managed_domains')) {
-        // User has customized domain options stored in localStorage
-        return;
+    if (typeof window !== 'undefined') {
+      const savedDomain = localStorage.getItem('titan_ahrefs_selected_domain');
+      if (savedDomain) {
+        setSelectedDomain(savedDomain);
       }
+      const savedDomains = localStorage.getItem('titan_ahrefs_managed_domains');
+      if (savedDomains) {
+        try {
+          const parsed = JSON.parse(savedDomains);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setDomainOptions(parsed);
+          }
+        } catch {
+          // ignore error
+        }
+      }
+    }
+
+    async function loadManagedDomains() {
       try {
         const res = await fetch('/api/domains');
         if (res.ok) {
@@ -338,21 +332,26 @@ export default function DashboardPage() {
   ].filter((r, i, arr) => typeof r === 'string' && arr.indexOf(r) === i);
   const healthGrade = typeof seoHealthScore?.grade === 'string' ? seoHealthScore.grade : undefined;
 
-  let lastUpdated: string | null = null;
-  try {
+  useEffect(() => {
     const ts = data?.timestamp || (data as unknown as Record<string, unknown>)?.generatedAt;
     if (ts && typeof ts === 'string') {
-      const d = new Date(ts);
-      if (!isNaN(d.getTime())) {
-        lastUpdated = d.toLocaleString('en-US', {
-          month: 'short', day: 'numeric', year: 'numeric',
-          hour: '2-digit', minute: '2-digit',
-        });
+      try {
+        const d = new Date(ts);
+        if (!isNaN(d.getTime())) {
+          setLastUpdated(
+            d.toLocaleString('en-US', {
+              month: 'short', day: 'numeric', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })
+          );
+          return;
+        }
+      } catch (e) {
+        // ignore
       }
     }
-  } catch (e) {
-    lastUpdated = null;
-  }
+    setLastUpdated(null);
+  }, [data?.timestamp]);
 
   // ─── Tabs config ────────────────────────────────────────────────────────
 
