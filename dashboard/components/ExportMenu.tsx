@@ -78,6 +78,7 @@ export default function ExportMenu({
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [emailTab, setEmailTab] = useState<'rich' | 'plain'>('rich');
   const [copied, setCopied] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
   const [loadingEmail, setLoadingEmail] = useState(false);
@@ -94,6 +95,28 @@ export default function ExportMenu({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleDirectCopyEmailSlack = () => {
+    setIsOpen(false);
+    const primaryDomain = domain || 'titantreasure.com';
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const healthVal = summary?.healthScore ?? healthScore ?? 'N/A';
+    const drVal = summary?.domain_rating ?? summary?.domainRating ?? 'N/A';
+    const trafficVal = (summary?.organic_traffic ?? summary?.organicTraffic ?? 0).toLocaleString();
+    const refVal = summary?.ref_domains ?? summary?.referringDomains ?? backlinks.length;
+    const strikingVal = summary?.striking_distance_count ?? 0;
+
+    const summaryText = `📊 Executive SEO Briefing — ${primaryDomain} (${dateStr})\n` +
+      `• SEO Health Score: ${healthVal}/100\n` +
+      `• Domain Rating: ${drVal}\n` +
+      `• Est. Monthly Organic Traffic: ${trafficVal} visits\n` +
+      `• Referring Domains: ${refVal}\n` +
+      `• Quick Wins: ${strikingVal} keywords in positions #4-20`;
+
+    navigator.clipboard.writeText(summaryText);
+    setToastMessage('✓ Copied to Clipboard!');
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   const handlePdfExport = async () => {
     setIsOpen(false);
@@ -568,6 +591,14 @@ export default function ExportMenu({
 
   return (
     <div className="relative inline-block text-left flex-1 sm:flex-initial" ref={menuRef}>
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-purple-500 text-slate-950 font-bold px-4 py-3 shadow-2xl shadow-purple-500/30 animate-bounce">
+          <Check className="h-5 w-5 shrink-0" />
+          <span className="text-xs">{toastMessage}</span>
+        </div>
+      )}
+
       <button
         onClick={() => setIsOpen(!isOpen)}
         disabled={isPdfGenerating}
@@ -584,41 +615,41 @@ export default function ExportMenu({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-64 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
+        <div className="absolute right-0 mt-2 w-72 rounded-xl bg-slate-900 border border-[rgba(255,255,255,0.12)] shadow-2xl z-50 overflow-hidden py-1">
           <div className="px-3.5 py-2 border-b border-[rgba(255,255,255,0.06)] text-[10px] uppercase font-bold text-slate-500 tracking-wider text-left">
-            Export As ({activeTab.toUpperCase()})
+            Export Report ({activeTab.toUpperCase()})
           </div>
 
           <button
             onClick={handlePdfExport}
-            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-start gap-3 transition-colors"
           >
-            <FileText className="h-4 w-4 text-cyan-400 shrink-0" />
+            <FileText className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
             <div className="text-left">
-              <div className="font-semibold text-white">Download PDF Report (.pdf)</div>
-              <div className="text-[10px] text-slate-400">Current tab view as PDF</div>
+              <div className="font-semibold text-white">📄 Download PDF Report</div>
+              <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">1-page visual summary formatted for clients or leadership.</div>
             </div>
           </button>
 
           <button
             onClick={handleCsvExport}
-            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-start gap-3 transition-colors"
           >
-            <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0" />
+            <FileSpreadsheet className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="text-left">
-              <div className="font-semibold text-white">Download CSV / Excel (.csv)</div>
-              <div className="text-[10px] text-slate-400">Spreadsheet-ready data export</div>
+              <div className="font-semibold text-white">📊 Download Spreadsheet (.csv)</div>
+              <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">Raw data table for Excel or Google Sheets.</div>
             </div>
           </button>
 
           <button
-            onClick={handleEmailSummary}
-            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition-colors"
+            onClick={handleDirectCopyEmailSlack}
+            className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-start gap-3 transition-colors border-t border-slate-800/80"
           >
-            <Mail className="h-4 w-4 text-purple-400 shrink-0" />
+            <Mail className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />
             <div className="text-left">
-              <div className="font-semibold text-white">Email Summary</div>
-              <div className="text-[10px] text-slate-400">Copy-ready summary for your team</div>
+              <div className="font-semibold text-white">✉️ Copy Email / Slack Summary</div>
+              <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">Copies a 5-line text update directly to your clipboard.</div>
             </div>
           </button>
         </div>

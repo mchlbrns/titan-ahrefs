@@ -147,12 +147,12 @@ export default function ConfigModal({
 
         {/* Header */}
         <div className="border-b border-[rgba(255,255,255,0.06)] pb-4">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
             <Globe className="h-4 w-4 text-cyan-400" />
-            Engine & Domain Configuration
+            ⚙️ Dashboard Settings
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manage dropdown domains, active target domain, competitor targets, and comparison rules.
+          <p className="text-xs text-slate-400 mt-1">
+            Choose which website to track and compare against competitors.
           </p>
         </div>
 
@@ -173,7 +173,8 @@ export default function ConfigModal({
         <form onSubmit={handleSave} className="space-y-4">
           {/* Primary Target Domain Selection */}
           <div>
-            <label className="block font-medium text-slate-400 mb-1.5">Primary Target Domain</label>
+            <label className="block font-semibold text-slate-200 mb-0.5">Your Website</label>
+            <p className="text-[11px] text-slate-400 mb-1.5">The main domain you want to track.</p>
             {!showAddInput ? (
               <div className="flex gap-2">
                 <select
@@ -246,43 +247,44 @@ export default function ConfigModal({
           </div>
 
           {/* Competitor Domains */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Competitor 1</label>
-              <input
-                type="text"
-                value={comp1}
-                onChange={(e) => setComp1(e.target.value)}
-                placeholder="chumbacasino.com"
-                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Competitor 2</label>
-              <input
-                type="text"
-                value={comp2}
-                onChange={(e) => setComp2(e.target.value)}
-                placeholder="pulsz.com"
-                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Competitor 3</label>
-              <input
-                type="text"
-                value={comp3}
-                onChange={(e) => setComp3(e.target.value)}
-                placeholder="luckylandslots.com"
-                className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
-              />
+          <div>
+            <label className="block font-semibold text-slate-200 mb-0.5">Competitor Websites</label>
+            <p className="text-[11px] text-slate-400 mb-1.5">Websites competing for the same Google search traffic.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <input
+                  type="text"
+                  value={comp1}
+                  onChange={(e) => setComp1(e.target.value)}
+                  placeholder="chumbacasino.com"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={comp2}
+                  onChange={(e) => setComp2(e.target.value)}
+                  placeholder="pulsz.com"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  value={comp3}
+                  onChange={(e) => setComp3(e.target.value)}
+                  placeholder="luckylandslots.com"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.08)] bg-[#0a0b0d] px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:border-[rgba(255,255,255,0.2)] focus:outline-none transition-colors"
+                />
+              </div>
             </div>
           </div>
 
           {/* Location, Frequency, Comparison Period */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Target Country</label>
+              <label className="block font-medium text-slate-300 mb-1.5">Target Location</label>
               <select
                 value={country}
                 onChange={(e) => setCountry(e.target.value)}
@@ -296,7 +298,7 @@ export default function ConfigModal({
               </select>
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Report Frequency</label>
+              <label className="block font-medium text-slate-300 mb-1.5">Update Schedule</label>
               <select
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
@@ -308,7 +310,7 @@ export default function ConfigModal({
               </select>
             </div>
             <div>
-              <label className="block font-medium text-slate-400 mb-1.5">Comparison Period</label>
+              <label className="block font-medium text-slate-300 mb-1.5">Compare Progress Against</label>
               <select
                 value={comparisonPeriod}
                 onChange={(e) => setComparisonPeriod(e.target.value)}
@@ -333,14 +335,14 @@ export default function ConfigModal({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-500 border border-cyan-500/30 transition-all disabled:opacity-40"
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-all disabled:opacity-40 shadow-lg shadow-cyan-500/20"
             >
               {saving ? (
                 <>
                   <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Saving & Syncing…
                 </>
               ) : (
-                'Save & Apply Configuration'
+                '✓ Apply Settings'
               )}
             </button>
           </div>

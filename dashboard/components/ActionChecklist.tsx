@@ -1,4 +1,7 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
+import { CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 
 interface ActionItem {
   title: string;
@@ -29,14 +32,16 @@ export default function ActionChecklist({
   healthScore,
   healthGrade,
 }: ActionChecklistProps) {
+  const [completedIndices, setCompletedIndices] = useState<Set<number>>(new Set());
+
   if (!dataLoaded) {
     return (
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-          Insights
+        <h2 className="text-base font-bold text-white tracking-wide">
+          📋 SEO Action Plan
         </h2>
-        <p className="text-sm text-slate-600 italic">
-          Insights populate after the first weekly data sync.
+        <p className="text-xs text-slate-400 italic">
+          Recommended tasks populate after the first weekly data sync.
         </p>
       </div>
     );
@@ -90,26 +95,35 @@ export default function ActionChecklist({
   if (actions.length === 0) {
     return (
       <div className="space-y-3">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-          Insights
+        <h2 className="text-base font-bold text-white tracking-wide">
+          📋 SEO Action Plan
         </h2>
-        <p className="text-sm text-slate-600 italic">
+        <p className="text-xs text-slate-400 italic">
           No actionable signals detected this period.
         </p>
       </div>
     );
   }
 
-  const priorityLabel: Record<ActionItem['priority'], string> = {
-    high: 'High priority',
-    medium: 'Medium priority',
-    low: 'Low priority',
+  const toggleTask = (index: number) => {
+    setCompletedIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+      return next;
+    });
   };
 
-  const priorityColor: Record<ActionItem['priority'], string> = {
-    high: 'text-amber-400',
-    medium: 'text-slate-400',
-    low: 'text-slate-500',
+  const completedCount = completedIndices.size;
+  const progressPercent = Math.round((completedCount / actions.length) * 100);
+
+  const priorityBadge: Record<ActionItem['priority'], { label: string; style: string }> = {
+    high: { label: '🔴 High Priority', style: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
+    medium: { label: '🟡 Medium Priority', style: 'bg-amber-500/15 text-amber-300 border-amber-500/30' },
+    low: { label: '🟢 Low Priority', style: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
   };
 
   const gradeColor =
@@ -121,35 +135,95 @@ export default function ActionChecklist({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
-          Insights &amp; Recommendations
-        </h2>
+      {/* Title & Subtitle */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-white tracking-wide flex items-center gap-2">
+            📋 SEO Action Plan
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Recommended tasks to improve your website&apos;s Google rankings.
+          </p>
+        </div>
+
         {healthScore !== undefined && (
-          <span className={`text-xs font-semibold ${gradeColor}`}>
+          <span className={`text-xs font-bold px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 shrink-0 ${gradeColor}`}>
             SEO Grade: {healthGrade ?? '—'} ({healthScore}/100)
           </span>
         )}
       </div>
-      <ul className="space-y-px">
-        {actions.map((act, i) => (
-          <li
-            key={i}
-            className="flex flex-col gap-1 py-3 border-b border-[rgba(255,255,255,0.04)] last:border-0"
-          >
-            <div className="flex items-start gap-2">
-              <span
-                className={`mt-0.5 text-[10px] font-semibold uppercase tracking-wider shrink-0 ${priorityColor[act.priority]}`}
+
+      {/* Progress Bar & Counter */}
+      <div className="space-y-1.5 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="text-slate-300 flex items-center gap-1.5">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            {completedCount} of {actions.length} Tasks Completed
+          </span>
+          <span className="text-emerald-400 font-mono font-bold">{progressPercent}%</span>
+        </div>
+        <div className="h-2 w-full rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+          <div
+            className="h-full bg-gradient-to-r from-emerald-500 to-cyan-400 transition-all duration-500 rounded-full"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Interactive Task List */}
+      <ul className="space-y-2 pt-1">
+        {actions.map((act, i) => {
+          const isDone = completedIndices.has(i);
+          const badge = priorityBadge[act.priority];
+
+          return (
+            <li
+              key={i}
+              onClick={() => toggleTask(i)}
+              className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+                isDone
+                  ? 'bg-slate-950/40 border-slate-900 opacity-60'
+                  : 'bg-slate-950/80 border-slate-800/80 hover:border-cyan-500/30'
+              }`}
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleTask(i);
+                }}
+                className="mt-0.5 text-slate-400 hover:text-cyan-400 shrink-0 transition-colors"
+                aria-label={isDone ? 'Mark task as incomplete' : 'Mark task as complete'}
               >
-                {priorityLabel[act.priority]} ·
-              </span>
-              <span className="text-xs text-slate-300 leading-relaxed">
-                {act.title}
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-600 pl-0">{act.category}</span>
-          </li>
-        ))}
+                {isDone ? (
+                  <CheckSquare className="h-4 w-4 text-emerald-400" />
+                ) : (
+                  <Square className="h-4 w-4" />
+                )}
+              </button>
+
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${badge.style}`}
+                  >
+                    {badge.label}
+                  </span>
+                  <span className="text-[10px] uppercase font-semibold text-slate-500 tracking-wider">
+                    {act.category}
+                  </span>
+                </div>
+                <p
+                  className={`text-xs leading-relaxed transition-all ${
+                    isDone ? 'text-slate-500 line-through' : 'text-slate-200'
+                  }`}
+                >
+                  {act.title}
+                </p>
+              </div>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
