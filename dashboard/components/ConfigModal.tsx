@@ -119,7 +119,19 @@ export default function ConfigModal({
     setErrorMsg(null);
 
     try {
+      // 1. Save domain to backend managed domains database/cookies
+      await fetch('/api/domains', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: primaryDomain, target_country: country, competitors: [comp1, comp2, comp3].filter(Boolean) }),
+      }).catch(() => null);
+
+      // 2. Persist selected domain to parent state & localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('titan_ahrefs_selected_domain', primaryDomain);
+      }
       onSelectDomain(primaryDomain);
+
       setSuccessMsg('Settings updated successfully.');
       setTimeout(() => {
         onConfigSaved();

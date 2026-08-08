@@ -139,9 +139,23 @@ function generateSparkline(current: number, delta: number): number[] {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
+const DEFAULT_MANAGED_DOMAINS = [
+  'titantreasure.com',
+  'betsweepsy.com',
+  'luckytwogrands.com',
+  'sweepsybet.com',
+  'goldishsweeps.com',
+  'luckierbety.com',
+  'titantreasure.bet',
+  'titantreasure.casino',
+  'red-engage.com',
+  'heavengirlfriend.com',
+  'hornycompanion.com',
+];
+
 export default function DashboardPage() {
-  const [domainOptions, setDomainOptions] = useState<string[]>(['red-engage.com', 'heavengirlfriend.com', 'hornycompanion.com']);
-  const [selectedDomain, setSelectedDomain] = useState<string>('red-engage.com');
+  const [domainOptions, setDomainOptions] = useState<string[]>(DEFAULT_MANAGED_DOMAINS);
+  const [selectedDomain, setSelectedDomain] = useState<string>('titantreasure.com');
   const [data, setData] = useState<ApiResponseData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -182,7 +196,9 @@ export default function DashboardPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedDomain = localStorage.getItem('titan_ahrefs_selected_domain');
-      if (savedDomain) setSelectedDomain(savedDomain);
+      if (savedDomain) {
+        setSelectedDomain(savedDomain);
+      }
       const savedDomains = localStorage.getItem('titan_ahrefs_managed_domains');
       if (savedDomains) {
         try {
@@ -201,7 +217,9 @@ export default function DashboardPage() {
             const domainList = json.managed_domains.map((d: { domain: string } | string) =>
               typeof d === 'string' ? d : d.domain
             );
-            if (domainList.length > 0) handleDomainsChange(domainList);
+            if (domainList.length > 0) {
+              setDomainOptions((prev) => Array.from(new Set([...domainList, ...prev])));
+            }
           }
         }
       } catch (err) {

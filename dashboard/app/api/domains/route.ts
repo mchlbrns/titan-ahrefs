@@ -16,6 +16,14 @@ interface ManagedDomain {
 }
 
 const DEFAULT_DOMAINS: ManagedDomain[] = [
+  { domain: 'titantreasure.com', target_country: 'us', priority: 'high', description: 'Primary Social Casino Platform' },
+  { domain: 'betsweepsy.com', target_country: 'us', priority: 'high', description: 'Sweepstakes Lander' },
+  { domain: 'luckytwogrands.com', target_country: 'us', priority: 'high', description: 'Sweepstakes Lander' },
+  { domain: 'sweepsybet.com', target_country: 'us', priority: 'high', description: 'Sweepstakes Lander' },
+  { domain: 'goldishsweeps.com', target_country: 'us', priority: 'high', description: 'Sweepstakes Lander' },
+  { domain: 'luckierbety.com', target_country: 'us', priority: 'high', description: 'Sweepstakes Lander' },
+  { domain: 'titantreasure.bet', target_country: 'us', priority: 'high', description: 'Casino Domain' },
+  { domain: 'titantreasure.casino', target_country: 'us', priority: 'high', description: 'Casino Domain' },
   { domain: 'red-engage.com', target_country: 'us', priority: 'high', description: 'Engagement Platform' },
   { domain: 'heavengirlfriend.com', target_country: 'us', priority: 'high', description: 'AI Companion & Gaming Platform' },
   { domain: 'hornycompanion.com', target_country: 'us', priority: 'medium', description: 'Adult Directory' }
