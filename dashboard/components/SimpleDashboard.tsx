@@ -545,9 +545,9 @@ export default function SimpleDashboard({
                     disabled={isPushing}
                     onClick={() => handleTargetThread(thread)}
                     title={isQueued ? 'Click to remove thread from scrape queue' : 'Click to add thread to scrape queue'}
-                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition-all shadow-md shrink-0 ${
+                    className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-all shadow-md shrink-0 ${
                       isQueued
-                        ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-rose-950/60 hover:border-rose-500/40 hover:text-rose-300 cursor-pointer'
+                        ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/50 hover:text-emerald-300 cursor-pointer'
                         : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 active:scale-95 cursor-pointer'
                     }`}
                   >
@@ -555,12 +555,12 @@ export default function SimpleDashboard({
                       <span className="animate-pulse">Updating...</span>
                     ) : isQueued ? (
                       <>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 group-hover:hidden" />
-                        <span>✓ Added to Scraper Queue</span>
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span>Added to Scraper Queue</span>
                       </>
                     ) : (
                       <>
-                        <Send className="h-3.5 w-3.5" />
+                        <Send className="h-3.5 w-3.5 shrink-0" />
                         <span>Target This Thread</span>
                       </>
                     )}
