@@ -23,6 +23,7 @@ import {
 import DomainFavicon from '../components/DomainFavicon';
 import DashboardSkeleton from '../components/DashboardSkeleton';
 import RedditTargetingPanel from '../components/RedditTargetingPanel';
+import SimpleDashboard from '../components/SimpleDashboard';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -148,6 +149,7 @@ export default function DashboardPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
+  const [isAdvanced, setIsAdvanced] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [processedKeywords, setProcessedKeywords] = useState<KeywordItem[]>([]);
   const [keywordFilterLabel, setKeywordFilterLabel] = useState<string>('All');
@@ -577,6 +579,26 @@ export default function DashboardPage() {
 
             {/* Meta row */}
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              {!loading && summary?.healthScore !== null && summary?.healthScore !== undefined && (
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-bold border whitespace-nowrap ${
+                    summary.healthScore >= 80
+                      ? 'bg-emerald-950/60 border-emerald-500/30 text-emerald-300'
+                      : summary.healthScore >= 60
+                      ? 'bg-amber-950/60 border-amber-500/30 text-amber-300'
+                      : 'bg-rose-950/60 border-rose-500/30 text-rose-300'
+                  }`}
+                  title={`Overall SEO Health Score: ${summary.healthScore}/100`}
+                >
+                  <span>
+                    {summary.healthScore >= 80
+                      ? `🟢 Good Health (${healthGrade ? `Grade ${healthGrade}` : 'Grade A'})`
+                      : summary.healthScore >= 60
+                      ? `🟡 Moderate Health (${healthGrade ? `Grade ${healthGrade}` : 'Grade B'})`
+                      : `🔴 Needs Attention (${healthGrade ? `Grade ${healthGrade}` : 'Grade C'})`}
+                  </span>
+                </span>
+              )}
               {lastUpdated && (
                 <span className="inline-flex items-center gap-1 text-[11px] text-slate-400 bg-slate-900/60 border border-slate-800/80 px-2 py-0.5 rounded-md whitespace-nowrap">
                   <Calendar className="h-3 w-3 text-slate-500 shrink-0" />
@@ -606,6 +628,24 @@ export default function DashboardPage() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 w-full md:w-auto">
+            {/* Mode Toggle Button */}
+            <button
+              onClick={() => setIsAdvanced((prev) => !prev)}
+              className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 sm:py-1.5 text-xs font-bold border transition-all flex-1 sm:flex-initial whitespace-nowrap cursor-pointer ${
+                isAdvanced
+                  ? 'bg-slate-800 border-slate-700 text-cyan-300 hover:bg-slate-700'
+                  : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 shadow-sm'
+              }`}
+              id="mode-toggle-button"
+              aria-label="Toggle between Simple and Advanced views"
+            >
+              {isAdvanced ? (
+                <span>▲ Simple View</span>
+              ) : (
+                <span>⚙️ Advanced View</span>
+              )}
+            </button>
+
             <button
               onClick={() => setIsConfigOpen(true)}
               className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all flex-1 sm:flex-initial whitespace-nowrap"
@@ -684,6 +724,18 @@ export default function DashboardPage() {
         {/* ── Loading state ─────────────────────────────────────────────────── */}
         {loading ? (
           <DashboardSkeleton />
+        ) : !isAdvanced ? (
+          <SimpleDashboard
+            domain={domain}
+            summary={summary}
+            keywords={keywords}
+            keywordTiers={data?.keyword_tiers}
+            lastUpdated={lastUpdated}
+            liveRecommendations={liveRecommendations}
+            healthGrade={healthGrade}
+            onOpenAdvanced={() => setIsAdvanced(true)}
+            onOpenConfig={() => setIsConfigOpen(true)}
+          />
         ) : (
           <div className="animate-fade-in space-y-6">
             {/* ── KPI Strip ───────────────────────────────────────────────── */}

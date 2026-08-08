@@ -500,12 +500,21 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                             onClick={() => void pushThreadsToScraper([t])}
                             className={`inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all ${
                               t.scrapeStatus === 'Queued'
-                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                                ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 cursor-not-allowed'
                                 : 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25'
                             }`}
                           >
-                            <Send className="h-3 w-3" />
-                            {t.scrapeStatus === 'Queued' ? 'Queued' : 'Push to Scraper'}
+                            {t.scrapeStatus === 'Queued' ? (
+                              <>
+                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                                <span>✓ Added to Queue</span>
+                              </>
+                            ) : (
+                              <>
+                                <Send className="h-3 w-3" />
+                                <span>🎯 Target This Thread</span>
+                              </>
+                            )}
                           </button>
                         </td>
                       </tr>
