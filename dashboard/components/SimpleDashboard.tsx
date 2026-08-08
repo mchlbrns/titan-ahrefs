@@ -115,19 +115,23 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
     ];
   }
 
-  return [
-    {
-      id: 'seed_mkt_1',
-      url: 'https://www.reddit.com/r/digitalmarketing/comments/17y4n8/best_seo_automation_tools_2026/',
-      title: 'What are the best SEO & Ahrefs automation tools you actually use in 2026?',
-      subreddit: 'r/digitalmarketing',
-      targetKeyword: 'best seo automation tools',
-      searchVolume: 4800,
-      estTraffic: 2100,
-      rank: 2,
-      category: 'Marketing',
-    },
-  ];
+  if (d.includes('red-engage') || d.includes('engage') || d.includes('marketing')) {
+    return [
+      {
+        id: 'seed_mkt_1',
+        url: 'https://www.reddit.com/r/digitalmarketing/comments/17y4n8/best_seo_automation_tools_2026/',
+        title: 'What are the best SEO & Ahrefs automation tools you actually use in 2026?',
+        subreddit: 'r/digitalmarketing',
+        targetKeyword: 'best seo automation tools',
+        searchVolume: 4800,
+        estTraffic: 2100,
+        rank: 2,
+        category: 'Marketing',
+      },
+    ];
+  }
+
+  return [];
 }
 
 export default function SimpleDashboard({
@@ -192,23 +196,25 @@ export default function SimpleDashboard({
           'hornycompanion.com': 'AICompanion',
           'red-engage.com': 'digitalmarketing',
         };
-        const sub = subMap[domain] || 'ChumbaCasino';
-        const res = await fetch(`/api/reddit-targeting/search?mode=subreddit&subreddit=${sub}&minVolume=100&limit=10`);
-        if (res.ok) {
-          const json = await res.json();
-          if (Array.isArray(json.threads) && json.threads.length > 0) {
-            const mapped: RedditThread[] = json.threads.map((t: { id: string; url: string; title?: string; subreddit?: string; targetKeyword?: string; searchVolume?: number; estTraffic?: number }, idx: number) => ({
-              id: t.id || `live_${idx}`,
-              url: t.url,
-              title: t.title || t.targetKeyword || 'Reddit Thread Target',
-              subreddit: `r/${t.subreddit || sub}`,
-              targetKeyword: t.targetKeyword || 'reddit target',
-              searchVolume: Number(t.searchVolume || 0),
-              estTraffic: Number(t.estTraffic || 0),
-              rank: (idx % 3) + 1,
-              category: (t.subreddit || sub).toLowerCase().includes('ai') ? 'AI' : (t.subreddit || sub).toLowerCase().includes('saas') ? 'SaaS' : 'Marketing',
-            }));
-            setThreads(mapped);
+        const sub = subMap[domain];
+        if (sub) {
+          const res = await fetch(`/api/reddit-targeting/search?mode=subreddit&subreddit=${sub}&minVolume=100&limit=10`);
+          if (res.ok) {
+            const json = await res.json();
+            if (Array.isArray(json.threads) && json.threads.length > 0) {
+              const mapped: RedditThread[] = json.threads.map((t: { id: string; url: string; title?: string; subreddit?: string; targetKeyword?: string; searchVolume?: number; estTraffic?: number }, idx: number) => ({
+                id: t.id || `live_${idx}`,
+                url: t.url,
+                title: t.title || t.targetKeyword || 'Reddit Thread Target',
+                subreddit: `r/${t.subreddit || sub}`,
+                targetKeyword: t.targetKeyword || 'reddit target',
+                searchVolume: Number(t.searchVolume || 0),
+                estTraffic: Number(t.estTraffic || 0),
+                rank: (idx % 3) + 1,
+                category: (t.subreddit || sub).toLowerCase().includes('ai') ? 'AI' : (t.subreddit || sub).toLowerCase().includes('saas') ? 'SaaS' : 'Marketing',
+              }));
+              setThreads(mapped);
+            }
           }
         }
       } catch { /* fallback to domain seed */ }
@@ -392,8 +398,14 @@ export default function SimpleDashboard({
         </div>
 
         {/* Thread Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-          {filteredThreads.map((thread) => {
+        {filteredThreads.length === 0 ? (
+          <div className="rounded-xl border border-slate-800/80 bg-slate-950/40 p-8 text-center text-slate-400">
+            <p className="font-semibold text-slate-300">No Reddit Discussions Found for {domain}</p>
+            <p className="text-xs text-slate-500 mt-1">Data populates after initial keyword ranking discovery and live Ahrefs ingestion.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {filteredThreads.map((thread) => {
             const isQueued = queuedThreadUrls.has(thread.url);
             const isPushing = pushingUrls.has(thread.url);
 
@@ -459,6 +471,7 @@ export default function SimpleDashboard({
             );
           })}
         </div>
+        )}
       </section>
 
       {/* ── Action Checklist Component ── */}
