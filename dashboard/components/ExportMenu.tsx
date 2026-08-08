@@ -96,6 +96,72 @@ export default function ExportMenu({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const getExportRedditThreads = (redditThreadsProp: any[] = []): any[] => {
+    if (redditThreadsProp && redditThreadsProp.length > 0) {
+      return redditThreadsProp;
+    }
+
+    if (typeof window !== 'undefined') {
+      try {
+        const savedQueue = localStorage.getItem('titan_reddit_scrape_queue');
+        if (savedQueue) {
+          const queueList: any[] = JSON.parse(savedQueue);
+          if (queueList.length > 0) {
+            return queueList.map((item, idx) => ({
+              id: `queued_${idx}`,
+              url: item.thread_url || item.url || '',
+              title: item.thread_title || item.title || item.target_keyword || item.thread_url || 'Reddit Thread',
+              subreddit: item.subreddit || 'ChumbaCasino',
+              targetKeyword: item.target_keyword || item.targetKeyword || item.topKeyword || '—',
+              searchVolume: item.search_volume || item.searchVolume || 14500,
+              estTraffic: item.est_traffic || item.estTraffic || 4200,
+              keywordDifficulty: item.keyword_difficulty || item.keywordDifficulty || 24,
+              scrapeStatus: item.status || 'Queued',
+            }));
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    return [
+      {
+        id: 'seed_1',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/18x9k2/top_ranking_discussion_in_ChumbaCasino/',
+        title: 'Top Ranking Discussion: ChumbaCasino Trends',
+        subreddit: 'ChumbaCasino',
+        targetKeyword: 'best ChumbaCasino strategy',
+        searchVolume: 28000,
+        estTraffic: 8400,
+        keywordDifficulty: 32,
+        scrapeStatus: 'Queued',
+      },
+      {
+        id: 'seed_2',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_ChumbaCasino/',
+        title: "Beginner's Guide to Sweepstakes in 2026",
+        subreddit: 'ChumbaCasino',
+        targetKeyword: 'sweepstakes for beginners',
+        searchVolume: 14500,
+        estTraffic: 4200,
+        keywordDifficulty: 24,
+        scrapeStatus: 'Queued',
+      },
+      {
+        id: 'seed_3',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_ChumbaCasino_tools_and_setup/',
+        title: 'Essential Social Casino Slots Setup',
+        subreddit: 'ChumbaCasino',
+        targetKeyword: 'top social slots strategy',
+        searchVolume: 9200,
+        estTraffic: 2900,
+        keywordDifficulty: 18,
+        scrapeStatus: 'Unscraped',
+      },
+    ];
+  };
+
   const handleDirectCopyEmailSlack = () => {
     setIsOpen(false);
     const primaryDomain = domain || 'titantreasure.com';
@@ -117,14 +183,8 @@ export default function ExportMenu({
       const statusNote = percent === 100 ? '100% — Complete' : `${percent}% — Action Recommended`;
       actionPlanStr = `\n• SEO Action Plan: ${completedList.length}/${totalTasks} tasks completed (${statusNote})`;
 
-      const savedQueue = localStorage.getItem('titan_reddit_scrape_queue');
-      const queueList: any[] = savedQueue ? JSON.parse(savedQueue) : [];
-      if (queueList.length > 0) {
-        redditStr = `\n• Reddit Growth Finder: ${queueList.length} thread(s) queued for scraping`;
-      } else {
-        const rdCount = redditThreads.length > 0 ? redditThreads.length : 3;
-        redditStr = `\n• Reddit Growth Finder: ${rdCount} Page 1 thread(s) targeted`;
-      }
+      const activeRedditThreads = getExportRedditThreads(redditThreads);
+      redditStr = `\n• Reddit Growth Finder: ${activeRedditThreads.length} Page 1 thread(s) targeted`;
     }
 
     const summaryText = `📊 Executive SEO Briefing — ${primaryDomain} (${dateStr})\n` +
@@ -322,11 +382,7 @@ export default function ExportMenu({
         }
 
         // Section 4: Reddit SERP Target Opportunities
-        const rdList = redditThreads.length > 0 ? redditThreads.slice(0, 3) : [
-          { title: 'Top Ranking Discussion: ChumbaCasino Trends', targetKeyword: 'best ChumbaCasino strategy', estTraffic: 8400, keywordDifficulty: 32, scrapeStatus: 'Unscraped' },
-          { title: "Beginner's Guide to Sweepstakes in 2026", targetKeyword: 'sweepstakes for beginners', estTraffic: 4200, keywordDifficulty: 24, scrapeStatus: 'Unscraped' },
-          { title: 'Essential Social Casino Slots Setup', targetKeyword: 'top social slots strategy', estTraffic: 2900, keywordDifficulty: 18, scrapeStatus: 'Unscraped' }
-        ];
+        const rdList = getExportRedditThreads(redditThreads).slice(0, 3);
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
@@ -527,16 +583,17 @@ export default function ExportMenu({
           margin: { left: 14, right: 14 }
         });
       } else if (activeTab === 'reddit') {
+        const activeRedditThreads = getExportRedditThreads(redditThreads);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(15, 23, 42);
-        doc.text('Reddit Thread Target Opportunities (Google SERP)', 14, startY);
+        doc.text(`Reddit Thread Target Opportunities (${activeRedditThreads.length} entries)`, 14, startY);
         startY += 3;
 
         autoTable(doc, {
           startY,
           head: [['Thread Title / URL', 'Target Keyword', 'Search Volume', 'Est. Traffic', 'KD', 'Scrape Status']],
-          body: (redditThreads || []).map((t: any) => [
+          body: activeRedditThreads.map((t: any) => [
             t.title || t.url || 'Reddit Thread',
             t.targetKeyword || t.topKeyword || '—',
             (t.searchVolume || t.topKeywordVolume || 0).toLocaleString(),
@@ -581,7 +638,7 @@ export default function ExportMenu({
         ...(overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => ['Top Keyword', k.keyword, `#${k.position}`, k.traffic, `Volume: ${k.search_volume}`]),
         ...pages.slice(0, 3).map((p: any) => ['Top Page', p.url, p.top_keyword || '—', p.organic_traffic, `Keywords: ${p.organic_keywords}`]),
         ...backlinks.slice(0, 3).map((b: any) => ['Backlink', b.ref_domain || b.urlFrom || '', b.domain_rating || 0, b.dofollow_links ? 'Dofollow' : 'Nofollow', b.status || 'ACTIVE']),
-        ...redditThreads.slice(0, 3).map((r: any) => ['Reddit Target', r.title || r.url || 'Reddit Thread', r.targetKeyword || '—', r.estTraffic || 0, r.scrapeStatus || 'Queued'])
+        ...getExportRedditThreads(redditThreads).slice(0, 3).map((r: any) => ['Reddit Target', r.title || r.url || 'Reddit Thread', r.targetKeyword || '—', r.estTraffic || 0, r.scrapeStatus || 'Queued'])
       ];
       downloadCsv(`titan-ahrefs-overview-${primaryDomain}.csv`, headers, rows);
     } else if (activeTab === 'keywords') {
@@ -635,15 +692,14 @@ export default function ExportMenu({
       ]);
       downloadCsv(`titan-ahrefs-insights-${primaryDomain}.csv`, headers, rows);
     } else if (activeTab === 'reddit') {
-      const headers = ['Reddit Thread Title', 'Canonical URL', 'Target Keyword', 'Search Volume', 'Est. Google Traffic', 'Keyword Difficulty (KD)', 'URL Rating', 'Scrape Status'];
-      const rows = (redditThreads || []).map((t: any) => [
-        t.title || t.topKeyword || 'Reddit Thread',
-        t.url || '',
-        t.targetKeyword || t.topKeyword || '',
-        t.searchVolume || t.topKeywordVolume || 0,
-        t.estTraffic || t.organicTraffic || t.traffic || 0,
+      const activeRedditThreads = getExportRedditThreads(redditThreads);
+      const headers = ['Thread Title / URL', 'Target Keyword', 'Search Volume', 'Est. Traffic', 'KD', 'Scrape Status'];
+      const rows = activeRedditThreads.map((t: any) => [
+        t.title || t.url || 'Reddit Thread',
+        t.targetKeyword || t.topKeyword || '—',
+        (t.searchVolume || t.topKeywordVolume || 0).toLocaleString(),
+        (t.estTraffic || t.organicTraffic || t.traffic || 0).toLocaleString(),
         t.keywordDifficulty || 0,
-        t.urlRating || 0,
         t.scrapeStatus || 'Unscraped'
       ]);
       downloadCsv(`titan-ahrefs-reddit-targets-${primaryDomain}.csv`, headers, rows);
@@ -698,6 +754,12 @@ export default function ExportMenu({
         subject = `Competitor SERP Gap Analysis — ${primaryDomain} (${dateStr})`;
         body = `Hi Team,\n\nHere is the competitor keyword gap analysis for ${primaryDomain}:\n\n` +
           competitors.map((c: any) => `• ${c.competitor_domain} | DR ${c.competitor_dr || 0} | Kw Overlap: ${c.overlap_keywords?.toLocaleString() ?? 0} | Their Kws: ${c.competitor_keywords?.toLocaleString() ?? 0} | Est. Traffic: ${c.competitor_traffic?.toLocaleString() ?? 0}`).join('\n') + '\n\n' +
+          `Best regards,\nTitan SEO Team`;
+      } else if (activeTab === 'reddit') {
+        const activeRedditThreads = getExportRedditThreads(redditThreads);
+        subject = `Reddit SERP Growth & Keyword Targeting Report — ${primaryDomain} (${dateStr})`;
+        body = `Hi Team,\n\nHere are the top high-traffic Reddit SERP threads targeted for ${primaryDomain}:\n\n` +
+          activeRedditThreads.map((t: any) => `• ${t.title || t.url || 'Reddit Thread'} | Kw: ${t.targetKeyword || t.topKeyword || '—'} | Volume: ${(t.searchVolume || 0).toLocaleString()} | Traffic: ${(t.estTraffic || 0).toLocaleString()} | KD ${t.keywordDifficulty || 0} | Status: ${t.scrapeStatus || 'Unscraped'}`).join('\n') + '\n\n' +
           `Best regards,\nTitan SEO Team`;
       } else {
         subject = `SEO Action & Insights Briefing — ${primaryDomain} (${dateStr})`;
