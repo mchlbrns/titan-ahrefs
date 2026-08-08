@@ -231,3 +231,46 @@ export async function saveExecutiveReportToSupabase(report: { reportTitle?: stri
   }
 }
 
+export async function saveRedditQueueToSupabase(item: { thread_url: string; target_keyword?: string; search_volume?: number; est_traffic?: number; status?: string; queued_at?: string }): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    const { error } = await client.from('reddit_scrape_queue').upsert({
+      thread_url: item.thread_url,
+      target_keyword: item.target_keyword || '',
+      search_volume: item.search_volume || 0,
+      est_traffic: item.est_traffic || 0,
+      status: item.status || 'Queued',
+      queued_at: item.queued_at || new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'thread_url' });
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+export async function getRedditQueueFromSupabase(): Promise<Array<{ thread_url: string; target_keyword: string; search_volume: number; est_traffic: number; queued_at: string; status: 'Queued' | 'Scraped' }> | null> {
+  const client = getSupabaseClient();
+  if (!client) return null;
+  try {
+    const { data, error } = await client
+      .from('reddit_scrape_queue')
+      .select('*')
+      .order('queued_at', { ascending: false });
+
+    if (error || !data) return null;
+    return data.map((row) => ({
+      thread_url: row.thread_url,
+      target_keyword: row.target_keyword || '',
+      search_volume: Number(row.search_volume || 0),
+      est_traffic: Number(row.est_traffic || 0),
+      queued_at: row.queued_at || row.created_at || new Date().toISOString(),
+      status: (row.status as 'Queued' | 'Scraped') || 'Queued',
+    }));
+  } catch {
+    return null;
+  }
+}
+
+

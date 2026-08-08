@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Logger } from '@src/logger';
+import { saveRedditQueueToSupabase, getRedditQueueFromSupabase } from '@src/supabase';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -51,7 +52,10 @@ function saveQueue(queue: ScrapeQueueItem[]): void {
 }
 
 export async function GET() {
-  const queue = readQueue();
+  let queue = await getRedditQueueFromSupabase();
+  if (!queue || queue.length === 0) {
+    queue = readQueue();
+  }
   return NextResponse.json({
     totalQueued: queue.length,
     queue
@@ -98,6 +102,8 @@ export async function POST(req: Request) {
         urlSet.add(item.thread_url);
         currentQueue.push(item);
         addedItems.push(item);
+        // Persist to Supabase asynchronously
+        saveRedditQueueToSupabase(item).catch(() => null);
       }
     }
 
