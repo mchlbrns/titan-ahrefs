@@ -185,7 +185,20 @@ export default function SimpleDashboard({
 
   // Reddit Growth Finder State
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [queuedThreadUrls, setQueuedThreadUrls] = useState<Set<string>>(new Set());
+  const [queuedThreadUrls, setQueuedThreadUrls] = useState<Set<string>>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('titan_reddit_scrape_queue');
+        if (saved) {
+          const queueList = JSON.parse(saved);
+          if (Array.isArray(queueList)) {
+            return new Set(queueList.map((i: any) => typeof i === 'string' ? i : i.thread_url).filter(Boolean));
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    return new Set();
+  });
   const [pushingUrls, setPushingUrls] = useState<Set<string>>(new Set());
   const [threads, setThreads] = useState<RedditThread[]>(() => getDomainSeedThreads(domain));
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -200,6 +213,9 @@ export default function SimpleDashboard({
           if (Array.isArray(json.queue)) {
             const urls = new Set<string>(json.queue.map((item: { thread_url: string }) => item.thread_url));
             setQueuedThreadUrls(urls);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('titan_reddit_scrape_queue', JSON.stringify(json.queue));
+            }
           }
         }
       } catch { /* ignore */ }
@@ -267,201 +283,241 @@ export default function SimpleDashboard({
     );
   });
 
-  // Handle Target This Thread action
+  // Handle Target / Untarget Thread action
   const handleTargetThread = useCallback(async (thread: RedditThread) => {
     setPushingUrls((prev) => new Set([...Array.from(prev), thread.url]));
 
-    // Optimistic state update
-    setQueuedThreadUrls((prev) => new Set([...Array.from(prev), thread.url]));
+    const isCurrentlyQueued = queuedThreadUrls.has(thread.url);
 
-    try {
-      const payload = {
-        event: 'reddit_scrape_requested',
-        threads: [
-          {
-            thread_url: thread.url,
-            target_keyword: thread.targetKeyword,
-            search_volume: thread.searchVolume,
-            est_traffic: thread.estTraffic,
-          },
-        ],
-        requested_at: new Date().toISOString(),
-      };
-
-      const res = await fetch('/api/reddit-targeting/scrape-queue', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (res.ok) {
-        setToastMessage(`✓ Added "${thread.title.slice(0, 32)}..." to scraper queue`);
-      } else {
-        setToastMessage(`✓ Queued thread for scraping queue.`);
-      }
-    } catch {
-      setToastMessage(`✓ Queued locally for scraper.`);
-    } finally {
-      setPushingUrls((prev) => {
+    if (isCurrentlyQueued) {
+      // Untarget / remove thread from queue
+      setQueuedThreadUrls((prev) => {
         const next = new Set(prev);
         next.delete(thread.url);
+        if (typeof window !== 'undefined') {
+          const list = Array.from(next).map((u) => ({ thread_url: u }));
+          localStorage.setItem('titan_reddit_scrape_queue', JSON.stringify(list));
+        }
         return next;
       });
-      setTimeout(() => setToastMessage(null), 4000);
+
+      try {
+        const res = await fetch(`/api/reddit-targeting/scrape-queue?thread_url=${encodeURIComponent(thread.url)}`, {
+          method: 'DELETE',
+        });
+        if (res.ok) {
+          setToastMessage(`✓ Removed "${thread.title.slice(0, 30)}..." from scraper queue`);
+        } else {
+          setToastMessage(`✓ Removed thread from queue`);
+        }
+      } catch {
+        setToastMessage(`✓ Removed locally from queue`);
+      } finally {
+        setPushingUrls((prev) => {
+          const next = new Set(prev);
+          next.delete(thread.url);
+          return next;
+        });
+        setTimeout(() => setToastMessage(null), 3000);
+      }
+    } else {
+      // Target / add thread to queue
+      setQueuedThreadUrls((prev) => {
+        const next = new Set([...Array.from(prev), thread.url]);
+        if (typeof window !== 'undefined') {
+          const list = Array.from(next).map((u) => ({ thread_url: u }));
+          localStorage.setItem('titan_reddit_scrape_queue', JSON.stringify(list));
+        }
+        return next;
+      });
+
+      try {
+        const payload = {
+          event: 'reddit_scrape_requested',
+          threads: [
+            {
+              thread_url: thread.url,
+              target_keyword: thread.targetKeyword,
+              search_volume: thread.searchVolume,
+              est_traffic: thread.estTraffic,
+            },
+          ],
+          requested_at: new Date().toISOString(),
+        };
+
+        const res = await fetch('/api/reddit-targeting/scrape-queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          setToastMessage(`✓ Added "${thread.title.slice(0, 30)}..." to scraper queue`);
+        } else {
+          setToastMessage(`✓ Queued thread for scraping queue.`);
+        }
+      } catch {
+        setToastMessage(`✓ Queued locally for scraper.`);
+      } finally {
+        setPushingUrls((prev) => {
+          const next = new Set(prev);
+          next.delete(thread.url);
+          return next;
+        });
+        setTimeout(() => setToastMessage(null), 3000);
+      }
     }
-  }, []);
+  }, [queuedThreadUrls]);
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ── Toast Notification Banner ── */}
+      {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-500 text-slate-950 font-bold px-4 py-3 shadow-2xl shadow-emerald-500/30 animate-bounce">
-          <CheckCircle2 className="h-5 w-5 shrink-0" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-cyan-400 text-slate-950 font-bold px-4 py-3 shadow-2xl shadow-cyan-500/30 animate-bounce">
+          <CheckCircle2 className="h-5 w-5 shrink-0 text-slate-950" />
           <span className="text-xs">{toastMessage}</span>
         </div>
       )}
 
-      {/* ── 3 Plain-English Scorecard Tiles ── */}
-      <section
-        aria-label="Overview scorecards"
-        className="grid grid-cols-1 md:grid-cols-3 gap-4"
-      >
-        {/* Tile 1: Monthly Organic Visitors */}
-        <div className="relative overflow-hidden rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-950/30 via-slate-900/80 to-slate-900/60 p-5 backdrop-blur-md shadow-lg group hover:border-cyan-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 h-24 w-24 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-cyan-400" />
+      {/* ── Top Metric Cards ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Visitors */}
+        <div className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-md transition-all hover:border-cyan-500/30 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4" />
               Monthly Organic Visitors
             </span>
             {trafficDelta !== 0 && (
               <span
-                className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-bold ${
-                  trafficDelta >= 0
-                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  trafficDelta > 0
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                 }`}
               >
-                {trafficDelta >= 0 ? `▲ +${trafficDelta}%` : `▼ ${trafficDelta}%`}
+                {trafficDelta > 0 ? `+${trafficDelta}%` : `${trafficDelta}%`}
               </span>
             )}
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mono">
-            {organicTraffic.toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <span>Est. monthly search visits from Google SERP</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              {organicTraffic.toLocaleString()}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            Est. monthly search visits from Google SERP
           </p>
         </div>
 
-        {/* Tile 2: Keywords on Page 1 */}
-        <div className="relative overflow-hidden rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-950/30 via-slate-900/80 to-slate-900/60 p-5 backdrop-blur-md shadow-lg group hover:border-amber-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 h-24 w-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-              <Award className="h-4 w-4 text-amber-400" />
+        {/* Page 1 Keywords */}
+        <div className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-md transition-all hover:border-amber-500/30 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <Award className="h-4 w-4" />
               Keywords on Page 1
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
               Top 10 Ranks
             </span>
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mono">
-            {page1Keywords.toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-400 mt-2">
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              {page1Keywords}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
             Keywords bringing active search traffic to {domain}.
           </p>
         </div>
 
-        {/* Tile 3: Almost on Page 1 */}
-        <div className="relative overflow-hidden rounded-2xl border border-purple-500/20 bg-gradient-to-br from-purple-950/30 via-slate-900/80 to-slate-900/60 p-5 backdrop-blur-md shadow-lg group hover:border-purple-500/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 h-24 w-24 bg-purple-500/10 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all" />
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-purple-300 flex items-center gap-1.5">
-              <Zap className="h-4 w-4 text-purple-400" />
+        {/* Striking Distance */}
+        <div className="group rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-md transition-all hover:border-purple-500/30 shadow-lg">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+              <Zap className="h-4 w-4" />
               Almost on Page 1
             </span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-300 border border-purple-500/20">
               Pos. 4–20
             </span>
           </div>
-          <p className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mono">
-            {almostPage1Keywords.toLocaleString()}
-          </p>
-          <p className="text-xs text-slate-400 mt-2">
-            <strong className="text-purple-300">Quick Wins:</strong> Ranks #4–20. Minor content tweaks can push these into the Top 3.
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              {almostPage1Keywords}
+            </span>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">
+            <strong className="text-slate-200">Quick Wins:</strong> Ranks #4–20. Minor content tweaks can push these into the Top 3.
           </p>
         </div>
-      </section>
+      </div>
 
-      {/* ── 1-Click "Reddit Growth Finder" ── */}
+      {/* ── Reddit SERP Growth Finder ── */}
       <section
-        aria-label="Reddit Growth Finder"
-        className="rounded-2xl border border-cyan-500/20 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-md shadow-xl space-y-4"
+        aria-label="High-Traffic Reddit Discussions"
+        className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 sm:p-6 backdrop-blur-md shadow-xl"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-800">
           <div>
-            <div className="flex items-center gap-2">
-              <Flame className="h-5 w-5 text-rose-400 animate-pulse" />
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-wide">
-                High-Traffic Reddit Discussions
-              </h2>
-            </div>
+            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <Flame className="h-5 w-5 text-rose-500 animate-pulse" />
+              High-Traffic Reddit Discussions
+            </h2>
             <p className="text-xs text-slate-400 mt-1">
-              These Reddit threads rank on Google Page 1. Target them to capture immediate organic traffic for <strong className="text-cyan-300">{domain}</strong>.
+              These Reddit threads rank on Google Page 1. Target them to capture immediate organic traffic for <strong className="text-cyan-400">{domain}</strong>.
             </p>
           </div>
 
-          {/* Quick Category Presets */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-semibold text-slate-500 mr-1 flex items-center gap-1">
-              <Filter className="h-3 w-3" /> Presets:
-            </span>
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                  selectedCategory === cat
-                    ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-sm'
-                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                [ {cat} ]
-              </button>
-            ))}
-          </div>
+          {/* Category Filter Buttons */}
+          {categories.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              <span className="text-[11px] text-slate-500 mr-1 hidden sm:inline">Presets:</span>
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-all whitespace-nowrap ${
+                    selectedCategory === cat
+                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                      : 'bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white'
+                  }`}
+                >
+                  [ {cat} ]
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Thread Cards Grid */}
+        {/* Thread Cards */}
         {filteredThreads.length === 0 ? (
-          <div className="rounded-xl border border-slate-800/80 bg-slate-950/40 p-8 text-center text-slate-400">
-            <p className="font-semibold text-slate-300">No Reddit Discussions Found for {domain}</p>
-            <p className="text-xs text-slate-500 mt-1">Data populates after initial keyword ranking discovery and live Ahrefs ingestion.</p>
+          <div className="text-center py-8 text-slate-500 text-xs">
+            No threads matching preset "{selectedCategory}". Select [ All ] to see all opportunities.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-            {filteredThreads.map((thread) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredThreads.map((thread) => {
             const isQueued = queuedThreadUrls.has(thread.url);
             const isPushing = pushingUrls.has(thread.url);
 
             return (
               <div
                 key={thread.id}
-                className="flex flex-col justify-between rounded-xl border border-slate-800/90 bg-slate-950/50 p-4 hover:border-cyan-500/30 transition-all duration-200 group"
+                className="group relative rounded-xl border border-slate-800/80 bg-slate-950/60 p-4 transition-all hover:border-cyan-500/40 hover:bg-slate-950 flex flex-col justify-between"
               >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs gap-2">
-                    <span className="px-2 py-0.5 rounded-md font-mono text-[11px] font-semibold bg-cyan-950/60 text-cyan-300 border border-cyan-500/20">
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <span className="rounded-md bg-cyan-500/10 px-2 py-0.5 text-[11px] font-bold text-cyan-400 border border-cyan-500/20">
                       {thread.subreddit}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                      <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 border border-amber-500/20">
                         #{thread.rank} on Google
                       </span>
-                      <span className="text-slate-400 mono text-[11px] font-medium">
-                        🔥 {thread.searchVolume.toLocaleString()}/mo
+                      <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                        <Flame className="h-3 w-3 text-rose-400" />
+                        {thread.estTraffic.toLocaleString()}/mo
                       </span>
                     </div>
                   </div>
@@ -469,11 +525,11 @@ export default function SimpleDashboard({
                   <a
                     href={thread.url}
                     target="_blank"
-                    rel="noopener noreferrer"
-                    className="block font-semibold text-slate-100 text-sm hover:text-cyan-300 transition-colors leading-snug group-hover:underline"
+                    rel="noreferrer"
+                    className="text-xs sm:text-sm font-semibold text-slate-200 hover:text-cyan-400 transition-colors line-clamp-2 inline-flex items-center gap-1.5"
                   >
                     {thread.title}
-                    <ExternalLink className="h-3 w-3 inline ml-1.5 text-slate-500 group-hover:text-cyan-300" />
+                    <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
                   </a>
                 </div>
 
@@ -483,23 +539,26 @@ export default function SimpleDashboard({
                   </span>
 
                   <button
-                    disabled={isQueued || isPushing}
+                    disabled={isPushing}
                     onClick={() => handleTargetThread(thread)}
+                    title={isQueued ? 'Click to remove thread from scrape queue' : 'Click to add thread to scrape queue'}
                     className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition-all shadow-md shrink-0 ${
                       isQueued
-                        ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 cursor-default'
+                        ? 'bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 hover:bg-rose-950/60 hover:border-rose-500/40 hover:text-rose-300 cursor-pointer'
                         : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 active:scale-95 cursor-pointer'
                     }`}
                   >
-                    {isQueued ? (
+                    {isPushing ? (
+                      <span className="animate-pulse">Updating...</span>
+                    ) : isQueued ? (
                       <>
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 group-hover:hidden" />
                         <span>✓ Added to Scraper Queue</span>
                       </>
                     ) : (
                       <>
                         <Send className="h-3.5 w-3.5" />
-                        <span>🎯 Target This Thread</span>
+                        <span>Target This Thread</span>
                       </>
                     )}
                   </button>

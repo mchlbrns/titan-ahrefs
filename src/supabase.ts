@@ -273,4 +273,21 @@ export async function getRedditQueueFromSupabase(): Promise<Array<{ thread_url: 
   }
 }
 
+export async function deleteRedditQueueFromSupabase(threadUrl?: string): Promise<boolean> {
+  const client = getSupabaseClient();
+  if (!client) return false;
+  try {
+    if (threadUrl) {
+      const { error } = await client.from('reddit_scrape_queue').delete().eq('thread_url', threadUrl);
+      return !error;
+    } else {
+      const { error } = await client.from('reddit_scrape_queue').delete().neq('thread_url', '___none___');
+      return !error;
+    }
+  } catch {
+    return false;
+  }
+}
+
+
 

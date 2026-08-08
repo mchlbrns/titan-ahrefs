@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Logger } from '@src/logger';
-import { saveRedditQueueToSupabase, getRedditQueueFromSupabase } from '@src/supabase';
+import { saveRedditQueueToSupabase, getRedditQueueFromSupabase, deleteRedditQueueFromSupabase } from '@src/supabase';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -125,3 +125,59 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request) {
+  const logger = new Logger({ context: 'RedditScrapeQueueRouteDelete' });
+
+  try {
+    const { searchParams } = new URL(req.url);
+    const urlParam = searchParams.get('thread_url');
+    const clearAllParam = searchParams.get('clear_all');
+
+    let bodyThreadUrl: string | undefined;
+    let bodyClearAll: boolean | undefined;
+
+    try {
+      const body = await req.json();
+      bodyThreadUrl = body.thread_url || body.threadUrl;
+      bodyClearAll = body.clear_all || body.clearAll;
+    } catch { /* request body optional */ }
+
+    const targetUrl = urlParam || bodyThreadUrl;
+    const isClearAll = clearAllParam === 'true' || bodyClearAll === true;
+
+    let currentQueue = readQueue();
+
+    if (isClearAll) {
+      currentQueue = [];
+      saveQueue([]);
+      deleteRedditQueueFromSupabase().catch(() => null);
+      logger.info('Cleared entire scrape queue');
+      return NextResponse.json({ success: true, message: 'Scrape queue cleared', totalQueued: 0 });
+    }
+
+    if (targetUrl) {
+      const initialCount = currentQueue.length;
+      currentQueue = currentQueue.filter(i => i.thread_url !== targetUrl);
+      const removedCount = initialCount - currentQueue.length;
+
+      saveQueue(currentQueue);
+      deleteRedditQueueFromSupabase(targetUrl).catch(() => null);
+      logger.info(`Removed thread from scrape queue: ${targetUrl}`);
+
+      return NextResponse.json({
+        success: true,
+        removedUrl: targetUrl,
+        removedCount,
+        totalQueued: currentQueue.length
+      });
+    }
+
+    return NextResponse.json({ error: 'Specify thread_url to remove or clear_all=true to reset queue' }, { status: 400 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to delete from scrape queue';
+    logger.error('Delete scrape queue error', { error: message });
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
