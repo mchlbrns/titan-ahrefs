@@ -173,19 +173,18 @@ function getSeedThreadsForMode(mode: string, subreddit: string, keyword: string)
   const cleanKw = keyword.trim().toLowerCase();
   const allSeeds = Object.values(SEED_THREADS).flat();
 
+  if (mode === 'subreddit') {
+    return SEED_THREADS[cleanSub] ?? [];
+  }
+
   if (mode === 'keyword') {
-    if (!cleanKw) return allSeeds;
-    const matches = allSeeds.filter(
+    if (!cleanKw) return [];
+    return allSeeds.filter(
       t =>
         t.targetKeyword.toLowerCase().includes(cleanKw) ||
         t.title.toLowerCase().includes(cleanKw) ||
         t.subreddit.toLowerCase().includes(cleanKw)
     );
-    if (matches.length > 0) return matches;
-    if (['casino', 'sweepstakes', 'slot', 'slots', 'bonus', 'free', 'game', 'app', 'ai', 'companion', 'strategy'].some(k => cleanKw.includes(k))) {
-      return allSeeds.slice(0, 4);
-    }
-    return [];
   }
 
   if (mode === 'combined') {
@@ -193,12 +192,11 @@ function getSeedThreadsForMode(mode: string, subreddit: string, keyword: string)
       return SEED_THREADS[cleanSub];
     }
     if (cleanKw) {
-      const matches = allSeeds.filter(
+      return allSeeds.filter(
         t => t.targetKeyword.toLowerCase().includes(cleanKw) || t.title.toLowerCase().includes(cleanKw)
       );
-      if (matches.length > 0) return matches;
     }
-    return allSeeds.slice(0, 3);
+    return [];
   }
 
   return SEED_THREADS[cleanSub] ?? [];

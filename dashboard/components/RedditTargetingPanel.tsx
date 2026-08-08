@@ -468,7 +468,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
       </div>
 
       {/* ── Quota Fallback Warning ── */}
-      {isMockData && (
+      {isMockData && threads.length > 0 && (
         <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-[11px] text-amber-300">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <p>
@@ -476,6 +476,8 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
             <span className="font-semibold text-slate-100">
               {committedParams.mode === 'keyword'
                 ? `"${committedParams.keyword}"`
+                : committedParams.mode === 'combined'
+                ? `r/${committedParams.subreddit} + "${committedParams.keyword}"`
                 : `r/${committedParams.subreddit}`}
             </span> aligned with{' '}
             <span className="font-semibold text-cyan-300">{activeDomain}</span>.
@@ -542,6 +544,15 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                       <p className="text-xs text-slate-500">
                         Try keywords with available seed data:&nbsp;
                         <span className="text-cyan-400 font-medium">sweepstakes casino · ChumbaCasino strategy · social slots · no deposit bonus</span>
+                      </p>
+                    </>
+                  ) : committedParams.mode === 'combined' ? (
+                    <>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        No seed data available for query <span className="font-mono text-slate-200">r/{committedParams.subreddit} + "{committedParams.keyword}"</span> while the API quota is locked.
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Use a preset or keyword with available seed data.
                       </p>
                     </>
                   ) : (
