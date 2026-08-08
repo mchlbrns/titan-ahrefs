@@ -58,52 +58,77 @@ interface RedditThread {
   category: 'SaaS' | 'Marketing' | 'AI' | 'Other';
 }
 
-const SEEDED_REDDIT_THREADS: RedditThread[] = [
-  {
-    id: 'thread_1',
-    url: 'https://www.reddit.com/r/digitalmarketing/comments/17y4n8/best_seo_automation_tools_2026/',
-    title: 'What are the best SEO & Ahrefs automation tools you actually use in 2026?',
-    subreddit: 'r/digitalmarketing',
-    targetKeyword: 'best seo automation tools',
-    searchVolume: 4800,
-    estTraffic: 2100,
-    rank: 2,
-    category: 'Marketing',
-  },
-  {
-    id: 'thread_2',
-    url: 'https://www.reddit.com/r/SaaS/comments/19a1m4/how_we_scaled_organic_traffic_with_reddit_serps/',
-    title: 'How we scaled organic SaaS traffic by targeting high-volume Reddit SERP keywords',
-    subreddit: 'r/SaaS',
-    targetKeyword: 'saas organic growth strategy',
-    searchVolume: 3200,
-    estTraffic: 1450,
-    rank: 1,
-    category: 'SaaS',
-  },
-  {
-    id: 'thread_3',
-    url: 'https://www.reddit.com/r/AICompanion/comments/18x9k2/top_ai_companion_platforms_comparison/',
-    title: 'Top AI companion and avatar platforms compared for user engagement',
-    subreddit: 'r/AICompanion',
-    targetKeyword: 'best ai companion app',
-    searchVolume: 18500,
-    estTraffic: 6900,
-    rank: 3,
-    category: 'AI',
-  },
-  {
-    id: 'thread_4',
-    url: 'https://www.reddit.com/r/SEO/comments/16z3p9/striking_distance_keywords_conversion_hacks/',
-    title: 'Striking distance keywords (Positions 4-20): How to push them to Top 3 fast',
-    subreddit: 'r/SEO',
-    targetKeyword: 'striking distance keyword optimization',
-    searchVolume: 2900,
-    estTraffic: 1100,
-    rank: 2,
-    category: 'Marketing',
-  },
-];
+function getDomainSeedThreads(domain: string): RedditThread[] {
+  const d = (domain || '').toLowerCase();
+
+  if (d.includes('titantreasure') || d.includes('sweeps') || d.includes('bety') || d.includes('grands')) {
+    return [
+      {
+        id: 'seed_casino_1',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/18x9k2/best_social_sweepstakes_casino_sites_2026/',
+        title: 'Top Ranking Community Discussion: ChumbaCasino Trends',
+        subreddit: 'r/ChumbaCasino',
+        targetKeyword: 'best ChumbaCasino strategy',
+        searchVolume: 28000,
+        estTraffic: 8400,
+        rank: 1,
+        category: 'Other',
+      },
+      {
+        id: 'seed_casino_2',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_chumbacasino/',
+        title: "Beginner's Guide to ChumbaCasino in 2026",
+        subreddit: 'r/ChumbaCasino',
+        targetKeyword: 'ChumbaCasino for beginners',
+        searchVolume: 14500,
+        estTraffic: 4200,
+        rank: 2,
+        category: 'Other',
+      },
+      {
+        id: 'seed_casino_3',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_chumbacasino_tools/',
+        title: 'Essential ChumbaCasino Tools & Setup Guide',
+        subreddit: 'r/ChumbaCasino',
+        targetKeyword: 'top ChumbaCasino tools',
+        searchVolume: 9200,
+        estTraffic: 2900,
+        rank: 3,
+        category: 'Other',
+      },
+    ];
+  }
+
+  if (d.includes('girlfriend') || d.includes('horny') || d.includes('companion')) {
+    return [
+      {
+        id: 'seed_ai_1',
+        url: 'https://www.reddit.com/r/AICompanion/comments/18x9k2/top_ai_companion_platforms_comparison/',
+        title: 'Top AI companion and avatar platforms compared for user engagement',
+        subreddit: 'r/AICompanion',
+        targetKeyword: 'best ai companion app',
+        searchVolume: 18500,
+        estTraffic: 6900,
+        rank: 1,
+        category: 'AI',
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'seed_mkt_1',
+      url: 'https://www.reddit.com/r/digitalmarketing/comments/17y4n8/best_seo_automation_tools_2026/',
+      title: 'What are the best SEO & Ahrefs automation tools you actually use in 2026?',
+      subreddit: 'r/digitalmarketing',
+      targetKeyword: 'best seo automation tools',
+      searchVolume: 4800,
+      estTraffic: 2100,
+      rank: 2,
+      category: 'Marketing',
+    },
+  ];
+}
 
 export default function SimpleDashboard({
   domain,
@@ -133,7 +158,7 @@ export default function SimpleDashboard({
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'SaaS' | 'Marketing' | 'AI'>('All');
   const [queuedThreadUrls, setQueuedThreadUrls] = useState<Set<string>>(new Set());
   const [pushingUrls, setPushingUrls] = useState<Set<string>>(new Set());
-  const [threads, setThreads] = useState<RedditThread[]>(SEEDED_REDDIT_THREADS);
+  const [threads, setThreads] = useState<RedditThread[]>(() => getDomainSeedThreads(domain));
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load live queued threads status on mount
@@ -152,6 +177,7 @@ export default function SimpleDashboard({
     }
 
     async function loadLiveThreads() {
+      setThreads(getDomainSeedThreads(domain));
       try {
         const subMap: Record<string, string> = {
           'titantreasure.com': 'ChumbaCasino',
@@ -185,7 +211,7 @@ export default function SimpleDashboard({
             setThreads(mapped);
           }
         }
-      } catch { /* fallback to SEEDED_REDDIT_THREADS */ }
+      } catch { /* fallback to domain seed */ }
     }
 
     loadScrapeQueue();
