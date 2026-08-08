@@ -124,9 +124,18 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   const domainConfig = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
 
   const [mode, setMode] = useState<SearchMode>('subreddit');
+  // Live input state — updated on every keystroke, NOT wired to the fetch
   const [subredditInput, setSubredditInput] = useState(domainConfig.defaultSub);
   const [keywordInput, setKeywordInput] = useState(domainConfig.defaultKeyword || 'sweepstakes casino');
   const [minVolumeInput, setMinVolumeInput] = useState('500');
+
+  // Committed search params — only updated when user explicitly submits the search
+  const [committedParams, setCommittedParams] = useState({
+    mode: 'subreddit' as SearchMode,
+    subreddit: domainConfig.defaultSub,
+    keyword: domainConfig.defaultKeyword || 'sweepstakes casino',
+    minVolume: '500',
+  });
 
   const [threads, setThreads] = useState<TargetThread[]>([]);
   const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
@@ -137,10 +146,14 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   // Tracks which thread URLs are queued — persisted to localStorage so both views stay in sync
   const [queuedUrls, setQueuedUrls] = useState<Set<string>>(() => getQueuedUrlsFromStorage());
 
-  // Sync inputs on domain change
+  // Sync inputs AND committed params on domain change
   useEffect(() => {
     const config = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
-    setSubredditInput(config.defaultSub);
+    const newSub = config.defaultSub;
+    const newKeyword = config.defaultKeyword || 'sweepstakes casino';
+    setSubredditInput(newSub);
+    setKeywordInput(newKeyword);
+    setCommittedParams(prev => ({ ...prev, subreddit: newSub, keyword: newKeyword }));
   }, [activeDomain]);
 
   const fetchTargetThreads = useCallback(async () => {
@@ -148,10 +161,10 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
     setSelectedThreadIds(new Set());
     try {
       const queryParams = new URLSearchParams({
-        mode,
-        subreddit: subredditInput,
-        keyword: keywordInput,
-        minVolume: minVolumeInput,
+        mode: committedParams.mode,
+        subreddit: committedParams.subreddit,
+        keyword: committedParams.keyword,
+        minVolume: committedParams.minVolume,
         limit: '50'
       });
       const res = await fetch(`/api/reddit-targeting/search?${queryParams.toString()}`, { cache: 'no-store' });
@@ -172,7 +185,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
     } finally {
       setLoading(false);
     }
-  }, [mode, subredditInput, keywordInput, minVolumeInput]);
+  }, [committedParams]);
 
   useEffect(() => {
     void fetchTargetThreads();
@@ -180,7 +193,8 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    void fetchTargetThreads();
+    // Commit the current input values first, then the useEffect will trigger the fetch
+    setCommittedParams({ mode, subreddit: subredditInput, keyword: keywordInput, minVolume: minVolumeInput });
   };
 
   const handleToggleSelectAll = () => {
@@ -321,7 +335,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
           <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mr-2">Search Mode:</span>
           <button
-            onClick={() => setMode('subreddit')}
+            onClick={() => { setMode('subreddit'); setCommittedParams(prev => ({ ...prev, mode: 'subreddit' })); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'subreddit'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
@@ -332,7 +346,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
             Mode B (Subreddit-First)
           </button>
           <button
-            onClick={() => setMode('keyword')}
+            onClick={() => { setMode('keyword'); setCommittedParams(prev => ({ ...prev, mode: 'keyword' })); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'keyword'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
@@ -343,7 +357,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
             Mode A (Keyword-First)
           </button>
           <button
-            onClick={() => setMode('combined')}
+            onClick={() => { setMode('combined'); setCommittedParams(prev => ({ ...prev, mode: 'combined' })); }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'combined'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
@@ -413,7 +427,11 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                   <button
                     key={s}
                     type="button"
-                    onClick={() => { setSubredditInput(s); }}
+                    onClick={() => {
+                      setSubredditInput(s);
+                      // Preset clicks immediately commit + search
+                      setCommittedParams(prev => ({ ...prev, subreddit: s }));
+                    }}
                     className={`px-2 py-0.5 rounded text-[11px] font-medium border transition-all ${
                       s.toLowerCase() === subredditInput.toLowerCase()
                         ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
