@@ -587,10 +587,10 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                           {t.scrapeStatus === 'Queued' ? (
                             <button
                               onClick={() => void removeThreadFromScraper(t)}
-                              className="group/btn inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 hover:bg-rose-950/80 hover:border-rose-500/50 hover:text-rose-300"
+                              className="group/btn inline-flex items-center justify-center gap-1 w-[148px] whitespace-nowrap overflow-hidden px-3 py-1 rounded text-[11px] font-semibold transition-all bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 hover:bg-rose-950/80 hover:border-rose-500/50 hover:text-rose-300"
                             >
-                              <CheckCircle2 className="h-3 w-3 text-emerald-400 group-hover/btn:hidden" />
-                              <Trash2 className="h-3 w-3 text-rose-300 hidden group-hover/btn:block" />
+                              <CheckCircle2 className="h-3 w-3 shrink-0 text-emerald-400 group-hover/btn:hidden" />
+                              <Trash2 className="h-3 w-3 shrink-0 text-rose-300 hidden group-hover/btn:block" />
                               <span className="group-hover/btn:hidden">✓ Added to Queue</span>
                               <span className="hidden group-hover/btn:inline">Remove from Queue</span>
                             </button>
@@ -598,9 +598,9 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                             <button
                               disabled={isPushing}
                               onClick={() => void pushThreadsToScraper([t])}
-                              className="inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
+                              className="inline-flex items-center justify-center gap-1 w-[148px] whitespace-nowrap overflow-hidden px-3 py-1 rounded text-[11px] font-semibold transition-all bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
                             >
-                              <Send className="h-3 w-3" />
+                              <Send className="h-3 w-3 shrink-0" />
                               <span>🎯 Target This Thread</span>
                             </button>
                           )}

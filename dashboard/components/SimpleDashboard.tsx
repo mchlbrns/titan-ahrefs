@@ -546,7 +546,7 @@ export default function SimpleDashboard({
                     disabled={isPushing}
                     onClick={() => handleTargetThread(thread)}
                     title={isQueued ? 'Click to remove thread from scrape queue' : 'Click to add thread to scrape queue'}
-                    className={`group/btn inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-all shadow-md shrink-0 ${
+                    className={`group/btn inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-bold transition-all shadow-md shrink-0 whitespace-nowrap overflow-hidden w-[172px] ${
                       isQueued
                         ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-rose-950/80 hover:border-rose-500/50 hover:text-rose-300 cursor-pointer'
                         : 'bg-cyan-500 text-slate-950 hover:bg-cyan-400 active:scale-95 cursor-pointer'
