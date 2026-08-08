@@ -58,6 +58,21 @@ interface RedditThread {
   category: 'SaaS' | 'Marketing' | 'AI' | 'Other';
 }
 
+function detectCategory(subreddit: string = '', title: string = '', targetKeyword: string = ''): string {
+  const combined = `${subreddit} ${title} ${targetKeyword}`.toLowerCase();
+
+  if (combined.includes('sweepstake') || combined.includes('sweeps')) return 'Sweepstakes';
+  if (combined.includes('slot')) return 'Slots';
+  if (combined.includes('chumba') || combined.includes('casino') || combined.includes('gambling')) return 'Casino';
+  if (combined.includes('companion') || combined.includes('girlfriend') || combined.includes('avatar')) return 'AI Companion';
+  if (combined.includes('ai') || combined.includes('gpt') || combined.includes('bot')) return 'AI';
+  if (combined.includes('seo') || combined.includes('ahrefs') || combined.includes('search')) return 'SEO';
+  if (combined.includes('marketing') || combined.includes('growth')) return 'Marketing';
+  if (combined.includes('saas') || combined.includes('software')) return 'SaaS';
+
+  return 'General';
+}
+
 function getDomainSeedThreads(domain: string): RedditThread[] {
   const d = (domain || '').toLowerCase();
 
@@ -72,29 +87,29 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
         searchVolume: 28000,
         estTraffic: 8400,
         rank: 1,
-        category: 'Other',
+        category: 'Casino',
       },
       {
         id: 'seed_casino_2',
         url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_chumbacasino/',
-        title: "Beginner's Guide to ChumbaCasino in 2026",
+        title: "Beginner's Guide to ChumbaCasino Sweepstakes in 2026",
         subreddit: 'r/ChumbaCasino',
-        targetKeyword: 'ChumbaCasino for beginners',
+        targetKeyword: 'ChumbaCasino sweepstakes for beginners',
         searchVolume: 14500,
         estTraffic: 4200,
         rank: 2,
-        category: 'Other',
+        category: 'Sweepstakes',
       },
       {
         id: 'seed_casino_3',
         url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_chumbacasino_tools/',
-        title: 'Essential ChumbaCasino Tools & Setup Guide',
+        title: 'Essential Social Casino Slots & Setup Guide',
         subreddit: 'r/ChumbaCasino',
-        targetKeyword: 'top ChumbaCasino tools',
+        targetKeyword: 'top social slots strategy',
         searchVolume: 9200,
         estTraffic: 2900,
         rank: 3,
-        category: 'Other',
+        category: 'Slots',
       },
     ];
   }
@@ -110,7 +125,7 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
         searchVolume: 18500,
         estTraffic: 6900,
         rank: 1,
-        category: 'AI',
+        category: 'AI Companion',
       },
     ];
   }
@@ -134,23 +149,14 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
   return [];
 }
 
-function getDomainCategories(domain: string, threads: RedditThread[]): string[] {
-  const d = (domain || '').toLowerCase();
+function getDomainCategories(threads: RedditThread[]): string[] {
+  if (!threads || threads.length === 0) return ['All'];
 
-  let baseCategories: string[] = [];
+  const dynamicCategories = Array.from(
+    new Set(threads.map((t) => t.category).filter((c) => c && c !== 'All'))
+  );
 
-  if (d.includes('titantreasure') || d.includes('sweeps') || d.includes('bety') || d.includes('grands')) {
-    baseCategories = ['Casino', 'Sweepstakes', 'Slots'];
-  } else if (d.includes('girlfriend') || d.includes('horny') || d.includes('companion')) {
-    baseCategories = ['AI Companion', 'Anime', 'Gaming'];
-  } else if (d.includes('red-engage') || d.includes('engage') || d.includes('marketing')) {
-    baseCategories = ['Marketing', 'SEO', 'SaaS'];
-  }
-
-  const threadCategories = Array.from(new Set(threads.map((t) => t.category).filter(Boolean)));
-  const combined = Array.from(new Set([...baseCategories, ...threadCategories]));
-
-  return combined.length > 0 ? ['All', ...combined] : ['All'];
+  return ['All', ...dynamicCategories];
 }
 
 export default function SimpleDashboard({
@@ -230,7 +236,7 @@ export default function SimpleDashboard({
                 searchVolume: Number(t.searchVolume || 0),
                 estTraffic: Number(t.estTraffic || 0),
                 rank: (idx % 3) + 1,
-                category: (t.subreddit || sub).toLowerCase().includes('ai') ? 'AI' : (t.subreddit || sub).toLowerCase().includes('saas') ? 'SaaS' : 'Marketing',
+                category: detectCategory(t.subreddit || sub, t.title || '', t.targetKeyword || '') as 'SaaS' | 'Marketing' | 'AI' | 'Other',
               }));
               setThreads(mapped);
             }
@@ -244,7 +250,7 @@ export default function SimpleDashboard({
     loadLiveThreads();
   }, [domain]);
 
-  const categories = getDomainCategories(domain, threads);
+  const categories = getDomainCategories(threads);
 
   // Filter threads by category
   const filteredThreads = threads.filter((t) => {
