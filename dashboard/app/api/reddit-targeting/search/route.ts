@@ -75,13 +75,14 @@ function generateMockThreads(mode: string, keyword: string, subreddit: string): 
   }
 
   if (mode === 'subreddit') {
+    const isCasino = ['chumbacasino', 'sweepstakes', 'slots', 'socialcasino'].includes(cleanSub.toLowerCase());
     return [
       {
         id: `sub_1_${cleanSub}`,
         url: `https://www.reddit.com/r/${cleanSub}/comments/18x9k2/top_ranking_discussion_in_${cleanSub}/`,
-        title: `Top Ranking Community Discussion: ${cleanSub} Trends`,
+        title: isCasino ? `Top Ranking Community Discussion: ${cleanSub} Trends` : `Top Ranking Community Discussion: ${cleanSub} Trends`,
         subreddit: cleanSub,
-        targetKeyword: `best ${cleanSub} strategy`,
+        targetKeyword: isCasino ? `best ${cleanSub} strategy` : `best ${cleanSub} strategy`,
         searchVolume: 28000,
         estTraffic: 8400,
         keywordDifficulty: 32,
@@ -91,9 +92,9 @@ function generateMockThreads(mode: string, keyword: string, subreddit: string): 
       {
         id: `sub_2_${cleanSub}`,
         url: `https://www.reddit.com/r/${cleanSub}/comments/19a1m4/beginner_guide_to_${cleanSub}/`,
-        title: `Beginner's Guide to ${cleanSub} in 2026`,
+        title: isCasino ? `Beginner's Guide to ${cleanSub} Sweepstakes in 2026` : `Beginner's Guide to ${cleanSub} in 2026`,
         subreddit: cleanSub,
-        targetKeyword: `${cleanSub} for beginners`,
+        targetKeyword: isCasino ? `${cleanSub} sweepstakes for beginners` : `${cleanSub} for beginners`,
         searchVolume: 14500,
         estTraffic: 4200,
         keywordDifficulty: 24,
@@ -103,9 +104,9 @@ function generateMockThreads(mode: string, keyword: string, subreddit: string): 
       {
         id: `sub_3_${cleanSub}`,
         url: `https://www.reddit.com/r/${cleanSub}/comments/17y4n8/essential_${cleanSub}_tools_and_setup/`,
-        title: `Essential ${cleanSub} Tools & Setup Guide`,
+        title: isCasino ? `Essential Social Casino Slots & Setup Guide` : `Essential ${cleanSub} Tools & Setup Guide`,
         subreddit: cleanSub,
-        targetKeyword: `top ${cleanSub} tools`,
+        targetKeyword: isCasino ? `top social slots strategy` : `top ${cleanSub} tools`,
         searchVolume: 9200,
         estTraffic: 2900,
         keywordDifficulty: 18,
