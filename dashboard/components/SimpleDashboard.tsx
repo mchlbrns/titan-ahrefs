@@ -133,7 +133,7 @@ export default function SimpleDashboard({
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'SaaS' | 'Marketing' | 'AI'>('All');
   const [queuedThreadUrls, setQueuedThreadUrls] = useState<Set<string>>(new Set());
   const [pushingUrls, setPushingUrls] = useState<Set<string>>(new Set());
-  const [threads] = useState<RedditThread[]>(SEEDED_REDDIT_THREADS);
+  const [threads, setThreads] = useState<RedditThread[]>(SEEDED_REDDIT_THREADS);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Load live queued threads status on mount
@@ -150,8 +150,39 @@ export default function SimpleDashboard({
         }
       } catch { /* ignore */ }
     }
+
+    async function loadLiveThreads() {
+      try {
+        const subMap: Record<string, string> = {
+          'heavengirlfriend.com': 'AICompanion',
+          'hornycompanion.com': 'AICompanion',
+          'red-engage.com': 'digitalmarketing',
+        };
+        const sub = subMap[domain] || 'digitalmarketing';
+        const res = await fetch(`/api/reddit-targeting/search?mode=subreddit&subreddit=${sub}&minVolume=100&limit=10`);
+        if (res.ok) {
+          const json = await res.json();
+          if (Array.isArray(json.threads) && json.threads.length > 0) {
+            const mapped: RedditThread[] = json.threads.map((t: { id: string; url: string; title?: string; subreddit?: string; targetKeyword?: string; searchVolume?: number; estTraffic?: number }, idx: number) => ({
+              id: t.id || `live_${idx}`,
+              url: t.url,
+              title: t.title || t.targetKeyword || 'Reddit Thread Target',
+              subreddit: `r/${t.subreddit || sub}`,
+              targetKeyword: t.targetKeyword || 'reddit target',
+              searchVolume: Number(t.searchVolume || 0),
+              estTraffic: Number(t.estTraffic || 0),
+              rank: (idx % 3) + 1,
+              category: (t.subreddit || sub).toLowerCase().includes('ai') ? 'AI' : (t.subreddit || sub).toLowerCase().includes('saas') ? 'SaaS' : 'Marketing',
+            }));
+            setThreads(mapped);
+          }
+        }
+      } catch { /* fallback to SEEDED_REDDIT_THREADS */ }
+    }
+
     loadScrapeQueue();
-  }, []);
+    loadLiveThreads();
+  }, [domain]);
 
   // Filter threads by category
   const filteredThreads = threads.filter((t) => {
