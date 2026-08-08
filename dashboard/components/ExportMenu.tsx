@@ -106,12 +106,31 @@ export default function ExportMenu({
     const refVal = summary?.ref_domains ?? summary?.referringDomains ?? backlinks.length;
     const strikingVal = summary?.striking_distance_count ?? 0;
 
+    let actionPlanStr = '';
+    let redditStr = '';
+
+    if (typeof window !== 'undefined') {
+      const savedTasks = localStorage.getItem(`titan_ahrefs_completed_tasks_${primaryDomain}`);
+      const completedList: string[] = savedTasks ? JSON.parse(savedTasks) : [];
+      actionPlanStr = `\n• SEO Action Plan: ${completedList.length} task(s) completed`;
+
+      const savedQueue = localStorage.getItem('titan_reddit_scrape_queue');
+      const queueList: any[] = savedQueue ? JSON.parse(savedQueue) : [];
+      if (queueList.length > 0) {
+        redditStr = `\n• Reddit Growth Finder: ${queueList.length} thread(s) queued for scraping`;
+      } else if (redditThreads.length > 0) {
+        redditStr = `\n• Reddit Growth Finder: ${redditThreads.length} Page 1 thread(s) targeted`;
+      }
+    }
+
     const summaryText = `📊 Executive SEO Briefing — ${primaryDomain} (${dateStr})\n` +
       `• SEO Health Score: ${healthVal}/100\n` +
       `• Domain Rating: ${drVal}\n` +
       `• Est. Monthly Organic Traffic: ${trafficVal} visits\n` +
       `• Referring Domains: ${refVal}\n` +
-      `• Quick Wins: ${strikingVal} keywords in positions #4-20`;
+      `• Quick Wins: ${strikingVal} keywords in positions #4-20` +
+      actionPlanStr +
+      redditStr;
 
     navigator.clipboard.writeText(summaryText);
     setToastMessage('✓ Copied to Clipboard!');
@@ -286,6 +305,64 @@ export default function ExportMenu({
             bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
             margin: { left: 14, right: 14 }
           });
+          const docWithAutoTable = doc as any;
+          startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
+        }
+
+        // Section 4: Reddit Thread Targets
+        const rdList = redditThreads.slice(0, 3);
+        if (rdList.length > 0) {
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text('4. Reddit Thread Targets (Condensed — 3 entries)', 14, startY);
+          startY += 3;
+
+          autoTable(doc, {
+            startY,
+            head: [['Subreddit / Title', 'Target Keyword', 'Est. Traffic', 'KD', 'Status']],
+            body: rdList.map((r: any) => [
+              r.title || r.url || 'Reddit Thread',
+              r.targetKeyword || r.topKeyword || '—',
+              (r.estTraffic || r.traffic || 0).toLocaleString(),
+              r.keywordDifficulty || 0,
+              r.scrapeStatus || 'Queued'
+            ]),
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
+          const docWithAutoTable = doc as any;
+          startY = (docWithAutoTable.lastAutoTable?.finalY || startY) + 8;
+        }
+
+        // Section 5: SEO Action Plan Progress
+        if (typeof window !== 'undefined') {
+          const savedTasks = localStorage.getItem(`titan_ahrefs_completed_tasks_${primaryDomain}`);
+          const completedList: string[] = savedTasks ? JSON.parse(savedTasks) : [];
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(15, 23, 42);
+          doc.text(`5. SEO Action Plan (${completedList.length} Tasks Completed)`, 14, startY);
+          startY += 3;
+
+          const actionRows = [
+            ['SEO Health Grade Check', 'High', healthScoreVal],
+            ['Striking Distance Keywords Optimization', 'High', summary?.striking_distance_count ? `${summary.striking_distance_count} Keywords` : 'Monitored'],
+            ['Reddit SERP Growth Finder', 'Medium', redditThreads.length > 0 ? `${redditThreads.length} Targets Queued` : 'Active'],
+            ['Backlink Dofollow Link Audit', 'Medium', refDomainsVal]
+          ];
+
+          autoTable(doc, {
+            startY,
+            head: [['Action Item', 'Priority', 'Status / Metric']],
+            body: actionRows,
+            theme: 'grid',
+            headStyles: { fillColor: [241, 245, 249], textColor: [51, 65, 85], fontStyle: 'bold', fontSize: 7.5 },
+            bodyStyles: { fontSize: 7.5, textColor: [30, 41, 59] },
+            margin: { left: 14, right: 14 }
+          });
         }
       } else if (activeTab === 'keywords') {
         doc.setFontSize(10);
@@ -444,15 +521,24 @@ export default function ExportMenu({
     const primaryDomain = domain || 'titantreasure.com';
 
     if (activeTab === 'overview') {
+      let completedTasksCount = 0;
+      if (typeof window !== 'undefined') {
+        const savedTasks = localStorage.getItem(`titan_ahrefs_completed_tasks_${primaryDomain}`);
+        const completedList = savedTasks ? JSON.parse(savedTasks) : [];
+        completedTasksCount = completedList.length;
+      }
+
       const headers = ['Section', 'Item / URL', 'Metric 1', 'Metric 2', 'Details'];
       const rows: (string | number)[][] = [
         ['KPI Summary', 'SEO Health Score', summary?.healthScore ?? 'N/A', '', '0-100 Score'],
         ['KPI Summary', 'Domain Rating', summary?.domain_rating ?? 'N/A', summary?.ahrefs_rank ? `Rank #${summary.ahrefs_rank}` : '', 'Ahrefs DR'],
         ['KPI Summary', 'Organic Traffic', summary?.organic_traffic ?? 'N/A', '', 'Monthly visits'],
         ['KPI Summary', 'Referring Domains', summary?.ref_domains ?? backlinks.length, '', 'Unique linking domains'],
+        ['Action Plan', 'Tasks Completed', completedTasksCount, '', 'User progress on checklist'],
         ...(overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => ['Top Keyword', k.keyword, `#${k.position}`, k.traffic, `Volume: ${k.search_volume}`]),
         ...pages.slice(0, 3).map((p: any) => ['Top Page', p.url, p.top_keyword || '—', p.organic_traffic, `Keywords: ${p.organic_keywords}`]),
-        ...backlinks.slice(0, 3).map((b: any) => ['Backlink', b.ref_domain || b.urlFrom || '', b.domain_rating || 0, b.dofollow_links ? 'Dofollow' : 'Nofollow', b.status || 'ACTIVE'])
+        ...backlinks.slice(0, 3).map((b: any) => ['Backlink', b.ref_domain || b.urlFrom || '', b.domain_rating || 0, b.dofollow_links ? 'Dofollow' : 'Nofollow', b.status || 'ACTIVE']),
+        ...redditThreads.slice(0, 3).map((r: any) => ['Reddit Target', r.title || r.url || 'Reddit Thread', r.targetKeyword || '—', r.estTraffic || 0, r.scrapeStatus || 'Queued'])
       ];
       downloadCsv(`titan-ahrefs-overview-${primaryDomain}.csv`, headers, rows);
     } else if (activeTab === 'keywords') {
@@ -533,12 +619,20 @@ export default function ExportMenu({
       let body = '';
 
       if (activeTab === 'overview') {
+        let completedCount = 0;
+        if (typeof window !== 'undefined') {
+          const savedTasks = localStorage.getItem(`titan_ahrefs_completed_tasks_${primaryDomain}`);
+          completedCount = savedTasks ? JSON.parse(savedTasks).length : 0;
+        }
+
         subject = `Executive Weekly SEO Briefing — ${primaryDomain} (${dateStr})`;
         body = `Hi Team,\n\nHere is your high-level Executive SEO Briefing for ${primaryDomain}:\n\n` +
           `• SEO Health Score: ${summary?.healthScore ?? 'N/A'}/100\n` +
           `• Domain Rating: ${summary?.domain_rating ?? 'N/A'}\n` +
           `• Est. Organic Traffic: ${(summary?.organic_traffic ?? 0).toLocaleString()} monthly visits\n` +
-          `• Referring Domains: ${summary?.ref_domains ?? backlinks.length}\n\n` +
+          `• Referring Domains: ${summary?.ref_domains ?? backlinks.length}\n` +
+          `• SEO Action Plan Progress: ${completedCount} task(s) completed\n` +
+          `• Reddit Growth Finder: ${redditThreads.length} Page 1 thread(s) targeted\n\n` +
           `Top Keyword Movements (Condensed):\n` +
           (overviewKeywords.length > 0 ? overviewKeywords : keywords.slice(0, 3)).map((k: any) => `  - ${k.keyword} (#${k.position}, Traffic: ${k.traffic?.toLocaleString() ?? '—'})`).join('\n') + '\n\n' +
           `Best regards,\nTitan SEO Automation Engine`;
