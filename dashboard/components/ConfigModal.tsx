@@ -14,7 +14,7 @@ interface ConfigModalProps {
   domainOptions: string[];
   onDomainsChange: (domains: string[]) => void;
   onSelectDomain: (domain: string) => void;
-  onConfigSaved: () => void;
+  onConfigSaved: (targetDomain?: string) => void;
 }
 
 export default function ConfigModal({
@@ -41,6 +41,22 @@ export default function ConfigModal({
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      if (currentConfig.primary_domain) setPrimaryDomain(currentConfig.primary_domain);
+      if (currentConfig.target_country) setCountry(currentConfig.target_country);
+      if (currentConfig.competitors) {
+        setComp1(currentConfig.competitors[0] || 'chumbacasino.com');
+        setComp2(currentConfig.competitors[1] || 'pulsz.com');
+        setComp3(currentConfig.competitors[2] || 'luckylandslots.com');
+      }
+      if (currentConfig.report_frequency) setFrequency(currentConfig.report_frequency);
+      if (currentConfig.comparison_period) setComparisonPeriod(currentConfig.comparison_period);
+      setSuccessMsg(null);
+      setErrorMsg(null);
+    }
+  }, [isOpen, currentConfig]);
 
   if (!isOpen) return null;
 
@@ -134,7 +150,7 @@ export default function ConfigModal({
 
       setSuccessMsg('Settings updated successfully.');
       setTimeout(() => {
-        onConfigSaved();
+        onConfigSaved(primaryDomain);
         onClose();
       }, 800);
     } catch (err: unknown) {

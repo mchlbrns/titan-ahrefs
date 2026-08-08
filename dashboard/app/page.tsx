@@ -1026,9 +1026,12 @@ export default function DashboardPage() {
         onDomainsChange={handleDomainsChange}
         onSelectDomain={(newDomain) => {
           handleSelectDomain(newDomain);
-          fetchData(newDomain);
         }}
-        onConfigSaved={() => fetchData(selectedDomain)}
+        onConfigSaved={(targetDomain) => {
+          const dom = targetDomain || selectedDomain;
+          handleSelectDomain(dom);
+          fetchData(dom, true);
+        }}
       />
     </div>
   );
