@@ -178,11 +178,17 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
         queued.has(t.url) ? { ...t, scrapeStatus: 'Queued' as const } : t
       );
       setThreads(overlaid);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('titan_reddit_active_threads', JSON.stringify(overlaid));
+      }
       setQueuedUrls(queued);
       setIsMockData(Boolean(json.isMockData));
       setQuotaExhausted(Boolean(json.quotaExhausted));
     } catch {
       setThreads([]);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('titan_reddit_active_threads');
+      }
       setIsMockData(true);
     } finally {
       setLoading(false);
@@ -224,9 +230,13 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
     setPushingIds(prev => new Set([...Array.from(prev), ...Array.from(idsToPush)]));
 
     // Optimistic UI + localStorage update so both views stay in sync immediately
-    setThreads(prev =>
-      prev.map(t => (idsToPush.has(t.id) ? { ...t, scrapeStatus: 'Queued' as const } : t))
-    );
+    setThreads(prev => {
+      const updated = prev.map(t => (idsToPush.has(t.id) ? { ...t, scrapeStatus: 'Queued' as const } : t));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('titan_reddit_active_threads', JSON.stringify(updated));
+      }
+      return updated;
+    });
     setQueuedUrls(prev => {
       const next = new Set(prev);
       urlsToPush.forEach(u => next.add(u));
@@ -280,9 +290,13 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
 
   const removeThreadFromScraper = async (thread: TargetThread) => {
     // Optimistic UI + localStorage removal
-    setThreads(prev =>
-      prev.map(t => t.id === thread.id ? { ...t, scrapeStatus: 'Unscraped' as const } : t)
-    );
+    setThreads(prev => {
+      const updated = prev.map(t => (t.id === thread.id ? { ...t, scrapeStatus: 'Unscraped' as const } : t));
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('titan_reddit_active_threads', JSON.stringify(updated));
+      }
+      return updated;
+    });
     setQueuedUrls(prev => {
       const next = new Set(prev);
       next.delete(thread.url);

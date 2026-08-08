@@ -98,7 +98,7 @@ export default function ExportMenu({
 
   /**
    * Resolves target Reddit threads for export.
-   * Priority: 1. Passed props -> 2. LocalStorage queue -> 3. Fallback seed data
+   * Priority: 1. Passed props -> 2. Active threads grid in localStorage -> 3. Queued threads -> 4. Default seed threads
    */
   const getExportRedditThreads = (redditThreadsProp: any[] = []): any[] => {
     if (redditThreadsProp && redditThreadsProp.length > 0) {
@@ -107,6 +107,26 @@ export default function ExportMenu({
 
     if (typeof window !== 'undefined') {
       try {
+        // Priority 1: Read active threads displayed on the live dashboard grid
+        const activeSaved = localStorage.getItem('titan_reddit_active_threads');
+        if (activeSaved) {
+          const activeList: any[] = JSON.parse(activeSaved);
+          if (activeList.length > 0) {
+            return activeList.map((item, idx) => ({
+              id: item.id || `active_${idx}`,
+              url: item.url || item.thread_url || '',
+              title: item.title || item.thread_title || item.targetKeyword || 'Reddit Thread',
+              subreddit: item.subreddit || 'ChumbaCasino',
+              targetKeyword: item.targetKeyword || item.target_keyword || item.topKeyword || '—',
+              searchVolume: item.searchVolume || item.search_volume || 0,
+              estTraffic: item.estTraffic || item.est_traffic || 0,
+              keywordDifficulty: item.keywordDifficulty || item.keyword_difficulty || 0,
+              scrapeStatus: item.scrapeStatus || item.status || 'Unscraped',
+            }));
+          }
+        }
+
+        // Priority 2: Read queued threads from localStorage
         const savedQueue = localStorage.getItem('titan_reddit_scrape_queue');
         if (savedQueue) {
           const queueList: any[] = JSON.parse(savedQueue);
@@ -129,33 +149,34 @@ export default function ExportMenu({
       }
     }
 
+    // Priority 3: Default seed threads matching initial live dashboard state
     return [
       {
-        id: 'seed_1',
+        id: 'seed_chumbacasino_1',
         url: 'https://www.reddit.com/r/ChumbaCasino/comments/18x9k2/top_ranking_discussion_in_ChumbaCasino/',
-        title: 'Top Ranking Discussion: ChumbaCasino Trends',
+        title: 'Top Ranking Community Discussion: ChumbaCasino Trends',
         subreddit: 'ChumbaCasino',
         targetKeyword: 'best ChumbaCasino strategy',
         searchVolume: 28000,
         estTraffic: 8400,
         keywordDifficulty: 32,
-        scrapeStatus: 'Queued',
+        scrapeStatus: 'Unscraped',
       },
       {
-        id: 'seed_2',
+        id: 'seed_chumbacasino_2',
         url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_ChumbaCasino/',
-        title: "Beginner's Guide to Sweepstakes in 2026",
+        title: "Beginner's Guide to ChumbaCasino Sweepstakes in 2026",
         subreddit: 'ChumbaCasino',
-        targetKeyword: 'sweepstakes for beginners',
+        targetKeyword: 'ChumbaCasino sweepstakes for beginners',
         searchVolume: 14500,
         estTraffic: 4200,
         keywordDifficulty: 24,
-        scrapeStatus: 'Queued',
+        scrapeStatus: 'Unscraped',
       },
       {
-        id: 'seed_3',
+        id: 'seed_chumbacasino_3',
         url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_ChumbaCasino_tools_and_setup/',
-        title: 'Essential Social Casino Slots Setup',
+        title: 'Essential Social Casino Slots & Setup Guide',
         subreddit: 'ChumbaCasino',
         targetKeyword: 'top social slots strategy',
         searchVolume: 9200,
