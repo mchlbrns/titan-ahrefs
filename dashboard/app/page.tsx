@@ -645,11 +645,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full md:w-auto">
             {/* Mode Toggle Button */}
             <button
               onClick={() => setIsAdvanced((prev) => !prev)}
-              className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 sm:py-1.5 text-xs font-bold border transition-all flex-1 sm:flex-initial whitespace-nowrap cursor-pointer ${
+              className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 sm:py-1.5 text-xs font-bold border transition-all w-full sm:w-auto sm:flex-initial whitespace-nowrap cursor-pointer ${
                 isAdvanced
                   ? 'bg-slate-800 border-slate-700 text-cyan-300 hover:bg-slate-700'
                   : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 shadow-sm'
@@ -666,7 +666,7 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setIsConfigOpen(true)}
-              className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all flex-1 sm:flex-initial whitespace-nowrap"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 sm:py-1.5 text-xs font-semibold text-slate-400 border border-[rgba(255,255,255,0.08)] hover:text-white hover:border-[rgba(255,255,255,0.16)] transition-all w-full sm:w-auto sm:flex-initial whitespace-nowrap"
               id="configure-button"
               aria-label="Open configuration modal"
             >
@@ -675,7 +675,7 @@ export default function DashboardPage() {
             </button>
 
             {/* Refresh button with quota lock */}
-            <div className="relative group flex-1 sm:flex-initial">
+            <div className="relative group w-full sm:w-auto sm:flex-initial">
               <button
                 onClick={() => !isQuotaExceeded && fetchData(selectedDomain, true)}
                 disabled={isDisabled}
@@ -759,43 +759,51 @@ export default function DashboardPage() {
             {/* ── KPI Strip ───────────────────────────────────────────────── */}
             <section
               aria-label="Key performance indicators"
-              className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6"
+              className="grid grid-cols-2 sm:grid-cols-6 lg:grid-cols-5 gap-2.5 sm:gap-3 mb-6"
             >
-              <KpiCard
-                title="SEO Health Score"
-                value={summary?.healthScore !== null && summary?.healthScore !== undefined ? summary.healthScore : '—'}
-                subText={
-                  summary?.healthScore !== null && summary?.healthScore !== undefined
-                    ? healthGrade ? `Grade ${healthGrade} · 0–100` : 'Health Rating (0–100)'
-                    : 'Data Pending'
-                }
-                hasData={hasSnapshot && summary?.healthScore !== null && summary?.healthScore !== undefined}
-                size="hero"
-              />
-              <KpiCard
-                title="Domain Rating"
-                value={summary?.domain_rating !== null && summary?.domain_rating !== undefined ? summary.domain_rating : '—'}
-                subText={summary?.ahrefs_rank ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}` : 'Ahrefs Rank N/A'}
-                hasData={hasSnapshot && summary?.domain_rating !== null && summary?.domain_rating !== undefined}
-                size="hero"
-                sparklineData={drSparkline}
-                sparklineColor="#8B5CF6"
-              />
-              <KpiCard
-                title="Organic Traffic"
-                value={summary?.organic_traffic !== null && summary?.organic_traffic !== undefined ? summary.organic_traffic : '—'}
-                changePercent={typeof summary?.traffic_delta_percent === 'number' ? summary.traffic_delta_percent : undefined}
-                subText="Est. monthly visits"
-                size="hero"
-                sparklineData={trafficSparkline}
-              />
-              <KpiCard
-                title="Referring Domains"
-                value={refDomainsCount}
-                subText="Unique linking domains"
-                hasData={hasSnapshot || refDomainsCount > 0}
-              />
-              <div className="col-span-2 sm:col-span-1">
+              <div className="col-span-1 sm:col-span-2 lg:col-span-1 w-full">
+                <KpiCard
+                  title="SEO Health Score"
+                  value={summary?.healthScore !== null && summary?.healthScore !== undefined ? summary.healthScore : '—'}
+                  subText={
+                    summary?.healthScore !== null && summary?.healthScore !== undefined
+                      ? healthGrade ? `Grade ${healthGrade} · 0–100` : 'Health Rating (0–100)'
+                      : 'Data Pending'
+                  }
+                  hasData={hasSnapshot && summary?.healthScore !== null && summary?.healthScore !== undefined}
+                  size="hero"
+                />
+              </div>
+              <div className="col-span-1 sm:col-span-2 lg:col-span-1 w-full">
+                <KpiCard
+                  title="Domain Rating"
+                  value={summary?.domain_rating !== null && summary?.domain_rating !== undefined ? summary.domain_rating : '—'}
+                  subText={summary?.ahrefs_rank ? `Ahrefs Rank #${summary.ahrefs_rank.toLocaleString()}` : 'Ahrefs Rank N/A'}
+                  hasData={hasSnapshot && summary?.domain_rating !== null && summary?.domain_rating !== undefined}
+                  size="hero"
+                  sparklineData={drSparkline}
+                  sparklineColor="#8B5CF6"
+                />
+              </div>
+              <div className="col-span-1 sm:col-span-2 lg:col-span-1 w-full">
+                <KpiCard
+                  title="Organic Traffic"
+                  value={summary?.organic_traffic !== null && summary?.organic_traffic !== undefined ? summary.organic_traffic : '—'}
+                  changePercent={typeof summary?.traffic_delta_percent === 'number' ? summary.traffic_delta_percent : undefined}
+                  subText="Est. monthly visits"
+                  size="hero"
+                  sparklineData={trafficSparkline}
+                />
+              </div>
+              <div className="col-span-1 sm:col-span-3 lg:col-span-1 w-full">
+                <KpiCard
+                  title="Referring Domains"
+                  value={refDomainsCount}
+                  subText="Unique linking domains"
+                  hasData={hasSnapshot || refDomainsCount > 0}
+                />
+              </div>
+              <div className="col-span-2 sm:col-span-3 lg:col-span-1 w-full">
                 <KpiCard
                   title="Striking Distance"
                   value={summary?.striking_distance_count ?? 0}

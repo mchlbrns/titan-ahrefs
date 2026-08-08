@@ -311,6 +311,7 @@ button, a {
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   color: var(--color-text-muted);
   border-bottom: 2px solid transparent;
