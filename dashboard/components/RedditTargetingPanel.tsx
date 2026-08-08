@@ -141,6 +141,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   const [selectedThreadIds, setSelectedThreadIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [isMockData, setIsMockData] = useState(false);
+  const [quotaExhausted, setQuotaExhausted] = useState(false);
   const [pushingIds, setPushingIds] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   // Tracks which thread URLs are queued — persisted to localStorage so both views stay in sync
@@ -179,6 +180,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
       setThreads(overlaid);
       setQueuedUrls(queued);
       setIsMockData(Boolean(json.isMockData));
+      setQuotaExhausted(Boolean(json.quotaExhausted));
     } catch {
       setThreads([]);
       setIsMockData(true);
@@ -512,7 +514,24 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
           {loading ? (
             <p className="text-xs text-slate-500 italic py-6">Searching Reddit SERP targets...</p>
           ) : threads.length === 0 ? (
-            <p className="text-xs text-slate-500 italic py-6">No threads returned for query.</p>
+            <div className="py-8 px-4 text-center space-y-3">
+              {quotaExhausted ? (
+                <>
+                  <p className="text-sm font-semibold text-amber-400">⚠️ Ahrefs API Quota Exhausted</p>
+                  <p className="text-xs text-slate-400 max-w-md mx-auto">
+                    No seed data available for <span className="font-mono text-slate-200">r/{committedParams.subreddit}</span> while the API quota is locked.
+                    Only pre-verified subreddits have reference threads during the lockout period.
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Use a preset with available data:&nbsp;
+                    <span className="text-cyan-400 font-medium">r/ChumbaCasino · r/sweepstakes · r/slots · r/socialcasino · r/onlinegambling</span>
+                  </p>
+                  <p className="text-xs text-slate-600 italic">Live search for any subreddit resumes after API reset on 2026-09-04.</p>
+                </>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No threads returned for this query.</p>
+              )}
+            </div>
           ) : (
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left text-xs min-w-[760px]">
