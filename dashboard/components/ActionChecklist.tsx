@@ -10,6 +10,7 @@ interface ActionItem {
 }
 
 interface ActionChecklistProps {
+  domain?: string;
   strikingCount: number;
   refDomainsCount: number;
   competitorsCount: number;
@@ -24,6 +25,7 @@ interface ActionChecklistProps {
 }
 
 export default function ActionChecklist({
+  domain = 'red-engage.com',
   strikingCount,
   refDomainsCount,
   competitorsCount,
@@ -32,7 +34,25 @@ export default function ActionChecklist({
   healthScore,
   healthGrade,
 }: ActionChecklistProps) {
-  const [completedIndices, setCompletedIndices] = useState<Set<number>>(new Set());
+  const [completedTitles, setCompletedTitles] = React.useState<Set<string>>(new Set());
+
+  // Restore completed task titles from localStorage on domain change
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storageKey = `titan_ahrefs_completed_tasks_${domain}`;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setCompletedTitles(new Set(parsed));
+          }
+        } catch { /* ignore */ }
+      } else {
+        setCompletedTitles(new Set());
+      }
+    }
+  }, [domain]);
 
   if (!dataLoaded) {
     return (
@@ -105,20 +125,24 @@ export default function ActionChecklist({
     );
   }
 
-  const toggleTask = (index: number) => {
-    setCompletedIndices((prev) => {
+  const toggleTask = (title: string) => {
+    setCompletedTitles((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(title)) {
+        next.delete(title);
       } else {
-        next.add(index);
+        next.add(title);
+      }
+      if (typeof window !== 'undefined') {
+        const storageKey = `titan_ahrefs_completed_tasks_${domain}`;
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(next)));
       }
       return next;
     });
   };
 
-  const completedCount = completedIndices.size;
-  const progressPercent = Math.round((completedCount / actions.length) * 100);
+  const completedCount = actions.filter((a) => completedTitles.has(a.title)).length;
+  const progressPercent = actions.length > 0 ? Math.round((completedCount / actions.length) * 100) : 0;
 
   const priorityBadge: Record<ActionItem['priority'], { label: string; style: string }> = {
     high: { label: '🔴 High Priority', style: 'bg-rose-500/15 text-rose-300 border-rose-500/30' },
@@ -173,13 +197,13 @@ export default function ActionChecklist({
       {/* Interactive Task List */}
       <ul className="space-y-2 pt-1">
         {actions.map((act, i) => {
-          const isDone = completedIndices.has(i);
+          const isDone = completedTitles.has(act.title);
           const badge = priorityBadge[act.priority];
 
           return (
             <li
               key={i}
-              onClick={() => toggleTask(i)}
+              onClick={() => toggleTask(act.title)}
               className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
                 isDone
                   ? 'bg-slate-950/40 border-slate-900 opacity-60'
@@ -190,7 +214,7 @@ export default function ActionChecklist({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  toggleTask(i);
+                  toggleTask(act.title);
                 }}
                 className="mt-0.5 text-slate-400 hover:text-cyan-400 shrink-0 transition-colors"
                 aria-label={isDone ? 'Mark task as incomplete' : 'Mark task as complete'}
