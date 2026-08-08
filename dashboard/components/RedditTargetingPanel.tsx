@@ -13,8 +13,48 @@ import {
   Send,
   CheckCircle2,
   CheckSquare,
-  Square
+  Square,
+  Trash2
 } from 'lucide-react';
+
+const QUEUE_STORAGE_KEY = 'titan_reddit_scrape_queue';
+
+function getQueuedUrlsFromStorage(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const saved = localStorage.getItem(QUEUE_STORAGE_KEY);
+    if (saved) {
+      const list = JSON.parse(saved) as Array<string | { thread_url: string }>;
+      if (Array.isArray(list)) {
+        return new Set(
+          list.map(i => (typeof i === 'string' ? i : i.thread_url)).filter(Boolean)
+        );
+      }
+    }
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+function addUrlsToStorage(urls: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getQueuedUrlsFromStorage();
+    urls.forEach(u => existing.add(u));
+    // Persist as array of objects to match SimpleDashboard format
+    const list = Array.from(existing).map(u => ({ thread_url: u }));
+    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(list));
+  } catch { /* ignore */ }
+}
+
+function removeUrlsFromStorage(urls: string[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const existing = getQueuedUrlsFromStorage();
+    urls.forEach(u => existing.delete(u));
+    const list = Array.from(existing).map(u => ({ thread_url: u }));
+    localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(list));
+  } catch { /* ignore */ }
+}
 
 export interface TargetThread {
   id: string;
@@ -94,6 +134,8 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   const [isMockData, setIsMockData] = useState(false);
   const [pushingIds, setPushingIds] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Tracks which thread URLs are queued — persisted to localStorage so both views stay in sync
+  const [queuedUrls, setQueuedUrls] = useState<Set<string>>(() => getQueuedUrlsFromStorage());
 
   // Sync inputs on domain change
   useEffect(() => {
@@ -115,7 +157,14 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
       const res = await fetch(`/api/reddit-targeting/search?${queryParams.toString()}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setThreads(Array.isArray(json.threads) ? json.threads : []);
+      // Overlay persisted queue status so switching views doesn't reset button state
+      const queued = getQueuedUrlsFromStorage();
+      const rawThreads: TargetThread[] = Array.isArray(json.threads) ? json.threads : [];
+      const overlaid = rawThreads.map(t =>
+        queued.has(t.url) ? { ...t, scrapeStatus: 'Queued' as const } : t
+      );
+      setThreads(overlaid);
+      setQueuedUrls(queued);
       setIsMockData(Boolean(json.isMockData));
     } catch {
       setThreads([]);
@@ -155,12 +204,19 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
     if (threadsToPush.length === 0) return;
 
     const idsToPush = new Set(threadsToPush.map(t => t.id));
+    const urlsToPush = threadsToPush.map(t => t.url);
     setPushingIds(prev => new Set([...Array.from(prev), ...Array.from(idsToPush)]));
 
-    // Optimistic UI update
+    // Optimistic UI + localStorage update so both views stay in sync immediately
     setThreads(prev =>
-      prev.map(t => (idsToPush.has(t.id) ? { ...t, scrapeStatus: 'Queued' } : t))
+      prev.map(t => (idsToPush.has(t.id) ? { ...t, scrapeStatus: 'Queued' as const } : t))
     );
+    setQueuedUrls(prev => {
+      const next = new Set(prev);
+      urlsToPush.forEach(u => next.add(u));
+      return next;
+    });
+    addUrlsToStorage(urlsToPush);
 
     try {
       const payload = {
@@ -204,6 +260,25 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
       });
       setTimeout(() => setToastMessage(null), 4000);
     }
+  };
+
+  const removeThreadFromScraper = async (thread: TargetThread) => {
+    // Optimistic UI + localStorage removal
+    setThreads(prev =>
+      prev.map(t => t.id === thread.id ? { ...t, scrapeStatus: 'Unscraped' as const } : t)
+    );
+    setQueuedUrls(prev => {
+      const next = new Set(prev);
+      next.delete(thread.url);
+      return next;
+    });
+    removeUrlsFromStorage([thread.url]);
+
+    try {
+      await fetch(`/api/reddit-targeting/scrape-queue?thread_url=${encodeURIComponent(thread.url)}`, {
+        method: 'DELETE'
+      });
+    } catch { /* ignore – already removed from local state */ }
   };
 
   const totalEstTraffic = threads.reduce((acc, t) => acc + (t.estTraffic || 0), 0);
@@ -509,27 +584,26 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                           )}
                         </td>
                         <td className="py-3 pl-3 pr-3 text-right">
-                          <button
-                            disabled={isPushing || t.scrapeStatus === 'Queued'}
-                            onClick={() => void pushThreadsToScraper([t])}
-                            className={`inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all ${
-                              t.scrapeStatus === 'Queued'
-                                ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 cursor-not-allowed'
-                                : 'bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25'
-                            }`}
-                          >
-                            {t.scrapeStatus === 'Queued' ? (
-                              <>
-                                <CheckCircle2 className="h-3 w-3 text-emerald-400" />
-                                <span>✓ Added to Queue</span>
-                              </>
-                            ) : (
-                              <>
-                                <Send className="h-3 w-3" />
-                                <span>🎯 Target This Thread</span>
-                              </>
-                            )}
-                          </button>
+                          {t.scrapeStatus === 'Queued' ? (
+                            <button
+                              onClick={() => void removeThreadFromScraper(t)}
+                              className="group/btn inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 hover:bg-rose-950/80 hover:border-rose-500/50 hover:text-rose-300"
+                            >
+                              <CheckCircle2 className="h-3 w-3 text-emerald-400 group-hover/btn:hidden" />
+                              <Trash2 className="h-3 w-3 text-rose-300 hidden group-hover/btn:block" />
+                              <span className="group-hover/btn:hidden">✓ Added to Queue</span>
+                              <span className="hidden group-hover/btn:inline">Remove from Queue</span>
+                            </button>
+                          ) : (
+                            <button
+                              disabled={isPushing}
+                              onClick={() => void pushThreadsToScraper([t])}
+                              className="inline-flex items-center gap-1 px-3 py-1 rounded text-[11px] font-semibold transition-all bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/25"
+                            >
+                              <Send className="h-3 w-3" />
+                              <span>🎯 Target This Thread</span>
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
