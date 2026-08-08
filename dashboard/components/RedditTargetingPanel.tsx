@@ -35,29 +35,43 @@ interface RedditTargetingPanelProps {
 
 type SearchMode = 'keyword' | 'subreddit' | 'combined';
 
-const DOMAIN_PRESETS: Record<string, { defaultSub: string; presets: string[]; label: string }> = {
+const SOCIAL_CASINO_CONFIG = {
+  label: 'US Social Sweepstakes Casino',
+  defaultSub: 'ChumbaCasino',
+  defaultKeyword: 'sweepstakes casino',
+  presets: ['ChumbaCasino', 'sweepstakes', 'socialcasino', 'slots', 'onlinegambling'],
+};
+
+const DOMAIN_PRESETS: Record<string, { defaultSub: string; defaultKeyword?: string; presets: string[]; label: string }> = {
+  'titantreasure.com': SOCIAL_CASINO_CONFIG,
+  'betsweepsy.com': SOCIAL_CASINO_CONFIG,
+  'luckytwogrands.com': SOCIAL_CASINO_CONFIG,
+  'sweepsybet.com': SOCIAL_CASINO_CONFIG,
+  'goldishsweeps.com': SOCIAL_CASINO_CONFIG,
+  'luckierbety.com': SOCIAL_CASINO_CONFIG,
+  'titantreasure.bet': SOCIAL_CASINO_CONFIG,
+  'titantreasure.casino': SOCIAL_CASINO_CONFIG,
   'heavengirlfriend.com': {
     label: 'AI Companion & Gaming Platform',
     defaultSub: 'AICompanion',
+    defaultKeyword: 'AI companion app',
     presets: ['AICompanion', 'SoulmateAI', 'CharacterAI', 'Replika', 'virtualgf'],
   },
   'hornycompanion.com': {
     label: 'Adult Entertainment Directory',
     defaultSub: 'AICompanion',
+    defaultKeyword: 'virtual companion',
     presets: ['AICompanion', 'NSFWAI', 'virtualgf', 'CharacterAI', 'Replika'],
   },
   'red-engage.com': {
     label: 'Engagement & Content Platform',
     defaultSub: 'digitalmarketing',
+    defaultKeyword: 'SEO automation',
     presets: ['digitalmarketing', 'SEO', 'contentmarketing', 'growthhacking', 'B2Bmarketing'],
   },
 };
 
-const DEFAULT_CONFIG = {
-  label: 'Managed Portfolio Target',
-  defaultSub: 'AICompanion',
-  presets: ['AICompanion', 'digitalmarketing', 'SEO', 'CharacterAI'],
-};
+const DEFAULT_CONFIG = SOCIAL_CASINO_CONFIG;
 
 const volumeColor = (v: number): string =>
   v >= 20000 ? 'text-rose-400' : v >= 10000 ? 'text-amber-400' : v >= 1000 ? 'text-emerald-400' : 'text-slate-500';
@@ -66,12 +80,12 @@ const kdColor = (d: number): string =>
   d > 60 ? 'text-rose-400' : d > 30 ? 'text-amber-400' : 'text-emerald-400';
 
 export default function RedditTargetingPanel({ selectedDomain }: RedditTargetingPanelProps) {
-  const activeDomain = selectedDomain || 'red-engage.com';
+  const activeDomain = selectedDomain || 'titantreasure.com';
   const domainConfig = DOMAIN_PRESETS[activeDomain] || DEFAULT_CONFIG;
 
   const [mode, setMode] = useState<SearchMode>('subreddit');
   const [subredditInput, setSubredditInput] = useState(domainConfig.defaultSub);
-  const [keywordInput, setKeywordInput] = useState('AI automation');
+  const [keywordInput, setKeywordInput] = useState(domainConfig.defaultKeyword || 'sweepstakes casino');
   const [minVolumeInput, setMinVolumeInput] = useState('500');
 
   const [threads, setThreads] = useState<TargetThread[]>([]);

@@ -154,11 +154,19 @@ export default function SimpleDashboard({
     async function loadLiveThreads() {
       try {
         const subMap: Record<string, string> = {
+          'titantreasure.com': 'ChumbaCasino',
+          'betsweepsy.com': 'ChumbaCasino',
+          'luckytwogrands.com': 'ChumbaCasino',
+          'sweepsybet.com': 'ChumbaCasino',
+          'goldishsweeps.com': 'ChumbaCasino',
+          'luckierbety.com': 'ChumbaCasino',
+          'titantreasure.bet': 'ChumbaCasino',
+          'titantreasure.casino': 'ChumbaCasino',
           'heavengirlfriend.com': 'AICompanion',
           'hornycompanion.com': 'AICompanion',
           'red-engage.com': 'digitalmarketing',
         };
-        const sub = subMap[domain] || 'digitalmarketing';
+        const sub = subMap[domain] || 'ChumbaCasino';
         const res = await fetch(`/api/reddit-targeting/search?mode=subreddit&subreddit=${sub}&minVolume=100&limit=10`);
         if (res.ok) {
           const json = await res.json();
