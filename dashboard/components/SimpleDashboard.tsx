@@ -134,6 +134,25 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
   return [];
 }
 
+function getDomainCategories(domain: string, threads: RedditThread[]): string[] {
+  const d = (domain || '').toLowerCase();
+
+  let baseCategories: string[] = [];
+
+  if (d.includes('titantreasure') || d.includes('sweeps') || d.includes('bety') || d.includes('grands')) {
+    baseCategories = ['Casino', 'Sweepstakes', 'Slots'];
+  } else if (d.includes('girlfriend') || d.includes('horny') || d.includes('companion')) {
+    baseCategories = ['AI Companion', 'Anime', 'Gaming'];
+  } else if (d.includes('red-engage') || d.includes('engage') || d.includes('marketing')) {
+    baseCategories = ['Marketing', 'SEO', 'SaaS'];
+  }
+
+  const threadCategories = Array.from(new Set(threads.map((t) => t.category).filter(Boolean)));
+  const combined = Array.from(new Set([...baseCategories, ...threadCategories]));
+
+  return combined.length > 0 ? ['All', ...combined] : ['All'];
+}
+
 export default function SimpleDashboard({
   domain,
   summary,
@@ -159,7 +178,7 @@ export default function SimpleDashboard({
       : keywords.filter((k) => k.position >= 4 && k.position <= 20).length;
 
   // Reddit Growth Finder State
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'SaaS' | 'Marketing' | 'AI'>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [queuedThreadUrls, setQueuedThreadUrls] = useState<Set<string>>(new Set());
   const [pushingUrls, setPushingUrls] = useState<Set<string>>(new Set());
   const [threads, setThreads] = useState<RedditThread[]>(() => getDomainSeedThreads(domain));
@@ -220,14 +239,26 @@ export default function SimpleDashboard({
       } catch { /* fallback to domain seed */ }
     }
 
+    setSelectedCategory('All');
     loadScrapeQueue();
     loadLiveThreads();
   }, [domain]);
 
+  const categories = getDomainCategories(domain, threads);
+
   // Filter threads by category
   const filteredThreads = threads.filter((t) => {
     if (selectedCategory === 'All') return true;
-    return t.category === selectedCategory;
+    const catLower = selectedCategory.toLowerCase();
+    const threadCatLower = (t.category || '').toLowerCase();
+    const subLower = (t.subreddit || '').toLowerCase();
+    const kwLower = (t.targetKeyword || '').toLowerCase();
+
+    return (
+      threadCatLower.includes(catLower) ||
+      subLower.includes(catLower) ||
+      kwLower.includes(catLower)
+    );
   });
 
   // Handle Target This Thread action
@@ -381,7 +412,7 @@ export default function SimpleDashboard({
             <span className="text-[11px] font-semibold text-slate-500 mr-1 flex items-center gap-1">
               <Filter className="h-3 w-3" /> Presets:
             </span>
-            {(['All', 'SaaS', 'Marketing', 'AI'] as const).map((cat) => (
+            {categories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
