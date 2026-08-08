@@ -128,7 +128,25 @@ ALTER TABLE public.executive_reports ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Allow public select on executive_reports" ON public.executive_reports;
 DROP POLICY IF EXISTS "Allow public all on executive_reports" ON public.executive_reports;
 
-CREATE POLICY "Allow public select on executive_reports" ON public.executive_reports FOR SELECT USING (true);
-CREATE POLICY "Allow public all on executive_reports" ON public.executive_reports FOR ALL USING (true) WITH CHECK (true);
+-- 6. Create Reddit Scrape Queue Table (Targeted Reddit Threads for Scraping/Outreach)
+CREATE TABLE IF NOT EXISTS public.reddit_scrape_queue (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  thread_url TEXT NOT NULL UNIQUE,
+  target_keyword TEXT DEFAULT '',
+  search_volume INTEGER DEFAULT 0,
+  est_traffic INTEGER DEFAULT 0,
+  status TEXT DEFAULT 'Queued',
+  queued_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.reddit_scrape_queue ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public select on reddit_scrape_queue" ON public.reddit_scrape_queue;
+DROP POLICY IF EXISTS "Allow public all on reddit_scrape_queue" ON public.reddit_scrape_queue;
+
+CREATE POLICY "Allow public select on reddit_scrape_queue" ON public.reddit_scrape_queue FOR SELECT USING (true);
+CREATE POLICY "Allow public all on reddit_scrape_queue" ON public.reddit_scrape_queue FOR ALL USING (true) WITH CHECK (true);
 
 COMMIT;
+
