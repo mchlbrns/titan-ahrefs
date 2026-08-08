@@ -168,8 +168,40 @@ const SEED_THREADS: Record<string, TargetThreadItem[]> = {
   ],
 };
 
-function getSeedThreads(subreddit: string): TargetThreadItem[] {
-  return SEED_THREADS[subreddit.toLowerCase()] ?? [];
+function getSeedThreadsForMode(mode: string, subreddit: string, keyword: string): TargetThreadItem[] {
+  const cleanSub = subreddit.trim().toLowerCase();
+  const cleanKw = keyword.trim().toLowerCase();
+  const allSeeds = Object.values(SEED_THREADS).flat();
+
+  if (mode === 'keyword') {
+    if (!cleanKw) return allSeeds;
+    const matches = allSeeds.filter(
+      t =>
+        t.targetKeyword.toLowerCase().includes(cleanKw) ||
+        t.title.toLowerCase().includes(cleanKw) ||
+        t.subreddit.toLowerCase().includes(cleanKw)
+    );
+    if (matches.length > 0) return matches;
+    if (['casino', 'sweepstakes', 'slot', 'slots', 'bonus', 'free', 'game', 'app', 'ai', 'companion', 'strategy'].some(k => cleanKw.includes(k))) {
+      return allSeeds.slice(0, 4);
+    }
+    return [];
+  }
+
+  if (mode === 'combined') {
+    if (cleanSub && SEED_THREADS[cleanSub]) {
+      return SEED_THREADS[cleanSub];
+    }
+    if (cleanKw) {
+      const matches = allSeeds.filter(
+        t => t.targetKeyword.toLowerCase().includes(cleanKw) || t.title.toLowerCase().includes(cleanKw)
+      );
+      if (matches.length > 0) return matches;
+    }
+    return allSeeds.slice(0, 3);
+  }
+
+  return SEED_THREADS[cleanSub] ?? [];
 }
 
 export async function GET(req: Request) {
@@ -195,7 +227,7 @@ export async function GET(req: Request) {
     if (report.threads.length === 0) {
       // API quota is exhausted — return hardcoded seed threads for known subreddits only.
       // Never generate dynamic mock data from user input to avoid misleading results.
-      const seedThreads = getSeedThreads(subreddit);
+      const seedThreads = getSeedThreadsForMode(mode, subreddit, keyword);
       return NextResponse.json({
         mode,
         target,

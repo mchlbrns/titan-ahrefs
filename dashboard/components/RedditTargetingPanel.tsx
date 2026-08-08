@@ -335,9 +335,13 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
       <div className="data-card p-4 space-y-4">
         {/* Mode Tabs */}
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mr-2">Search Mode:</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mr-2">Search Strategy:</span>
           <button
-            onClick={() => { setMode('subreddit'); setCommittedParams(prev => ({ ...prev, mode: 'subreddit' })); }}
+            type="button"
+            onClick={() => {
+              setMode('subreddit');
+              setCommittedParams({ mode: 'subreddit', subreddit: subredditInput, keyword: keywordInput, minVolume: minVolumeInput });
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'subreddit'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
@@ -345,10 +349,14 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
             }`}
           >
             <Layers className="h-3.5 w-3.5 inline mr-1.5" />
-            Mode B (Subreddit-First)
+            Subreddit-First (B)
           </button>
           <button
-            onClick={() => { setMode('keyword'); setCommittedParams(prev => ({ ...prev, mode: 'keyword' })); }}
+            type="button"
+            onClick={() => {
+              setMode('keyword');
+              setCommittedParams({ mode: 'keyword', subreddit: subredditInput, keyword: keywordInput, minVolume: minVolumeInput });
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'keyword'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
@@ -356,17 +364,21 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
             }`}
           >
             <Search className="h-3.5 w-3.5 inline mr-1.5" />
-            Mode A (Keyword-First)
+            Keyword-First (A)
           </button>
           <button
-            onClick={() => { setMode('combined'); setCommittedParams(prev => ({ ...prev, mode: 'combined' })); }}
+            type="button"
+            onClick={() => {
+              setMode('combined');
+              setCommittedParams({ mode: 'combined', subreddit: subredditInput, keyword: keywordInput, minVolume: minVolumeInput });
+            }}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               mode === 'combined'
                 ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
                 : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200'
             }`}
           >
-            Mode C (Combined)
+            Combined (C)
           </button>
         </div>
 
@@ -461,7 +473,11 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           <p>
             <strong>Quota Fallback Active.</strong> Ahrefs API quota is currently locked. Displaying seeded target opportunities for{' '}
-            <span className="font-semibold text-slate-100">{mode === 'keyword' ? keywordInput : `r/${subredditInput}`}</span> aligned with{' '}
+            <span className="font-semibold text-slate-100">
+              {committedParams.mode === 'keyword'
+                ? `"${committedParams.keyword}"`
+                : `r/${committedParams.subreddit}`}
+            </span> aligned with{' '}
             <span className="font-semibold text-cyan-300">{activeDomain}</span>.
           </p>
         </div>
@@ -518,15 +534,29 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
               {quotaExhausted ? (
                 <>
                   <p className="text-sm font-semibold text-amber-400">⚠️ Ahrefs API Quota Exhausted</p>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    No seed data available for <span className="font-mono text-slate-200">r/{committedParams.subreddit}</span> while the API quota is locked.
-                    Only pre-verified subreddits have reference threads during the lockout period.
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    Use a preset with available data:&nbsp;
-                    <span className="text-cyan-400 font-medium">r/ChumbaCasino · r/sweepstakes · r/slots · r/socialcasino · r/onlinegambling</span>
-                  </p>
-                  <p className="text-xs text-slate-600 italic">Live search for any subreddit resumes after API reset on 2026-09-04.</p>
+                  {committedParams.mode === 'keyword' ? (
+                    <>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        No seed data available for keyword <span className="font-mono text-slate-200">"{committedParams.keyword}"</span> while the API quota is locked.
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Try keywords with available seed data:&nbsp;
+                        <span className="text-cyan-400 font-medium">sweepstakes casino · ChumbaCasino strategy · social slots · no deposit bonus</span>
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs text-slate-400 max-w-md mx-auto">
+                        No seed data available for <span className="font-mono text-slate-200">r/{committedParams.subreddit}</span> while the API quota is locked.
+                        Only pre-verified subreddits have reference threads during the lockout period.
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Use a preset with available data:&nbsp;
+                        <span className="text-cyan-400 font-medium">r/ChumbaCasino · r/sweepstakes · r/slots · r/socialcasino · r/onlinegambling</span>
+                      </p>
+                    </>
+                  )}
+                  <p className="text-xs text-slate-600 italic">Live search resumes after API reset on 2026-09-04.</p>
                 </>
               ) : (
                 <p className="text-xs text-slate-500 italic">No threads returned for this query.</p>
