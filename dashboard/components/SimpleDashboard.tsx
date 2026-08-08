@@ -80,7 +80,7 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
     return [
       {
         id: 'seed_casino_1',
-        url: 'https://www.reddit.com/r/ChumbaCasino/comments/18x9k2/best_social_sweepstakes_casino_sites_2026/',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/18x9k2/top_ranking_discussion_in_ChumbaCasino/',
         title: 'Top Ranking Community Discussion: ChumbaCasino Trends',
         subreddit: 'r/ChumbaCasino',
         targetKeyword: 'best ChumbaCasino strategy',
@@ -91,7 +91,7 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
       },
       {
         id: 'seed_casino_2',
-        url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_chumbacasino/',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/19a1m4/beginner_guide_to_ChumbaCasino/',
         title: "Beginner's Guide to ChumbaCasino Sweepstakes in 2026",
         subreddit: 'r/ChumbaCasino',
         targetKeyword: 'ChumbaCasino sweepstakes for beginners',
@@ -102,7 +102,7 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
       },
       {
         id: 'seed_casino_3',
-        url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_chumbacasino_tools/',
+        url: 'https://www.reddit.com/r/ChumbaCasino/comments/17y4n8/essential_ChumbaCasino_tools_and_setup/',
         title: 'Essential Social Casino Slots & Setup Guide',
         subreddit: 'r/ChumbaCasino',
         targetKeyword: 'top social slots strategy',
@@ -287,18 +287,20 @@ export default function SimpleDashboard({
   const handleTargetThread = useCallback(async (thread: RedditThread) => {
     setPushingUrls((prev) => new Set([...Array.from(prev), thread.url]));
 
-    const isCurrentlyQueued = queuedThreadUrls.has(thread.url);
+    const normalizeUrl = (u: string) => (u || '').toLowerCase().trim().replace(/\/$/, '');
+    const targetNorm = normalizeUrl(thread.url);
+    const isCurrentlyQueued = Array.from(queuedThreadUrls).some((u) => normalizeUrl(u) === targetNorm);
 
     if (isCurrentlyQueued) {
       // Untarget / remove thread from queue
       setQueuedThreadUrls((prev) => {
-        const next = new Set(prev);
-        next.delete(thread.url);
+        const nextArr = Array.from(prev).filter((u) => normalizeUrl(u) !== targetNorm);
+        const nextSet = new Set(nextArr);
         if (typeof window !== 'undefined') {
-          const list = Array.from(next).map((u) => ({ thread_url: u }));
+          const list = nextArr.map((u) => ({ thread_url: u }));
           localStorage.setItem('titan_reddit_scrape_queue', JSON.stringify(list));
         }
-        return next;
+        return nextSet;
       });
 
       try {
@@ -498,7 +500,8 @@ export default function SimpleDashboard({
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredThreads.map((thread) => {
-            const isQueued = queuedThreadUrls.has(thread.url);
+            const normalizeUrl = (u: string) => (u || '').toLowerCase().trim().replace(/\/$/, '');
+            const isQueued = Array.from(queuedThreadUrls).some((u) => normalizeUrl(u) === normalizeUrl(thread.url));
             const isPushing = pushingUrls.has(thread.url);
 
             return (
