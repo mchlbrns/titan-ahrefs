@@ -28,3 +28,5 @@ tests/scratch/
 Thumbs.db
 .vscode/
 .idea/
+.vercel/
+
