@@ -296,7 +296,7 @@ export class AhrefsClient {
         const data = await res.json() as Record<string, unknown>;
         const rawKeywords = Array.isArray(data.keywords) ? data.keywords : [];
 
-        let totalKws = rawKeywords.length;
+        const totalKws = rawKeywords.length;
         let top3 = 0;
         let top10 = 0;
         let top50 = 0;

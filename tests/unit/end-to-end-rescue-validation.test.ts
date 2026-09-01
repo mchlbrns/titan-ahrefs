@@ -1,14 +1,11 @@
 import { AhrefsClient } from '../../src/client';
 import { CompetitorAnalyzer } from '../../src/competitors';
-import { RecommendationEngine } from '../../src/recommendations';
 import { SnapshotStore } from '../../src/snapshots';
 import { ComparisonEngine } from '../../src/comparison';
-import { ReportGenerator } from '../../src/reports';
 
 describe('ULTIMATE DEPLOYMENT RESCUE — End-to-End Validation Suite', () => {
   let client: AhrefsClient;
   let competitorAnalyzer: CompetitorAnalyzer;
-  let recEngine: RecommendationEngine;
   let comparisonEngine: ComparisonEngine;
 
   beforeEach(() => {
@@ -16,7 +13,6 @@ describe('ULTIMATE DEPLOYMENT RESCUE — End-to-End Validation Suite', () => {
     delete process.env.MOCK_API_FALLBACK;
     client = new AhrefsClient({ mockFallback: true, maxRetries: 0 });
     competitorAnalyzer = new CompetitorAnalyzer(client);
-    recEngine = new RecommendationEngine();
     comparisonEngine = new ComparisonEngine();
   });
 

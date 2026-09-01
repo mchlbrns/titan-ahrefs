@@ -287,7 +287,7 @@ export class ReportGenerator {
     timestamp: string,
     domains: string[],
     summaries: ExecutiveSummaryItem[],
-    apiUsage?: ApiUsageLimits
+    _apiUsage?: ApiUsageLimits
   ): string {
     const primaryDomain = domains[0] || 'titantreasure.com';
     const mainSummary = summaries[0];

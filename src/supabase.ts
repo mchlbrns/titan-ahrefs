@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { DomainSnapshot } from './types';
 import { Logger } from './logger';
+import { saveSnapshotLocally } from './snapshots';
 
 const logger = new Logger({ context: 'SupabaseClient' });
 
@@ -30,7 +31,6 @@ export function getSupabaseClient(): SupabaseClient | null {
 export async function saveSnapshotToSupabase(snapshot: DomainSnapshot): Promise<boolean> {
   // Always save snapshot to local workspace directory as well
   try {
-    const { saveSnapshotLocally } = require('./snapshots');
     saveSnapshotLocally(snapshot);
   } catch {
     // ignore local save error
