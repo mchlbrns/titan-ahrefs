@@ -15,10 +15,8 @@ export async function GET() {
     }
     return NextResponse.json({
       competitors_by_domain: {
-        'titantreasure.com': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
-        'red-engage.com': [],
-        'heavengirlfriend.com': [],
-        'hornycompanion.com': []
+        'titantreasure.casino': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
+        'titantreasure.bet': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']
       }
     });
   } catch (err: unknown) {

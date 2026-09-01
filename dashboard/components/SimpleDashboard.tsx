@@ -115,38 +115,6 @@ function getDomainSeedThreads(domain: string): RedditThread[] {
     ];
   }
 
-  if (d.includes('girlfriend') || d.includes('horny') || d.includes('companion')) {
-    return [
-      {
-        id: 'seed_ai_1',
-        url: 'https://www.reddit.com/r/AICompanion/comments/18x9k2/top_ai_companion_platforms_comparison/',
-        title: 'Top AI companion and avatar platforms compared for user engagement',
-        subreddit: 'r/AICompanion',
-        targetKeyword: 'best ai companion app',
-        searchVolume: 18500,
-        estTraffic: 6900,
-        rank: 1,
-        category: 'AI Companion',
-      },
-    ];
-  }
-
-  if (d.includes('red-engage') || d.includes('engage') || d.includes('marketing')) {
-    return [
-      {
-        id: 'seed_mkt_1',
-        url: 'https://www.reddit.com/r/digitalmarketing/comments/17y4n8/best_seo_automation_tools_2026/',
-        title: 'What are the best SEO & Ahrefs automation tools you actually use in 2026?',
-        subreddit: 'r/digitalmarketing',
-        targetKeyword: 'best seo automation tools',
-        searchVolume: 4800,
-        estTraffic: 2100,
-        rank: 2,
-        category: 'Marketing',
-      },
-    ];
-  }
-
   return [];
 }
 
@@ -234,9 +202,6 @@ export default function SimpleDashboard({
           'luckierbety.com': 'ChumbaCasino',
           'titantreasure.bet': 'ChumbaCasino',
           'titantreasure.casino': 'ChumbaCasino',
-          'heavengirlfriend.com': 'AICompanion',
-          'hornycompanion.com': 'AICompanion',
-          'red-engage.com': 'digitalmarketing',
         };
         const sub = subMap[domain];
         if (sub) {

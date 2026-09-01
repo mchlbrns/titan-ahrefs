@@ -91,24 +91,6 @@ const DOMAIN_PRESETS: Record<string, { defaultSub: string; defaultKeyword?: stri
   'luckierbety.com': SOCIAL_CASINO_CONFIG,
   'titantreasure.bet': SOCIAL_CASINO_CONFIG,
   'titantreasure.casino': SOCIAL_CASINO_CONFIG,
-  'heavengirlfriend.com': {
-    label: 'AI Companion & Gaming Platform',
-    defaultSub: 'AICompanion',
-    defaultKeyword: 'AI companion app',
-    presets: ['AICompanion', 'SoulmateAI', 'CharacterAI', 'Replika', 'virtualgf'],
-  },
-  'hornycompanion.com': {
-    label: 'Adult Entertainment Directory',
-    defaultSub: 'AICompanion',
-    defaultKeyword: 'virtual companion',
-    presets: ['AICompanion', 'NSFWAI', 'virtualgf', 'CharacterAI', 'Replika'],
-  },
-  'red-engage.com': {
-    label: 'Engagement & Content Platform',
-    defaultSub: 'digitalmarketing',
-    defaultKeyword: 'SEO automation',
-    presets: ['digitalmarketing', 'SEO', 'contentmarketing', 'growthhacking', 'B2Bmarketing'],
-  },
 };
 
 const DEFAULT_CONFIG = SOCIAL_CASINO_CONFIG;

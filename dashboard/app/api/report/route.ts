@@ -25,10 +25,8 @@ export async function GET(req: NextRequest) {
   try {
     if (format === 'json') {
       const domainCompetitorsMap: Record<string, string[]> = {
-        'heavengirlfriend.com': ['candy.ai', 'crushon.ai', 'spicychat.ai'],
-        'hornycompanion.com': ['janitorai.com', 'character.ai', 'dopple.ai'],
-        'red-engage.com': ['singlegrain.com', 'growthrocks.com', 'disruptiveadvertising.com'],
-        'titantreasure.com': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']
+        'titantreasure.casino': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com'],
+        'titantreasure.bet': ['chumbacasino.com', 'pulsz.com', 'luckylandslots.com']
       };
 
       const targetCompetitors = domainCompetitorsMap[requestedDomain] || [];

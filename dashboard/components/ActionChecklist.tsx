@@ -25,7 +25,7 @@ interface ActionChecklistProps {
 }
 
 export default function ActionChecklist({
-  domain = 'red-engage.com',
+  domain = 'titantreasure.casino',
   strikingCount,
   refDomainsCount,
   competitorsCount,
