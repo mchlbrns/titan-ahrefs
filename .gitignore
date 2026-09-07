@@ -26,6 +26,8 @@ tests/scratch/
 # OS & Editor Files
 .DS_Store
 Thumbs.db
+desktop.ini
+*.ini
 .vscode/
 .idea/
 .vercel/

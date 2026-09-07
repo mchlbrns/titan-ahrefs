@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 
 interface ActionItem {
@@ -25,7 +25,7 @@ interface ActionChecklistProps {
 }
 
 export default function ActionChecklist({
-  domain = 'titantreasure.casino',
+  domain = 'red-engage.com',
   strikingCount,
   refDomainsCount,
   competitorsCount,

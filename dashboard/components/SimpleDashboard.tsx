@@ -9,7 +9,6 @@ import {
   Zap,
   Award,
   Flame,
-  Filter,
   Trash2,
 } from 'lucide-react';
 import ActionChecklist from './ActionChecklist';
@@ -461,7 +460,7 @@ export default function SimpleDashboard({
         {/* Thread Cards */}
         {filteredThreads.length === 0 ? (
           <div className="text-center py-8 text-slate-500 text-xs">
-            No threads matching preset "{selectedCategory}". Select [ All ] to see all opportunities.
+            No threads matching preset &quot;{selectedCategory}&quot;. Select [ All ] to see all opportunities.
           </div>
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

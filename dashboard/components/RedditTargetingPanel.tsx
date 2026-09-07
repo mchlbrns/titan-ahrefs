@@ -4,7 +4,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   TrendingUp,
   AlertTriangle,
-  Lock,
   ArrowUpRight,
   Link,
   Globe,
@@ -127,7 +126,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
   const [pushingIds, setPushingIds] = useState<Set<string>>(new Set());
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   // Tracks which thread URLs are queued — persisted to localStorage so both views stay in sync
-  const [queuedUrls, setQueuedUrls] = useState<Set<string>>(() => getQueuedUrlsFromStorage());
+  const [, setQueuedUrls] = useState<Set<string>>(() => getQueuedUrlsFromStorage());
 
   // Sync inputs AND committed params on domain change
   useEffect(() => {
@@ -535,7 +534,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                   {committedParams.mode === 'keyword' ? (
                     <>
                       <p className="text-xs text-slate-400 max-w-md mx-auto">
-                        No seed data available for keyword <span className="font-mono text-slate-200">"{committedParams.keyword}"</span> while the API quota is locked.
+                        No seed data available for keyword <span className="font-mono text-slate-200">&quot;{committedParams.keyword}&quot;</span> while the API quota is locked.
                       </p>
                       <p className="text-xs text-slate-500">
                         Try keywords with available seed data:&nbsp;
@@ -545,7 +544,7 @@ export default function RedditTargetingPanel({ selectedDomain }: RedditTargeting
                   ) : committedParams.mode === 'combined' ? (
                     <>
                       <p className="text-xs text-slate-400 max-w-md mx-auto">
-                        No seed data available for query <span className="font-mono text-slate-200">r/{committedParams.subreddit} + "{committedParams.keyword}"</span> while the API quota is locked.
+                        No seed data available for query <span className="font-mono text-slate-200">r/{committedParams.subreddit} + &quot;{committedParams.keyword}&quot;</span> while the API quota is locked.
                       </p>
                       <p className="text-xs text-slate-500">
                         Use a preset or keyword with available seed data.

@@ -61,7 +61,7 @@ function downloadCsv(filename: string, headers: string[], rows: (string | number
 
 export default function ExportMenu({
   domain,
-  activeTab = 'overview',
+  activeTab: _activeTab = 'overview',
   summary,
   keywords = [],
   overviewKeywords = [],
@@ -69,10 +69,10 @@ export default function ExportMenu({
   backlinks = [],
   competitors = [],
   redditThreads = [],
-  liveRecommendations = [],
+  liveRecommendations: _liveRecommendations = [],
   healthScore,
   healthGrade,
-  keywordFilterLabel = 'All',
+  keywordFilterLabel: _keywordFilterLabel = 'All',
 }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -185,45 +185,6 @@ export default function ExportMenu({
         scrapeStatus: 'Unscraped',
       },
     ];
-  };
-
-  const handleDirectCopyEmailSlack = () => {
-    setIsOpen(false);
-    const primaryDomain = domain || 'titantreasure.com';
-    const dateStr = new Date().toISOString().slice(0, 10);
-    const healthVal = summary?.healthScore ?? healthScore ?? 'N/A';
-    const drVal = summary?.domain_rating ?? summary?.domainRating ?? 'N/A';
-    const trafficVal = (summary?.organic_traffic ?? summary?.organicTraffic ?? 0).toLocaleString();
-    const refVal = summary?.ref_domains ?? summary?.referringDomains ?? backlinks.length;
-    const strikingVal = summary?.striking_distance_count ?? 0;
-
-    let actionPlanStr = '';
-    let redditStr = '';
-
-    if (typeof window !== 'undefined') {
-      const savedTasks = localStorage.getItem(`titan_ahrefs_completed_tasks_${primaryDomain}`);
-      const completedList: string[] = savedTasks ? JSON.parse(savedTasks) : [];
-      const totalTasks = 4;
-      const percent = Math.round((completedList.length / totalTasks) * 100);
-      const statusNote = percent === 100 ? '100% — Complete' : `${percent}% — Action Recommended`;
-      actionPlanStr = `\n• SEO Action Plan: ${completedList.length}/${totalTasks} tasks completed (${statusNote})`;
-
-      const activeRedditThreads = getExportRedditThreads(redditThreads);
-      redditStr = `\n• Reddit Growth Finder: ${activeRedditThreads.length} Page 1 thread(s) targeted`;
-    }
-
-    const summaryText = `📊 Complete Executive SEO Briefing — ${primaryDomain} (${dateStr})\n` +
-      `• SEO Health Score: ${healthVal}/100\n` +
-      `• Domain Rating: ${drVal}\n` +
-      `• Est. Monthly Organic Traffic: ${trafficVal} visits\n` +
-      `• Referring Domains: ${refVal}\n` +
-      `• Quick Wins: ${strikingVal} keywords in positions #4-20` +
-      actionPlanStr +
-      redditStr;
-
-    navigator.clipboard.writeText(summaryText);
-    setToastMessage('✓ Copied Complete Executive Summary to Clipboard!');
-    setTimeout(() => setToastMessage(null), 3000);
   };
 
   /**
@@ -570,7 +531,7 @@ export default function ExportMenu({
     setLoadingEmail(true);
 
     try {
-      const primaryDomain = domain || 'titantreasure.com';
+      const primaryDomain = domain || 'red-engage.com';
       const dateStr = new Date().toISOString().slice(0, 10);
       const activeRedditThreads = getExportRedditThreads(redditThreads);
       const kwList = keywords.length > 0 ? keywords : overviewKeywords;
@@ -650,7 +611,7 @@ export default function ExportMenu({
           >
             <FileText className="h-4 w-4 text-cyan-400 shrink-0 mt-0.5" />
             <div className="text-left">
-              <div className="font-semibold text-white">📄 Download PDF Report</div>
+               <div className="font-semibold text-white">📄 Download PDF Report</div>
               <div className="text-[10px] text-slate-400 mt-0.5 leading-snug">Complete multi-section PDF combining all metrics, pages & Reddit targets.</div>
             </div>
           </button>
@@ -667,7 +628,7 @@ export default function ExportMenu({
           </button>
 
           <button
-            onClick={handleDirectCopyEmailSlack}
+            onClick={openEmailModal}
             className="w-full text-left px-3.5 py-2.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-white flex items-start gap-3 transition-colors border-t border-slate-800/80"
           >
             <Mail className="h-4 w-4 text-purple-400 shrink-0 mt-0.5" />
